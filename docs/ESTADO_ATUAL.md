@@ -8,7 +8,7 @@
 ## Checklist do que JÁ foi feito:
 - [x] ✅ Ambiente mapeado (Node v24.16, Docker ativo, 389GB livres)
 - [x] ✅ Auditoria de segurança do docker-compose (sem privileged, cap_drop, no-new-privileges)
-- [x] ✅ Pastas de estado criadas (~/.openclaw, workspace, secrets)
+- [x] ✅ Pastas de estado criadas (~/.openclaw, workspace, ~/.openclaw-auth-profile-secrets)
 - [x] ✅ .env criado com token gateway + chave DeepSeek
 - [x] ✅ .env protegido pelo .gitignore (não vaza no git)
 - [x] ✅ openclaw.json validado 2x (DeepSeek + Sonnet) com sandbox total
