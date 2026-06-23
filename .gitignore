@@ -1,0 +1,5 @@
+# Ignora o codigo-fonte do OpenClaw (projeto de terceiros)
+openclaw/
+# Seguranca extra: ignora qualquer .env em qualquer lugar
+**/.env
+*.env
