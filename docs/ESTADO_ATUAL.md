@@ -2,7 +2,7 @@
 
 - **Nome do projeto:** MEU AGENTE (OpenClaw isolado para aprendizado)
 - **Objetivo:** aprender agentes autônomos com máxima segurança
-- **Modelo/cérebro:** DeepSeek V3 (`deepseek/deepseek-chat`) — V4-flash disponível para migração
+- **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro)
 - **Versão OpenClaw:** v2026.6.9 (estável)
 - **Data da última atualização:** 2026-06-23
 
@@ -35,7 +35,7 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 
 ## Checklist do que FALTA (próximos passos):
 
-- [ ] 🟡 Migrar para DeepSeek V4-flash (disponível na UI do OpenClaw, precisa de atualização do provider)
+- [x] ✅ Migrar para DeepSeek V4-flash (resolvido nativamente na interface web sem necessidade de litellm)
 - [ ] 🟡 Configurar `gateway.controlUi.allowedOrigins` permanentemente no openclaw.json
 - [ ] 🟡 Corrigir aviso de memória semântica (desabilitar `memorySearch` ou configurar OpenAI key)
 - [ ] 🟢 Explorar concessão gradual de ferramentas ao agente (leitura → escrita → execução)

@@ -7,13 +7,13 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 
 ### Prioridade 🔴 URGENTE
 
-- [ ] **Configurar docker.sock no compose:** adicionar volume `- /var/run/docker.sock:/var/run/docker.sock` no serviço `openclaw-gateway` do `docker-compose.yml`
-- [ ] **Religar sandbox:** alterar `sandbox.mode` de `"off"` para `"all"` no `~/.openclaw/openclaw.json`
-- [ ] **Validar isolamento:** testar que o agente consegue criar contêineres de sandbox (checar logs de `[sandbox]` ao disparar uma tarefa)
+- [x] **Configurar docker.sock no compose:** (Feito)
+- [x] **Religar sandbox:** (Feito)
+- [x] **Validar isolamento:** (Em andamento)
 
 ### Prioridade 🟡 PRÓXIMA FASE
 
-- [ ] **Migrar para DeepSeek V4-flash:** o V4 tem 1M de contexto e raciocínio mais poderoso. O `doctor --fix` instalou V3 automaticamente; V4 requer configuração manual via litellm ou atualização do provider `@openclaw/deepseek-provider`
+- [x] **Migrar para DeepSeek V4-flash:** (Aprendizado resolvido: não é necessário litellm, o V4-flash e V4-pro estão disponíveis nativamente na interface web após o `doctor --fix`)
 - [ ] **Corrigir allowedOrigins permanentemente:** o gateway está fazendo seed automático a cada restart. Adicionar `gateway.controlUi.allowedOrigins: ["http://localhost:18789", "http://127.0.0.1:18789"]` no openclaw.json para tornar permanente
 - [ ] **Silenciar aviso de memória semântica:** desabilitar `agents.defaults.memorySearch.enabled` ou configurar uma chave OpenAI
 
