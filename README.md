@@ -7,7 +7,7 @@
 
 - ✅ Agente operacional em sandbox Docker isolado
 - ✅ DeepSeek V4-pro como cérebro
-- ✅ 6 camadas de defense in depth validadas
+- ✅ 8 camadas de defense in depth validadas
 - ✅ Documentação viva e auditoria multi-IA
 - 🚧 Próxima fase: liberação gradual de capacidades
 
@@ -19,7 +19,7 @@ Um laboratório técnico para construir, isolar e validar agentes autônomos de 
 
 Estudo de caso para arquitetura segura de agentes autônomos voltados para PMEs brasileiras. Validar tecnicamente o conceito antes de aplicar em soluções comerciais de "funcionários digitais" (atendimento, agendamento, cobrança automatizados).
 
-## 🏰 Arquitetura de Segurança — 6 Camadas
+## 🏰 Arquitetura de Segurança — 8 Camadas
 
 1. **Container Docker isolado** — Sub-container efêmero por sessão
 2. **Drop de privilégio** — Roda como usuário `sandbox`, nunca root
@@ -27,6 +27,8 @@ Estudo de caso para arquitetura segura de agentes autônomos voltados para PMEs 
 4. **Tool policy** — `cron`, `gateway`, `nodes` automaticamente bloqueados no sandbox
 5. **Cache de sessão** — Sandbox isolado por sessão, destruído no fim
 6. **workspaceAccess: none** — Agente cego para o filesystem do host
+7. **NetworkMode: none** — Sandbox sem internet (anti-exfiltração)
+8. **Workspace read-only** — Volume montado em modo somente leitura
 
 ## 🛠️ Stack
 
