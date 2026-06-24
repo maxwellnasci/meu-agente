@@ -50,9 +50,15 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 - [x] ✅ **Correção de auth de sub-agentes** (paste-api-key)
 - [x] ✅ **Warnings limpos no gateway** (allowedOrigins, memorySearch)
 
+## TESTES DE CAPACIDADE:
+
+- [x] ✅ **Nível 1** — Sandbox validado (whoami, ls, data)
+- [x] ✅ **Nível 2** — Sub-agentes paralelos funcionam, auth corrigido confirmado (2026-06-24)
+- [ ] **Nível 3** — Cenário MXOS-like (caso de uso real: clínicas, oficinas, etc.)
+
 ## PRÓXIMOS PASSOS:
 
-- [ ] Testar poder do Amigão (sub-agentes, criação de arquivos)
+- [ ] Executar Nível 3 — MXOS-like (docs/TESTE_NIVEL_3.md)
 - [ ] Criar README.md básico (visual, organizado)
 - [ ] Aplicar aprendizados no MXOS
 
