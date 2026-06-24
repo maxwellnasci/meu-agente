@@ -54,12 +54,19 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 
 - [x] ✅ **Nível 1** — Sandbox validado (whoami, ls, data)
 - [x] ✅ **Nível 2** — Sub-agentes paralelos funcionam, auth corrigido confirmado (2026-06-24)
-- [ ] **Nível 3** — Cenário MXOS-like (caso de uso real: clínicas, oficinas, etc.)
+- [x] ✅ **Nível 3** — Cenário MXOS-like testado com aprendizados críticos documentados (2026-06-24)
+
+## PROBLEMAS CONHECIDOS A RESOLVER:
+
+- ⚠️ **Alucinação funcional** — agente inventa dados (ex: políticas de negócio) com aparência de verdade
+- ⚠️ **Citações fabricadas** — atribui frases a pessoas reais sem base
+- ⚠️ **Ações sem integração declaradas como concluídas** — afirma ter feito algo que não fez
 
 ## PRÓXIMOS PASSOS:
 
-- [ ] Executar Nível 3 — MXOS-like (docs/TESTE_NIVEL_3.md)
-- [ ] Criar README.md básico (visual, organizado)
+- [ ] Implementar Supervisor (LLM as a Judge) para validar respostas antes de envio
+- [ ] Implementar integrações reais (n8n + WhatsApp Business + Supabase)
+- [ ] Prompt engineering para reduzir alucinações estruturais
 - [ ] Aplicar aprendizados no MXOS
 
 ---

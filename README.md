@@ -9,7 +9,8 @@
 - ✅ DeepSeek V4-pro como cérebro
 - ✅ 8 camadas de defense in depth validadas
 - ✅ Documentação viva e auditoria multi-IA
-- 🚧 Próxima fase: liberação gradual de capacidades
+- ✅ Nível 3 testado — cenário MXOS-like com aprendizados críticos documentados
+- 🚧 Próxima fase: Supervisor (LLM as a Judge) + integrações reais
 
 ## 📌 O que é
 
@@ -68,6 +69,10 @@ meu-agente/
 
 │   ├── TESTE_NIVEL_1.md         # Validação capacidades básicas
 
+│   ├── TESTE_NIVEL_2.md         # Sub-agentes paralelos + auth
+
+│   ├── TESTE_NIVEL_3.md         # Cenário MXOS-like + aprendizados críticos
+
 │   └── TESTE_SANDBOX.md         # Validação do isolamento
 
 ├── ANALISE.md                   # Auditoria inicial de segurança
@@ -83,11 +88,13 @@ meu-agente/
 - **Auditoria multi-IA pega o que IA única não pega** — Sonnet encontrou 2 campos inventados que Gemini não percebeu
 - **Documentação viva** — Cada sessão registrada permite retomar contexto e onboard de outras IAs
 - **Sandbox sem rede externa** — `NetworkMode: none` impede exfiltração de dados, comunicação com C2 e download de malware
+- **Alucinação elegante é mais perigosa que erro óbvio** — Resposta bem formatada com dado inventado passa pela revisão humana; erro grosseiro não passa
+- **O moat do MXOS é EXECUÇÃO, não análise** — Qualquer LLM produz texto bonito; integrar com sistemas reais do cliente é o diferencial
 
 ## 🚧 Próximos passos
 
-- Liberação gradual de capacidades (leitura → escrita → execução)
-- Teste de poder com sub-agentes
+- Implementar Supervisor (LLM as a Judge) para validar respostas antes do envio
+- Integrações reais: n8n + WhatsApp Business API + Supabase
 - Aplicação dos aprendizados no projeto MXOS (funcionários digitais para PMEs)
 
 ## 👤 Sobre
