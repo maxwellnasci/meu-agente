@@ -4,17 +4,19 @@
 - **Objetivo:** aprender agentes autônomos com máxima segurança
 - **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro)
 - **Versão OpenClaw:** v2026.6.9 (estável)
-- **Data da última atualização:** 2026-06-23
+- **Data da última atualização:** 2026-06-24
 
 ---
 
-## ESTADO FINAL DO DIA 2026-06-23
+## ESTADO FINAL DO DIA 2026-06-24
 
 - **Agente "Amigão":** Operacional
 - **Modelo:** V4-pro (selecionado na sessão)
 - **Sandbox:** Validado (`whoami` retornou "sandbox")
 - **Nível de segurança:** *Defense in depth* com 6 camadas implementadas e testadas
-- **Status:** Pronto para próximas etapas (soltar ferramentas)
+- **Autenticação de Sub-agentes:** Corrigida via auth profiles (sqlite)
+- **Warnings:** Limpos (allowedOrigins e memorySearch)
+- **Status:** Estável, pronto para testar criação de arquivos
 
 ---
 
@@ -45,13 +47,14 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 - [x] ✅ **DeepSeek V4-pro funcional** (selecionável na interface)
 - [x] ✅ **Documentação completa no GitHub**
 - [x] ✅ **6 camadas de segurança implementadas e testadas**
+- [x] ✅ **Correção de auth de sub-agentes** (paste-api-key)
+- [x] ✅ **Warnings limpos no gateway** (allowedOrigins, memorySearch)
 
-## PRÓXIMA SESSÃO:
+## PRÓXIMOS PASSOS:
 
-- [ ] Soltar ferramenta de criação de arquivos (com cuidado)
-- [ ] Limpar os 2 warnings (allowedOrigins + memorySearch)
-- [ ] Testar mais comandos no Amigão
-- [ ] Eventualmente: planejar aplicação no MXOS
+- [ ] Testar poder do Amigão (sub-agentes, criação de arquivos)
+- [ ] Criar README.md básico (visual, organizado)
+- [ ] Aplicar aprendizados no MXOS
 
 ---
 
