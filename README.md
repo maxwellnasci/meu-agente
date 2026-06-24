@@ -24,7 +24,7 @@ Estudo de caso para arquitetura segura de agentes autônomos voltados para PMEs 
 1. **Container Docker isolado** — Sub-container efêmero por sessão
 2. **Drop de privilégio** — Roda como usuário `sandbox`, nunca root
 3. **Hash pinning** — Imagens com SHA256 fixo (anti supply-chain)
-4. **Tool policy** — `cron`, `gateway`, `nodes` automaticamente bloqueados no sandbox
+4. **Tool policy** — Sistema de allow/deny: bloqueia `cron`, `gateway`, `nodes` (deny) E filtra ferramentas não autorizadas via allowlist (allow) — só skills explicitamente liberadas chegam ao agente
 5. **Cache de sessão** — Sandbox isolado por sessão, destruído no fim
 6. **workspaceAccess: none** — Agente cego para o filesystem do host
 7. **NetworkMode: none** — Sandbox sem internet (anti-exfiltração)
@@ -56,7 +56,7 @@ meu-agente/
 
 │   ├── ESTADO_ATUAL.md          # Status atual do projeto
 
-│   ├── ARQUITETURA_SEGURANCA.md # Detalhes das 6 camadas
+│   ├── ARQUITETURA_SEGURANCA.md # Detalhes das 8 camadas
 
 │   ├── FLUXO_MULTI_IA.md        # Protocolo multi-IA
 
@@ -65,6 +65,8 @@ meu-agente/
 │   ├── SESSAO_2026-06-23.md     # Log da sessão de setup
 
 │   ├── SESSAO_2026-06-24.md     # Log da sessão de refinamento
+
+│   ├── TESTE_NIVEL_1.md         # Validação capacidades básicas
 
 │   └── TESTE_SANDBOX.md         # Validação do isolamento
 
@@ -80,6 +82,7 @@ meu-agente/
 - **Defense in depth funciona** — Validado em produção com teste `whoami` retornando `sandbox` (não host, não root)
 - **Auditoria multi-IA pega o que IA única não pega** — Sonnet encontrou 2 campos inventados que Gemini não percebeu
 - **Documentação viva** — Cada sessão registrada permite retomar contexto e onboard de outras IAs
+- **Sandbox sem rede externa** — `NetworkMode: none` impede exfiltração de dados, comunicação com C2 e download de malware
 
 ## 🚧 Próximos passos
 
