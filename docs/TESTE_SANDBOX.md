@@ -36,3 +36,20 @@ O isolamento funcionou 100% como projetado. O código executado via LLM não tev
 2. **Drop de Privilégios (USER sandbox):** O `whoami` retornou "sandbox" (não "root"). O container não roda como administrador interno.
 3. **Segurança Paranoica:** O OpenClaw recusou-se a executar a ferramenta quando a imagem exata da sandbox não estava buildada, recusando-se a usar imagens genéricas.
 4. **Camada Dupla:** Temos um container Docker isolado que *dentro dele* faz drop de privilégio do usuário root para usuário comum, reduzindo o risco de *container escape*.
+
+---
+
+## 5. Modelo Usado no Teste
+
+*   **Modelo configurado no `openclaw.json` (default):** `deepseek-chat` (V3)
+*   **Modelo usado na sessão de teste:** `deepseek-v4-pro`
+
+### Descoberta Arquitetural Relevante
+*   O modelo do `openclaw.json` é apenas o DEFAULT para novas inicializações sem parâmetro.
+*   A interface web do OpenClaw permite o **override do modelo POR SESSÃO** sem a necessidade de editar o arquivo de configuração ou reiniciar o gateway.
+*   Modelos nativos disponíveis na interface (sem necessidade de providers customizados como LiteLLM): `v4-flash`, `v4-pro`, com controle nativo de profundidade de raciocínio (thinking).
+*   Isso habilita a execução de uma **estratégia híbrida** na arquitetura.
+
+### Implicações para o Projeto MXOS
+*   **Segmentação de Produto:** Possibilidade de oferecer "níveis de inteligência" diferentes dependendo do cliente, ticket médio ou tipo de tarefa solicitada.
+*   **Otimização de Custo-Eficiência (FinOps):** Tarefas triviais e operacionais usam o cérebro mais barato e rápido (`V4-flash`), enquanto decisões de alto risco, análises profundas ou arquiteturais são direcionadas para o cérebro mais caro (`V4-pro`).
