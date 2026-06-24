@@ -8,6 +8,16 @@
 
 ---
 
+## ESTADO FINAL DO DIA 2026-06-23
+
+- **Agente "Amigão":** Operacional
+- **Modelo:** V4-pro (selecionado na sessão)
+- **Sandbox:** Validado (`whoami` retornou "sandbox")
+- **Nível de segurança:** *Defense in depth* com 6 camadas implementadas e testadas
+- **Status:** Pronto para próximas etapas (soltar ferramentas)
+
+---
+
 ## ✅ SANDBOX ATIVO — Sistema blindado
 
 **`sandbox.mode: "all"`** está configurado e operacional desde 2026-06-23.
@@ -31,15 +41,17 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 - [x] ✅ Plugin registry reconstruído (54/78 plugins indexados)
 - [x] ✅ Primeira conversa bem-sucedida com DeepSeek V3
 - [x] ✅ Portas validadas sem conflito com n8n (5678) e postgres (5432)
-- [x] ✅ **SANDBOX HABILITADO** — docker.sock mapeado, group_add GID 124, sandbox.mode: "all"
+- [x] ✅ **Sandbox ativo e validado em produção** (teste whoami passou)
+- [x] ✅ **DeepSeek V4-pro funcional** (selecionável na interface)
+- [x] ✅ **Documentação completa no GitHub**
+- [x] ✅ **6 camadas de segurança implementadas e testadas**
 
-## Checklist do que FALTA (próximos passos):
+## PRÓXIMA SESSÃO:
 
-- [x] ✅ Migrar para DeepSeek V4-flash (resolvido nativamente na interface web sem necessidade de litellm)
-- [ ] 🟡 Configurar `gateway.controlUi.allowedOrigins` permanentemente no openclaw.json
-- [ ] 🟡 Corrigir aviso de memória semântica (desabilitar `memorySearch` ou configurar OpenAI key)
-- [ ] 🟢 Explorar concessão gradual de ferramentas ao agente (leitura → escrita → execução)
-- [ ] 🟢 Documentar e aplicar aprendizados no projeto MXOS
+- [ ] Soltar ferramenta de criação de arquivos (com cuidado)
+- [ ] Limpar os 2 warnings (allowedOrigins + memorySearch)
+- [ ] Testar mais comandos no Amigão
+- [ ] Eventualmente: planejar aplicação no MXOS
 
 ---
 
