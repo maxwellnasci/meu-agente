@@ -152,8 +152,19 @@ contexto do cliente (Coach, médico, dono, etc.).
 
 ## PRÓXIMOS PASSOS
 
-- Refinar arquitetura com camada de Supervisor (LLM as a Judge)
-  para validar respostas antes de envio
 - Planejar integrações reais (n8n + WhatsApp Business + Supabase)
-- Não mostrar pro Coach da Arbo até problemas resolvidos
-- Considerar prompt engineering para reduzir alucinações estruturais
+- Criar skill com políticas reais da Arbo (`references/politicas-arbo.md`)
+- Testar reusabilidade do AGENTS.md Parte A em outros clientes
+
+---
+
+## ⚠️ UPDATE 2026-06-24 — FALHAS CRÍTICAS RESOLVIDAS
+
+Os 3 problemas críticos identificados acima foram **resolvidos no mesmo dia**
+via treinamento por AGENTS.md customizado, sem código adicional.
+
+**Nota pós-treinamento: 9/10** (era 7/10)
+**Status: VENDÁVEL** — pode ser mostrado ao Coach da Arbo.
+
+Detalhes completos do método e validação:
+→ [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)

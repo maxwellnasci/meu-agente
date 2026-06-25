@@ -55,19 +55,43 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 - [x] ✅ **Nível 1** — Sandbox validado (whoami, ls, data)
 - [x] ✅ **Nível 2** — Sub-agentes paralelos funcionam, auth corrigido confirmado (2026-06-24)
 - [x] ✅ **Nível 3** — Cenário MXOS-like testado com aprendizados críticos documentados (2026-06-24)
+- [x] ✅ **Nível 3 pós-treinamento** — 3 falhas críticas resolvidas via AGENTS.md customizado (2026-06-24)
+
+## MÉTODO DE TREINAMENTO — VALIDADO ✅
+
+**Treinamento via AGENTS.md: FUNCIONAL**
+
+O OpenClaw injeta automaticamente "Bootstrap Files" no system prompt de cada sessão.
+O `AGENTS.md` é o **manual operacional do agente** — relido toda sessão nova.
+
+| Componente | Status |
+|---|---|
+| AGENTS.md customizado (Parte A — universal) | ✅ Escrito e ativo |
+| AGENTS.md customizado (Parte B — Arbo) | ✅ Escrito e ativo |
+| Treinamento sem restart de gateway | ✅ Confirmado (`/new` basta) |
+| Custo de treinamento | ✅ Zero (só edição de markdown) |
+| Template reutilizável para novos clientes | ✅ Parte A é genérica e transferível |
+
+**Falhas críticas do Nível 3 resolvidas:**
+- ✅ Política inventada → eliminada
+- ✅ Citação fabricada → eliminada
+- ✅ Ação falsa declarada → eliminada
+
+Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 
 ## PROBLEMAS CONHECIDOS A RESOLVER:
 
-- ⚠️ **Alucinação funcional** — agente inventa dados (ex: políticas de negócio) com aparência de verdade
-- ⚠️ **Citações fabricadas** — atribui frases a pessoas reais sem base
-- ⚠️ **Ações sem integração declaradas como concluídas** — afirma ter feito algo que não fez
+- ~~⚠️ **Alucinação funcional**~~ → ✅ Resolvido via AGENTS.md (Red Lines)
+- ~~⚠️ **Citações fabricadas**~~ → ✅ Resolvido via AGENTS.md (Red Lines)
+- ~~⚠️ **Ações sem integração declaradas como concluídas**~~ → ✅ Resolvido via AGENTS.md (Red Lines)
+- ⚠️ **Sem integrações reais** — agente ainda não acessa sistemas da Arbo (agenda, banco, WhatsApp)
 
 ## PRÓXIMOS PASSOS:
 
-- [ ] Implementar Supervisor (LLM as a Judge) para validar respostas antes de envio
+- [ ] Criar `references/politicas-arbo.md` como skill para dar base de conhecimento real ao agente
 - [ ] Implementar integrações reais (n8n + WhatsApp Business + Supabase)
-- [ ] Prompt engineering para reduzir alucinações estruturais
-- [ ] Aplicar aprendizados no MXOS
+- [ ] Testar reusabilidade do AGENTS.md Parte A em cenário diferente (clínica, oficina)
+- [ ] Aplicar blueprint MXOS em cliente real
 
 ---
 

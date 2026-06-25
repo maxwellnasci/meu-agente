@@ -10,7 +10,8 @@
 - ✅ 8 camadas de defense in depth validadas
 - ✅ Documentação viva e auditoria multi-IA
 - ✅ Nível 3 testado — cenário MXOS-like com aprendizados críticos documentados
-- 🚧 Próxima fase: Supervisor (LLM as a Judge) + integrações reais
+- ✅ Treinamento por cliente — AGENTS.md customizado resolve alucinação estrutural (validado)
+- 🚧 Próxima fase: integrações reais (Supabase + WhatsApp Business)
 
 ## 📌 O que é
 
@@ -90,12 +91,16 @@ meu-agente/
 - **Sandbox sem rede externa** — `NetworkMode: none` impede exfiltração de dados, comunicação com C2 e download de malware
 - **Alucinação elegante é mais perigosa que erro óbvio** — Resposta bem formatada com dado inventado passa pela revisão humana; erro grosseiro não passa
 - **O moat do MXOS é EXECUÇÃO, não análise** — Qualquer LLM produz texto bonito; integrar com sistemas reais do cliente é o diferencial
+- **AGENTS.md é o sistema nativo de treinamento** — Bootstrap files do OpenClaw foram projetados para isso; editar markdown treina o agente sem fine-tuning, sem código, sem restart
+- **"Não sei" é resposta profissional** — Treinar o agente a admitir ignorância elimina alucinação na raiz, mais eficaz que guardrails complexos
+- **Auditor vira Coach** — Mudar de "julgar o agente" para "treinar o agente" é a virada de mindset que transforma falha em produto
 
 ## 🚧 Próximos passos
 
-- Implementar Supervisor (LLM as a Judge) para validar respostas antes do envio
+- Criar `references/politicas-arbo.md` como skill para base de conhecimento real
 - Integrações reais: n8n + WhatsApp Business API + Supabase
-- Aplicação dos aprendizados no projeto MXOS (funcionários digitais para PMEs)
+- Testar reusabilidade do template AGENTS.md Parte A em outros segmentos (clínica, oficina)
+- Aplicação do blueprint no projeto MXOS (funcionários digitais para PMEs)
 
 ## 👤 Sobre
 
