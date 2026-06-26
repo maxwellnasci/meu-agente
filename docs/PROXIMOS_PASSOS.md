@@ -34,6 +34,10 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 
 ### Prioridade 🟡 INTEGRAÇÕES REAIS (viabiliza EXECUÇÃO, não só análise)
 
+- [x] **Evolution API** — Conectar instância, enviar mensagem de teste via curl local (Validado)
+- [ ] **Webhook Evolution → OpenClaw** — Configurar plugin webhooks e rota evolution-inbound
+- [ ] **Skill send-whatsapp** — Construir e habilitar no OpenClaw workspace
+- [ ] **Secrets.json (cofre)** — Configurar cofre centralizado para gerenciar a apikey da Evolution
 - [ ] **WhatsApp Business API** — notificação real ao Coach/responsável quando aluno reporta lesão ou situação urgente
 - [ ] **Supabase (banco de dados)** — persistir políticas de reposição, histórico de lesões, planos de alunos — o agente consulta dados reais em vez de inventar
 - [ ] **n8n como orquestrador** — conectar eventos do agente a ações no mundo real (cancelar check-in, criar lembrete, registrar ocorrência)
