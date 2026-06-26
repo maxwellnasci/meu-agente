@@ -49,6 +49,7 @@ O `workspaceAccess: "none"` permanece ativo — o agente não acessa o filesyste
 - [x] ✅ **6 camadas de segurança implementadas e testadas**
 - [x] ✅ **Correção de auth de sub-agentes** (paste-api-key)
 - [x] ✅ **Warnings limpos no gateway** (allowedOrigins, memorySearch)
+- [x] ✅ **Acesso SSH configurado** (chave ed25519 no servidor Contabo)
 
 ## TESTES DE CAPACIDADE:
 
@@ -88,8 +89,11 @@ Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 
 ## PRÓXIMOS PASSOS:
 
+- [ ] Max coloca o chip de teste no celular e reconecta instância "maxbot" (Imediato)
+- [ ] Testar envio de mensagem REAL (validação) da Evolution API (Imediato)
+- [ ] Construir skill send-whatsapp no OpenClaw e configurar webhook
+- [ ] Configurar secrets.json (cofre centralizado)
 - [ ] Criar `references/politicas-arbo.md` como skill para dar base de conhecimento real ao agente
-- [ ] Implementar integrações reais (n8n + WhatsApp Business + Supabase)
 - [ ] Testar reusabilidade do AGENTS.md Parte A em cenário diferente (clínica, oficina)
 - [ ] Aplicar blueprint MXOS em cliente real
 

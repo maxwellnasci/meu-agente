@@ -23,6 +23,8 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 - [ ] Conceder acesso de **escrita** a uma pasta designada e validar que o agente não sai do escopo
 - [ ] Habilitar skills básicas (pesquisa web, leitura de arquivos) e observar comportamento
 - [ ] Documentar padrões de uso seguro para o projeto **MXOS**
+- [ ] Análise de segurança do servidor com Claude Code
+- [ ] Aplicar 33 updates + reboot controlado
 
 ### Prioridade 🔴 FASE ANTI-ALUCINAÇÃO (nova — identificada no Nível 3)
 
