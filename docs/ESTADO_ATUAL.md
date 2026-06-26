@@ -87,11 +87,16 @@ Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 - ~~⚠️ **Ações sem integração declaradas como concluídas**~~ → ✅ Resolvido via AGENTS.md (Red Lines)
 - ⚠️ **Sem integrações reais** — agente ainda não acessa sistemas da Arbo (agenda, banco, WhatsApp)
 
+## TESTES DE INTEGRAÇÃO (EVOLUTION API):
+
+- [x] ✅ **Max coloca o chip de teste no celular e conecta instância "amigao"**
+- [x] ✅ **Primeiro WhatsApp real enviado** via comando `curl` local na Contabo (2026-06-26)
+
 ## PRÓXIMOS PASSOS:
 
-- [ ] Max coloca o chip de teste no celular e reconecta instância "maxbot" (Imediato)
-- [ ] Testar envio de mensagem REAL (validação) da Evolution API (Imediato)
-- [ ] Construir skill send-whatsapp no OpenClaw e configurar webhook
+- [ ] Configurar webhook na instância "amigao" para receber mensagens
+- [ ] Configurar plugin webhooks do OpenClaw (rota evolution-inbound)
+- [ ] Construir skill send-whatsapp no OpenClaw workspace
 - [ ] Configurar secrets.json (cofre centralizado)
 - [ ] Criar `references/politicas-arbo.md` como skill para dar base de conhecimento real ao agente
 - [ ] Testar reusabilidade do AGENTS.md Parte A em cenário diferente (clínica, oficina)
