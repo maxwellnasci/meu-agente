@@ -48,4 +48,39 @@ Aplicar esse aprendizado e arcabouço tecnológico sólido no projeto **MXOS**, 
 
 ---
 
-*Atualizado em 2026-06-23. O passo de segurança é a porta de entrada para tudo que vem depois.*
+*Atualizado em 2026-07-05. O passo de segurança é a porta de entrada para tudo que vem depois.*
+
+## Pendência: nginx-app-1 não sobe automaticamente após reboot
+
+### Problema
+nginx-app-1 (Nginx Proxy Manager) não sobe automaticamente
+após reboot do servidor. Causa: race condition com 
+chatwoot-rails-1 (ambos usam porta 3000 internamente 
+durante inicialização).
+
+### Solução planejada
+Adicionar "depends_on" no docker-compose do nginx-app-1:
+
+depends_on:
+  - chatwoot-rails-1
+
+Isso força nginx-app-1 esperar Chatwoot subir primeiro.
+
+### Como fazer (quando tiver tempo)
+1. Descobrir localização do docker-compose do nginx-app-1:
+   docker inspect nginx-app-1 | grep -i compose
+   
+2. Editar o arquivo e adicionar depends_on
+
+3. Recriar container:
+   docker compose up -d --force-recreate nginx-app-1
+
+4. Testar com reboot real
+
+### Workaround atual (funciona bem)
+Após qualquer reboot:
+   docker start nginx-app-1
+
+### Prioridade
+Baixa — só incomoda após reboot (raro).
+Não afeta operação normal do servidor.
