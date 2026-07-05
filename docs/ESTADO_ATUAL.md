@@ -8,6 +8,9 @@
 - **Resultado da tentativa:** v2026.6.9 é a versão mais atual no repositório oficial. Banner "atualização disponível" aparece antes do código ser publicado no GitHub deles.
 - **Backup salvo em:** ~/backup-openclaw-20260705-0646/
 - **Sistema:** healthy ✅
+- **Servidor:** kernel 6.8.0-134, todos updates aplicados
+- **nginx-app-1:** requer início manual após reboot
+- **Próximos passos:** webhook WhatsApp (próxima sessão)
 - **Data da última atualização:** 2026-07-05
 
 ---
