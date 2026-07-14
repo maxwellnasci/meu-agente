@@ -10,11 +10,30 @@
 - **Sistema:** healthy ✅
 - **Servidor:** kernel 6.8.0-134, todos updates aplicados
 - **nginx-app-1:** requer início manual após reboot
-- **WhatsApp:** migrado para Cloud API oficial (Meta)
+- **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde)
+- **Canal ativo:** whatsapp-cloud (extensão customizada), substituindo Baileys/Evolution como canal principal de WhatsApp
 - **Baileys/Evolution:** descontinuado como canal principal
+- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** configurar webhook para receber mensagens, criar skill Cloud API
-- **Data da última atualização:** 2026-07-13
+- **Próximos passos:** verificação do app pra produção, avaliar migração pro Contabo
+- **Data da última atualização:** 2026-07-14
+
+---
+
+## ✅ MARCO — WhatsApp Cloud API funcionando ponta a ponta (2026-07-14)
+
+Primeira mensagem real recebida E respondida pelo Amigão via WhatsApp Cloud
+API oficial da Meta. Fluxo completo: WhatsApp → Meta → Cloudflare Tunnel →
+OpenClaw Gateway → Amigão (memória, sandbox, DeepSeek) → resposta via Graph API.
+
+- **Infraestrutura:** Cloudflare Tunnel (`whatsapp.mxos.com.br`), serviço
+  systemd permanente, não depende do Contabo estar de pé.
+- **Canal:** `extensions/whatsapp-cloud/`, implementado como canal real
+  (padrão `extensions/sms`), não TaskFlow — garante conversa contínua com
+  memória por número de telefone. 16 testes automatizados, typecheck limpo.
+- **Credenciais:** token de acesso PERMANENTE via System User (não expira),
+  guardado em `~/.openclaw/credentials/whatsapp-cloud.json` (chmod 600).
+- **Detalhes completos:** [docs/SESSAO_2026-07-14.md](SESSAO_2026-07-14.md)
 
 ---
 
