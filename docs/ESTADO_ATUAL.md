@@ -10,8 +10,11 @@
 - **Sistema:** healthy ✅
 - **Servidor:** kernel 6.8.0-134, todos updates aplicados
 - **nginx-app-1:** requer início manual após reboot
-- **Próximos passos:** webhook WhatsApp (próxima sessão)
-- **Data da última atualização:** 2026-07-05
+- **WhatsApp:** migrado para Cloud API oficial (Meta)
+- **Baileys/Evolution:** descontinuado como canal principal
+- **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
+- **Próximos passos:** configurar webhook para receber mensagens, criar skill Cloud API
+- **Data da última atualização:** 2026-07-13
 
 ---
 
