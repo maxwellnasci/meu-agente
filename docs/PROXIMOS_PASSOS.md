@@ -35,7 +35,10 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 ### Prioridade 🟡 INTEGRAÇÕES REAIS (viabiliza EXECUÇÃO, não só análise)
 
 - [x] **Evolution API** — Conectar instância, enviar mensagem de teste via curl local (Validado)
-- [ ] **Webhook Evolution → OpenClaw** — Configurar plugin webhooks e rota evolution-inbound
+- [x] **WhatsApp Cloud API oficial (Meta)** — Webhook recebendo, Amigão respondendo ponta a ponta com memória de sessão. Substitui Evolution/Baileys como canal principal (2026-07-14, ver [SESSAO_2026-07-14.md](SESSAO_2026-07-14.md))
+- [ ] **Verificação do app WhatsApp Cloud pra produção** — remove restrição de allowlist de destinatários (hoje limitado a 5 números cadastrados manualmente)
+- [ ] **Migrar Amigão pro servidor Contabo** — hoje depende do Kali estar ligado; rodar no Contabo dá independência
+- [ ] **Revisar AGENTS.md para foco claro do bot** — política da Meta desde jan/2026 proíbe "General Purpose AI" sem foco específico (risco de suspensão do WhatsApp Cloud API)
 - [ ] **Skill send-whatsapp** — Construir e habilitar no OpenClaw workspace
 - [ ] **Secrets.json (cofre)** — Configurar cofre centralizado para gerenciar a apikey da Evolution
 - [ ] **WhatsApp Business API** — notificação real ao Coach/responsável quando aluno reporta lesão ou situação urgente
