@@ -16,7 +16,7 @@
 - **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
 - **Próximos passos:** verificação do app pra produção, avaliar migração pro Contabo
-- **Data da última atualização:** 2026-07-14
+- **Data da última atualização:** 2026-07-15
 
 ---
 
@@ -66,6 +66,30 @@ ou seja, **a troca vale só para aquela sessão/conversa** — não é o
 padrão do sistema. Se V4-pro deve virar o modelo padrão permanente,
 é necessário atualizar manualmente o campo `model.primary` em
 `openclaw.json` para o identificador correspondente ao V4-pro.
+
+---
+
+## Registro de pendências — 2026-07-15
+
+1. **Token permanente System User: confirmado funcionando.**
+   Correção do dia anterior (ver [SESSAO_2026-07-14.md](SESSAO_2026-07-14.md#correção-mesmo-dia-à-tarde-o-token-system-user-de-mais-cedo-não-era-de-verdade))
+   validada via `debug_token`: `type: SYSTEM_USER`, `expires_at: 0`. Sem
+   expiração inesperada desde então.
+2. **Boot automático: confirmado** (já registrado na sessão de
+   2026-07-14, seção "Confirmações adicionais" acima). Docker +
+   cloudflared + `openclaw-openclaw-gateway-1` sobem sozinhos ao ligar
+   o Kali. `openclaw-cli` continua exigindo start manual
+   (`docker compose up -d openclaw-cli`).
+3. **Troca de modelo via comando na conversa do WhatsApp:** confirmado
+   que é temporária (vale só pra sessão/conversa, não altera
+   `model.primary` em `openclaw.json` — já registrado na sessão de
+   2026-07-14). **Em aberto:** decidir se V4-pro deve virar padrão
+   permanente do sistema ou se a troca por sessão é o comportamento
+   desejado.
+4. **Teste de segurança do allowFrom: 3/3 cenários validados**
+   (assinatura inválida, assinatura válida fora do allowFrom,
+   assinatura válida dentro do allowFrom). Sem falha de segurança
+   detectada. Detalhes e matriz completa: [SESSAO_2026-07-15.md](SESSAO_2026-07-15.md).
 
 ---
 
