@@ -2,7 +2,7 @@
 
 - **Nome do projeto:** MEU AGENTE (OpenClaw isolado para aprendizado)
 - **Objetivo:** aprender agentes autônomos com máxima segurança
-- **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro)
+- **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro). Padrão configurado (`model.primary` em `openclaw.json`): `deepseek/deepseek-chat`
 - **Versão OpenClaw:** v2026.6.9 (confirmado - mais recente disponível)
 - **Tentativa de update para v2026.6.10:** realizada em 05/07/2026
 - **Resultado da tentativa:** v2026.6.9 é a versão mais atual no repositório oficial. Banner "atualização disponível" aparece antes do código ser publicado no GitHub deles.
@@ -34,6 +34,38 @@ OpenClaw Gateway → Amigão (memória, sandbox, DeepSeek) → resposta via Grap
 - **Credenciais:** token de acesso PERMANENTE via System User (não expira),
   guardado em `~/.openclaw/credentials/whatsapp-cloud.json` (chmod 600).
 - **Detalhes completos:** [docs/SESSAO_2026-07-14.md](SESSAO_2026-07-14.md)
+
+---
+
+## Confirmações adicionais — 2026-07-14 (sessão da tarde)
+
+### Comportamento de boot (o que sobe sozinho ao ligar o Kali)
+Restart policies verificadas com `docker inspect` e `systemctl is-enabled`:
+
+| Componente | Sobe sozinho? | Evidência |
+|---|---|---|
+| Docker daemon | ✅ Sim | `systemctl is-enabled docker` → `enabled` |
+| cloudflared (túnel) | ✅ Sim | `systemctl is-enabled cloudflared` → `enabled` |
+| `openclaw-openclaw-gateway-1` | ✅ Sim | `RestartPolicy.Name` → `unless-stopped` |
+| `openclaw-openclaw-cli-1` | ❌ Não | `RestartPolicy.Name` → `no` |
+
+Ou seja: desligando e ligando o Kali, o fluxo do WhatsApp (Docker +
+túnel + gateway) volta sozinho, sem intervenção manual. Só o
+`openclaw-cli` precisa ser subido manualmente se for necessário
+(`docker compose up -d openclaw-cli`), pois sua restart policy é `no`.
+
+Ressalva: `unless-stopped` só reinicia automaticamente se o container
+não tiver sido parado manualmente (`docker stop`/`compose stop`)
+antes do desligamento.
+
+### Troca de modelo no WhatsApp (V4-pro) — confirmado como temporária
+Durante a sessão de hoje o modelo foi trocado para **V4-pro** via
+comando na própria conversa do WhatsApp. Checado `~/.openclaw/openclaw.json`:
+`agents.defaults.model.primary` continua `"deepseek/deepseek-chat"`,
+ou seja, **a troca vale só para aquela sessão/conversa** — não é o
+padrão do sistema. Se V4-pro deve virar o modelo padrão permanente,
+é necessário atualizar manualmente o campo `model.primary` em
+`openclaw.json` para o identificador correspondente ao V4-pro.
 
 ---
 
