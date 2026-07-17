@@ -1,0 +1,2466 @@
+=== 2026-07-16T08:18:46-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:47-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:48-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:49-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:50-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:51-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:52-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:53-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:54-03:00 ===
+State:	R (running)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:55-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:57-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444444 kB
+VmData:	 1002332 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:58-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444540 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+7 TCP sockets
+ 2.7
+=== 2026-07-16T08:18:59-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444544 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:00-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444548 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:01-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444548 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:02-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444552 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:03-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444556 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:04-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444556 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:05-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444560 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:06-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444564 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:07-03:00 ===
+State:	S (sleeping)
+VmRSS:	  444944 kB
+VmData:	 1003356 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:08-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:09-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:10-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:11-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:12-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:13-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:14-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:15-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:16-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:17-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:18-03:00 ===
+State:	S (sleeping)
+VmRSS:	  445764 kB
+VmData:	 1003612 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:19-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447536 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:20-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447540 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:21-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447544 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:22-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447564 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:23-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447568 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:24-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447572 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:25-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447572 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:27-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447576 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:28-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:29-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:30-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:31-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:32-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:33-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:34-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:35-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:36-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:37-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:38-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:39-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:40-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:41-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:42-03:00 ===
+State:	S (sleeping)
+VmRSS:	  447652 kB
+VmData:	 1005660 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.6
+=== 2026-07-16T08:19:43-03:00 ===
+State:	R (running)
+VmRSS:	  499644 kB
+VmData:	 1089648 kB
+Threads:	11
+FD count: 30
+TCP stats:
+20 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:44-03:00 ===
+State:	R (running)
+VmRSS:	  614312 kB
+VmData:	 1172268 kB
+Threads:	11
+FD count: 31
+TCP stats:
+19 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:45-03:00 ===
+State:	S (sleeping)
+VmRSS:	  615564 kB
+VmData:	 1173700 kB
+Threads:	11
+FD count: 32
+TCP stats:
+20 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:46-03:00 ===
+State:	S (sleeping)
+VmRSS:	  615580 kB
+VmData:	 1173700 kB
+Threads:	11
+FD count: 32
+TCP stats:
+20 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:47-03:00 ===
+State:	S (sleeping)
+VmRSS:	  615580 kB
+VmData:	 1173700 kB
+Threads:	11
+FD count: 32
+TCP stats:
+20 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:48-03:00 ===
+State:	S (sleeping)
+VmRSS:	  615580 kB
+VmData:	 1173700 kB
+Threads:	11
+FD count: 32
+TCP stats:
+20 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:49-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616568 kB
+VmData:	 1174652 kB
+Threads:	11
+FD count: 33
+TCP stats:
+22 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:50-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616668 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 34
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:51-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616668 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 34
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:53-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616672 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 34
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:54-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616672 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 33
+TCP stats:
+22 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:55-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616672 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 32
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:56-03:00 ===
+State:	S (sleeping)
+VmRSS:	  616672 kB
+VmData:	 1175160 kB
+Threads:	11
+FD count: 32
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:57-03:00 ===
+State:	R (running)
+VmRSS:	  648140 kB
+VmData:	 1206412 kB
+Threads:	11
+FD count: 30
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:58-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669120 kB
+VmData:	 1242536 kB
+Threads:	11
+FD count: 31
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:19:59-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669700 kB
+VmData:	 1242536 kB
+Threads:	11
+FD count: 31
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:00-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669704 kB
+VmData:	 1242536 kB
+Threads:	11
+FD count: 31
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:01-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669708 kB
+VmData:	 1242536 kB
+Threads:	11
+FD count: 31
+TCP stats:
+21 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:02-03:00 ===
+State:	S (sleeping)
+VmRSS:	  659496 kB
+VmData:	 1228692 kB
+Threads:	11
+FD count: 33
+TCP stats:
+24 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:03-03:00 ===
+State:	S (sleeping)
+VmRSS:	  659496 kB
+VmData:	 1228692 kB
+Threads:	11
+FD count: 33
+TCP stats:
+24 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:04-03:00 ===
+State:	S (sleeping)
+VmRSS:	  659496 kB
+VmData:	 1228692 kB
+Threads:	11
+FD count: 33
+TCP stats:
+24 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:05-03:00 ===
+State:	S (sleeping)
+VmRSS:	  659516 kB
+VmData:	 1228692 kB
+Threads:	11
+FD count: 33
+TCP stats:
+24 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:06-03:00 ===
+State:	S (sleeping)
+VmRSS:	  687292 kB
+VmData:	 1246668 kB
+Threads:	11
+FD count: 30
+TCP stats:
+22 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:07-03:00 ===
+State:	S (sleeping)
+VmRSS:	  687292 kB
+VmData:	 1246668 kB
+Threads:	11
+FD count: 30
+TCP stats:
+22 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:08-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669580 kB
+VmData:	 1228376 kB
+Threads:	11
+FD count: 30
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:09-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669580 kB
+VmData:	 1228376 kB
+Threads:	11
+FD count: 30
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:10-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669580 kB
+VmData:	 1228376 kB
+Threads:	11
+FD count: 30
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:11-03:00 ===
+State:	S (sleeping)
+VmRSS:	  669580 kB
+VmData:	 1228376 kB
+Threads:	11
+FD count: 30
+TCP stats:
+23 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:12-03:00 ===
+State:	R (running)
+VmRSS:	  670632 kB
+VmData:	 1229400 kB
+Threads:	11
+FD count: 31
+TCP stats:
+25 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:13-03:00 ===
+State:	S (sleeping)
+VmRSS:	  673144 kB
+VmData:	 1231896 kB
+Threads:	11
+FD count: 32
+TCP stats:
+26 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:14-03:00 ===
+State:	S (sleeping)
+VmRSS:	  673144 kB
+VmData:	 1231896 kB
+Threads:	11
+FD count: 32
+TCP stats:
+26 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:15-03:00 ===
+State:	S (sleeping)
+VmRSS:	  673144 kB
+VmData:	 1231896 kB
+Threads:	11
+FD count: 32
+TCP stats:
+26 TCP sockets
+ 2.7
+=== 2026-07-16T08:20:16-03:00 ===
+State:	S (sleeping)
+VmRSS:	  677136 kB
+VmData:	 1233952 kB
+Threads:	11
+FD count: 29
+TCP stats:
+24 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:17-03:00 ===
+State:	S (sleeping)
+VmRSS:	  677136 kB
+VmData:	 1233952 kB
+Threads:	11
+FD count: 29
+TCP stats:
+24 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:18-03:00 ===
+State:	S (sleeping)
+VmRSS:	  677136 kB
+VmData:	 1233952 kB
+Threads:	11
+FD count: 29
+TCP stats:
+24 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:19-03:00 ===
+State:	S (sleeping)
+VmRSS:	  677136 kB
+VmData:	 1233952 kB
+Threads:	11
+FD count: 29
+TCP stats:
+24 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:21-03:00 ===
+State:	S (sleeping)
+VmRSS:	  678024 kB
+VmData:	 1234812 kB
+Threads:	11
+FD count: 31
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:22-03:00 ===
+State:	S (sleeping)
+VmRSS:	  678024 kB
+VmData:	 1234812 kB
+Threads:	11
+FD count: 31
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:23-03:00 ===
+State:	S (sleeping)
+VmRSS:	  678024 kB
+VmData:	 1234812 kB
+Threads:	11
+FD count: 31
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:24-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717004 kB
+VmData:	 1273804 kB
+Threads:	11
+FD count: 32
+TCP stats:
+24 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:25-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717012 kB
+VmData:	 1273804 kB
+Threads:	11
+FD count: 30
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:26-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717016 kB
+VmData:	 1273804 kB
+Threads:	11
+FD count: 30
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:27-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717016 kB
+VmData:	 1273804 kB
+Threads:	11
+FD count: 29
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:28-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717080 kB
+VmData:	 1274060 kB
+Threads:	11
+FD count: 29
+TCP stats:
+23 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:29-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717096 kB
+VmData:	 1274060 kB
+Threads:	11
+FD count: 29
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:30-03:00 ===
+State:	S (sleeping)
+VmRSS:	  717104 kB
+VmData:	 1274060 kB
+Threads:	11
+FD count: 29
+TCP stats:
+22 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:31-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:32-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:33-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:34-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:35-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:36-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:37-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:38-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:39-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:40-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:41-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:42-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:43-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:44-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+21 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:45-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+20 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:46-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+20 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:47-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+20 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:48-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+20 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:50-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+20 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:51-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:52-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:53-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:54-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:55-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:56-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:57-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+18 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:58-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+19 TCP sockets
+ 2.8
+=== 2026-07-16T08:20:59-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+17 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:00-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+17 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:01-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+17 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:02-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+17 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:03-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+16 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:04-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+16 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:05-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+16 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:06-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+16 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:07-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+14 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:08-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+14 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:09-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:10-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:11-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+14 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:12-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+14 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:13-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:14-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:15-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:16-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+13 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:18-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:19-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:20-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:21-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+11 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:22-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:23-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+10 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:24-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+9 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:25-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+9 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:26-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+9 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:27-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+9 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:28-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+8 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:29-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+8 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:30-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+8 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:31-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+8 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:32-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:33-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:34-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:35-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:36-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:37-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:38-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:39-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:40-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:41-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:42-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:43-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:44-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:46-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:47-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:48-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:49-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:21:50-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:51-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:52-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:53-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:54-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:55-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:56-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:57-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:58-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+7 TCP sockets
+ 2.7
+=== 2026-07-16T08:21:59-03:00 ===
+State:	S (sleeping)
+VmRSS:	  718944 kB
+VmData:	 1275868 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:00-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:01-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:02-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:03-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:04-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:05-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:06-03:00 ===
+State:	S (sleeping)
+VmRSS:	  461140 kB
+VmData:	 1020464 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:07-03:00 ===
+State:	R (running)
+VmRSS:	  462848 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:08-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:09-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:10-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.8
+=== 2026-07-16T08:22:11-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:12-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:14-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:15-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:16-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:17-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:18-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:19-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:20-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:21-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:22-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:23-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:24-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:25-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:26-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:27-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:28-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:29-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:30-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:31-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:32-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:33-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:34-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:35-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:36-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463860 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:37-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463924 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:38-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463928 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:39-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463932 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:41-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463936 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:42-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463936 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:43-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463940 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:44-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463944 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:45-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463944 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:46-03:00 ===
+State:	S (sleeping)
+VmRSS:	  463948 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:47-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:48-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:49-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:50-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:51-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:52-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:53-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:54-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:55-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:56-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:57-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:58-03:00 ===
+State:	R (running)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:22:59-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:00-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:01-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:02-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:03-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:04-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:05-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:06-03:00 ===
+State:	S (sleeping)
+VmRSS:	  464648 kB
+VmData:	 1024052 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:07-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:09-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:10-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:11-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:12-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:13-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:14-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:15-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:16-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:17-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:18-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:19-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:20-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:21-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:22-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:23-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:24-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:25-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:26-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:27-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465452 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:28-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465456 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+6 TCP sockets
+ 2.7
+=== 2026-07-16T08:23:29-03:00 ===
+State:	S (sleeping)
+VmRSS:	  465456 kB
+VmData:	 1024568 kB
+Threads:	11
+FD count: 26
+TCP stats:
+5 TCP sockets
+ 2.7
