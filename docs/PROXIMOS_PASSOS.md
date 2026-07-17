@@ -92,20 +92,24 @@ Não afeta operação normal do servidor.
 
 ## Próxima exploração: Amigão + análise de código
 
-Duas capacidades a explorar (ainda em fase de discussão,
-não iniciado):
-
-1. Amigão analisando projetos GitHub do Max (meu-agente,
-   Arbo, MOX) - escopo a definir: só leitura/sugestão,
-   ou também PR?
+- [x] **Item 1 — Amigão analisando projetos GitHub do Max:** ✅ **Concluído
+  em 2026-07-17.** Tool `github_repo_report` implementada, só leitura (nunca
+  PR/escrita no repo), escopo fechado a um enum de repos habilitados
+  explicitamente (`Mox---Sistemas` habilitado; `meu-agente` e `arbo`
+  presentes no enum mas desabilitados até validação individual). Passou por
+  uma investigação de 3 dias (Bug 4 — travamento do SQLite, bug de policy
+  de aprovação, bug de configuração de exposição ao modelo), todos
+  corrigidos e confirmados ao vivo. Case completo:
+  [docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](CASE_BUG4_INVESTIGACAO_COMPLETA.md).
+  Conectada em produção, funcionando de ponta a ponta.
 
 2. Agente de Defesa/Segurança - duplo propósito a
-   esclarecer:
+   esclarecer (ainda em aberto, não iniciado):
    a) Audita respostas do Amigão antes de entregar
       (Fase 1 do fork evolutivo, já planejada via
       before_agent_finalize)
-   b) Analisa segurança de código dos projetos (novo
-      escopo, relacionado ao item 1)
+   b) Analisa segurança de código dos projetos (relacionado
+      ao item 1, agora que a leitura de repositório existe)
 
    Pergunta em aberto: um agente fazendo as duas coisas,
    ou dois agentes especializados?
@@ -114,4 +118,4 @@ Nota: qualquer nova capacidade de acesso (ler GitHub,
 analisar código) precisa entrar no AGENTS.md com Red
 Lines claras antes de ativar.
 
-*Adicionado em 2026-07-15.*
+*Adicionado em 2026-07-15. Item 1 concluído em 2026-07-17.*

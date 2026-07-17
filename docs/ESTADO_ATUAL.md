@@ -16,7 +16,35 @@
 - **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
 - **Próximos passos:** verificação do app pra produção, avaliar migração pro Contabo
-- **Data da última atualização:** 2026-07-15
+- **Data da última atualização:** 2026-07-17
+
+---
+
+## ✅ MARCO — Bug 4 resolvido, `github-repo-report` conectado e funcional (2026-07-17)
+
+Investigação de 3 dias (15–17/07) concluída. Case completo, com linha do
+tempo honesta (incluindo as 4 hipóteses refutadas e a ressalva sobre a causa
+exata do incidente original nunca ter sido capturada ao vivo):
+[docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](CASE_BUG4_INVESTIGACAO_COMPLETA.md).
+
+- **Mecanismo principal (contenção síncrona de SQLite, `busy_timeout`):**
+  corrigido (30s → 3s), deployado de verdade em produção (confirmado por
+  grep no bundle rodando, não só no commit), testado sob carga real do
+  WhatsApp repetidas vezes sem recorrência.
+- **2 bugs adicionais encontrados durante a investigação e corrigidos:**
+  policy da tool sem bloqueio imediato para repo desconhecido (esperava
+  ~130s em aprovação sem entrega possível no WhatsApp), e detector nativo de
+  sessão travada com bug de escopo (limpava estado compartilhado sem
+  filtrar por `runId`).
+- **Bug de configuração encontrado e corrigido:** o allowlist que expõe a
+  tool ao modelo estava em `tools.sandbox.tools.alsoAllow` (caminho sem
+  efeito com `sandbox.mode: "off"`) em todas as tentativas anteriores;
+  corrigido para `tools.alsoAllow` no nível raiz.
+- **Confirmado ao vivo:** `tool.call` real de `github_repo_report` capturado
+  no WhatsApp de produção (`toolName: github_repo_report`, `isError: false`),
+  relatório estruturado real entregue ao usuário.
+- **`github-repo-report`:** conectado em produção. Nenhum bug ativo
+  conhecido relacionado a esta investigação.
 
 ---
 
