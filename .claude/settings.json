@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit*)",
+      "Bash(npm run build *)",
+      "Bash(npm run lint *)",
+      "Bash(docker compose logs *)",
+      "Bash(pnpm tsgo:extensions*)",
+      "mcp__claude_ai_Supabase__list_migrations",
+      "Bash(docker stats *)",
+      "mcp__claude_ai_Supabase__generate_typescript_types",
+      "mcp__claude_ai_Supabase__get_logs",
+      "Bash(docker compose ps *)",
+      "Bash(systemctl is-enabled *)"
+    ]
+  }
+}
