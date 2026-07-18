@@ -119,3 +119,25 @@ analisar código) precisa entrar no AGENTS.md com Red
 Lines claras antes de ativar.
 
 *Adicionado em 2026-07-15. Item 1 concluído em 2026-07-17.*
+
+---
+
+## Pendência (baixa prioridade): 7 erros de typecheck em github-repo-report/*.test.ts
+
+### Problema
+`pnpm tsgo:extensions:test` acusa 7 erros em
+`extensions/github-repo-report/src/{audit-log,github-fetch,schema,tool}.test.ts`.
+Confirmado (2026-07-18) que são só de tipagem de teste, zero impacto real:
+- `tsgo -p extensions/github-repo-report/tsconfig.json` (tsconfig de
+  produção, exclui `*.test.ts`) → 0 erros.
+- Os 27 testes do plugin (incluindo os 4 arquivos com erro) → 27/27 passam.
+- 4 erros são `mock.calls[0] as [tupla]` com mock declarado sem tipar
+  parâmetros (`vi.fn(async () => ...)` → `.mock.calls[0]` infere `[]`).
+- 3 erros são acesso a campos de schema JSON (`.properties`,
+  `.additionalProperties`, `.enum`) que existem no objeto `typebox` em
+  runtime mas não aparecem no tipo estático exportado pela lib.
+
+### Prioridade
+Baixa — não bloqueia nada, plugin já roda em produção sem erro real.
+Corrigir quando sobrar tempo de higiene (tipar os mocks; passar por
+`unknown` antes do cast; ou trocar os asserts por helpers tipados).
