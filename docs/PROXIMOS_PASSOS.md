@@ -125,21 +125,49 @@ Não afeta operação normal do servidor.
   (webhook simulado + resposta real do Max pelo WhatsApp) confirmou as 3
   pernas fechando de ponta a ponta: pergunta escalada, resposta roteada de
   volta pro chat original, ack recebido.
-- [ ] **Lacuna `response-audit` + `ask_max`:** investigado em 2026-07-18,
-  ver
-  [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md#investigação-da-lacuna-do-response-audit-no-turno-do-ask_max).
-  Confirmado com o transcript real que o filtro heurístico deveria ter
-  disparado (`tool_executed`, mesmo padrão que gerou registro real no
-  teste da Marina) — não é ajuste de cobertura do filtro. Causa raiz da
-  lacuna em si não isolada (sem erro/exceção nos logs, banco confirmado
-  limpo em todos os namespaces, caminho "durable" descartado). Hipótese
-  líder: o fix do `senderIsOwner` fez o `before_agent_run` do `ask-max`
-  passar a rodar I/O assíncrono real (`consumePendingAskMax`) em TODA
-  mensagem do Max, não só nas respostas ao operador — interação com o
-  `before_agent_run` do `response-audit` nunca testada em produção antes
-  desta sessão. Próximo passo proposto (aguardando aprovação): logs de
-  debug temporários nos 4 pontos de captura, mesma técnica que resolveu o
-  bug de ordenação de hooks anterior.
+- [x] **Lacuna `response-audit` + `ask_max`:** investigado em 2026-07-18 e
+  2026-07-19, ver
+  [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md#investigação-da-lacuna-do-response-audit-no-turno-do-ask_max)
+  e [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md). Com logs de debug nos 4
+  pontos de captura, **não reproduzida** em 1 teste normal + 1 rajada de 5
+  mensagens concorrentes (mesma técnica do Bug 4). Rebaixada a prioridade
+  baixíssima — 3 tentativas sem reprodução sugere raridade real, não
+  afeta uso normal single-user de hoje. Anomalia secundária observada,
+  não investigada: um turno multi-round com `ask_max` (texto+toolCall →
+  toolResult → segunda resposta final) não gerou
+  `reply_payload_sending`/auditoria, diferente de um turno de rodada
+  única que capturou certinho — pode ser artefato do estado recém
+  recuperado do bug abaixo, ou uma lacuna real em turnos multi-round;
+  fica pra investigar se reaparecer.
+- [ ] 🔴 **BLOQUEANTE pra multi-usuário — bug novo (achado como efeito
+  colateral, 2026-07-19): sessão trava ~6min por mensagem na fila atrás
+  de um turno já terminado.** Prioridade **mais alta** que a lacuna do
+  `response-audit` acima (essa foi rebaixada a baixíssima prioridade
+  depois de 3 tentativas sem reprodução; esta aqui é reproduzida e tem
+  causa raiz confirmada). Ver
+  [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#bug-novo-encontrado-fila-de-mensagens-da-mesma-sessão-trava-por-6-minutos).
+  Causa raiz lida no código (não suposição):
+  `activity.activeEmbeddedRuns`/`activeWorkKind`
+  (`src/logging/diagnostic-run-activity.ts`) não é limpo a tempo quando
+  um turno termina com mensagem já na fila — nem no caminho bloqueado
+  pelo `ask-max`, nem num turno normal (confirmado nos dois). O
+  health-monitor rápido (`classifySessionAttention`) vê isso e classifica
+  como `stalled_agent_run`/`recoveryEligible: false` — se recusa a agir.
+  Só a rotina lenta separada (`diagnostic-stuck-session-recovery`, limiar
+  ~370s) força `resetCommandLane` + limpa o marcador, destravando UM item
+  por vez (ciclo se repete pro próximo).
+  **Por que é bloqueante, não "nice to have"**: `dmScope`
+  (`src/routing/session-key.ts`) está no padrão `"main"` — toda conversa
+  DM, de qualquer remetente, cai na mesma `sessionKey`
+  (`agent:main:main`). Hoje isso não aparece porque só o número do Max
+  está na allowlist (trava de tempo, não solução) — assim que o Amigão
+  abrir pra mais gente de verdade (Arbo em agosto, ou qualquer outro
+  cliente/item "Verificação do app WhatsApp Cloud pra produção" acima),
+  2+ pessoas reais mandando mensagem quase ao mesmo tempo vão travar uma
+  na outra do mesmo jeito, sem aviso nenhum pro usuário final. **Este bug
+  precisa estar corrigido antes de qualquer plano de multi-usuário real
+  avançar** — não é item independente de "higiene", é pré-requisito.
+  Nenhuma correção aplicada ainda (só diagnóstico nesta sessão).
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
