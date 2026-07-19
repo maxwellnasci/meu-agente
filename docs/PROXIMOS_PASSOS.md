@@ -124,10 +124,22 @@ Não afeta operação normal do servidor.
   feitos, fix confirmado no bytecode em produção. Teste ao vivo do zero
   (webhook simulado + resposta real do Max pelo WhatsApp) confirmou as 3
   pernas fechando de ponta a ponta: pergunta escalada, resposta roteada de
-  volta pro chat original, ack recebido. Pendência de baixa prioridade:
-  nenhum registro novo do `response-audit` apareceu pro turno que chamou
-  `ask_max` — investigar se há lacuna de correlação nesse caminho
-  específico.
+  volta pro chat original, ack recebido.
+- [ ] **Lacuna `response-audit` + `ask_max`:** investigado em 2026-07-18,
+  ver
+  [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md#investigação-da-lacuna-do-response-audit-no-turno-do-ask_max).
+  Confirmado com o transcript real que o filtro heurístico deveria ter
+  disparado (`tool_executed`, mesmo padrão que gerou registro real no
+  teste da Marina) — não é ajuste de cobertura do filtro. Causa raiz da
+  lacuna em si não isolada (sem erro/exceção nos logs, banco confirmado
+  limpo em todos os namespaces, caminho "durable" descartado). Hipótese
+  líder: o fix do `senderIsOwner` fez o `before_agent_run` do `ask-max`
+  passar a rodar I/O assíncrono real (`consumePendingAskMax`) em TODA
+  mensagem do Max, não só nas respostas ao operador — interação com o
+  `before_agent_run` do `response-audit` nunca testada em produção antes
+  desta sessão. Próximo passo proposto (aguardando aprovação): logs de
+  debug temporários nos 4 pontos de captura, mesma técnica que resolveu o
+  bug de ordenação de hooks anterior.
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
