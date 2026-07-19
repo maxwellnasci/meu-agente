@@ -111,6 +111,24 @@ Não afeta operação normal do servidor.
   [docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](CASE_BUG4_INVESTIGACAO_COMPLETA.md).
   Conectada em produção, funcionando de ponta a ponta.
 
+- [x] **"Fase 1" (`response-audit`, auditor pós-resposta):** ✅ concluído em
+  2026-07-18, ver [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md). Validado ao
+  vivo em produção duas vezes de forma não-planejada durante o teste do
+  `ask-max` (flagrou `false_action` real duas vezes).
+- [x] **`ask-max` (escalonamento humano, "Passo 2"):** ✅ concluído em
+  2026-07-18, ver
+  [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md#retomada-final--rebuild-redeploy-e-teste-ao-vivo-completo-3-pernas-fechadas).
+  Bug real encontrado e corrigido (`senderIsOwner`/`commands.ownerAllowFrom`
+  não reconhecia o operador numa resposta comum — trocado por comparação
+  direta contra o `to` já configurado no plugin). Rebuild + redeploy real
+  feitos, fix confirmado no bytecode em produção. Teste ao vivo do zero
+  (webhook simulado + resposta real do Max pelo WhatsApp) confirmou as 3
+  pernas fechando de ponta a ponta: pergunta escalada, resposta roteada de
+  volta pro chat original, ack recebido. Pendência de baixa prioridade:
+  nenhum registro novo do `response-audit` apareceu pro turno que chamou
+  `ask_max` — investigar se há lacuna de correlação nesse caminho
+  específico.
+
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
    a) Audita respostas do Amigão antes de entregar
