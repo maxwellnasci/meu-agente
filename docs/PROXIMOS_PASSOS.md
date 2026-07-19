@@ -144,30 +144,51 @@ Não afeta operação normal do servidor.
   de um turno já terminado.** Prioridade **mais alta** que a lacuna do
   `response-audit` acima (essa foi rebaixada a baixíssima prioridade
   depois de 3 tentativas sem reprodução; esta aqui é reproduzida e tem
-  causa raiz confirmada). Ver
-  [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#bug-novo-encontrado-fila-de-mensagens-da-mesma-sessão-trava-por-6-minutos).
-  Causa raiz lida no código (não suposição):
-  `activity.activeEmbeddedRuns`/`activeWorkKind`
-  (`src/logging/diagnostic-run-activity.ts`) não é limpo a tempo quando
-  um turno termina com mensagem já na fila — nem no caminho bloqueado
-  pelo `ask-max`, nem num turno normal (confirmado nos dois). O
-  health-monitor rápido (`classifySessionAttention`) vê isso e classifica
-  como `stalled_agent_run`/`recoveryEligible: false` — se recusa a agir.
-  Só a rotina lenta separada (`diagnostic-stuck-session-recovery`, limiar
-  ~370s) força `resetCommandLane` + limpa o marcador, destravando UM item
-  por vez (ciclo se repete pro próximo).
-  **Por que é bloqueante, não "nice to have"**: `dmScope`
-  (`src/routing/session-key.ts`) está no padrão `"main"` — toda conversa
-  DM, de qualquer remetente, cai na mesma `sessionKey`
-  (`agent:main:main`). Hoje isso não aparece porque só o número do Max
-  está na allowlist (trava de tempo, não solução) — assim que o Amigão
-  abrir pra mais gente de verdade (Arbo em agosto, ou qualquer outro
-  cliente/item "Verificação do app WhatsApp Cloud pra produção" acima),
-  2+ pessoas reais mandando mensagem quase ao mesmo tempo vão travar uma
-  na outra do mesmo jeito, sem aviso nenhum pro usuário final. **Este bug
-  precisa estar corrigido antes de qualquer plano de multi-usuário real
-  avançar** — não é item independente de "higiene", é pré-requisito.
-  Nenhuma correção aplicada ainda (só diagnóstico nesta sessão).
+  causa raiz confirmada). Diagnóstico completo + investigação (só
+  leitura) + plano de correção em
+  [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#bug-novo-encontrado-fila-de-mensagens-da-mesma-sessão-trava-por-6-minutos)
+  (achado inicial) e
+  [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#investigação-só-leitura-do-bug-de-fila-travada--causa-raiz-precisa-e-plano-de-correção)
+  (causa raiz + recomendação). Causa raiz precisa (não suposição): o
+  `ReplyOperation` de nível alto (`src/auto-reply/reply/reply-run-registry.ts`)
+  nunca chama `.complete()` em pelo menos 2 formatos de turno confirmados
+  (bloqueado pelo `ask-max`; normal multi-round com tool call), deixando
+  `replyRunState.activeRunsByKey` preso e bloqueando `waitForIdle` das
+  mensagens seguintes indefinidamente (sem timeout pra turnos "visible").
+  Confirmado que a cautela do health-monitor rápido
+  (`classifySessionAttention`, `recoveryEligible: false`) é design
+  deliberado de segurança (evita abortar um turno genuinamente ativo),
+  não lacuna — não deve ser enfraquecida.
+  **Por que é bloqueante**: `dmScope` (`src/routing/session-key.ts`) está
+  no padrão `"main"` — toda conversa DM, de qualquer remetente, cai na
+  mesma `sessionKey` (`agent:main:main`). Hoje não aparece porque só o
+  número do Max está na allowlist (trava de tempo, não solução) — assim
+  que o Amigão abrir pra mais gente de verdade (Arbo em agosto, ou
+  qualquer outro cliente), 2+ pessoas reais mandando mensagem quase ao
+  mesmo tempo vão travar uma na outra do mesmo jeito, sem aviso nenhum
+  pro usuário final.
+
+  **Plano de correção em 2 etapas, decidido em 2026-07-19:**
+  1. 🟢 **Fácil, fazer logo** — mitigação de config, baixo risco,
+     reversível em minutos: aplicar `session.dmScope: "per-peer"` (ou
+     `"per-channel-peer"`) **antes** de abrir o Amigão pra múltiplos
+     alunos/clientes reais. Isola o raio de explosão por contato — um
+     aluno travado não afeta os outros. **Não corrige o bug em si**: o
+     mesmo aluno mandando 2 mensagens rápidas ainda trava ~6min pra ele
+     mesmo. Não precisa de sessão de investigação, só aplicar + testar.
+  2. 🔧 **Requer sessão dedicada de investigação** — a correção de
+     verdade: auditar todo `return` do pipeline de entrega
+     (`src/auto-reply/reply/dispatch-from-config.ts`,
+     `src/auto-reply/reply/agent-runner.ts`) pra achar qual(is)
+     caminho(s) de saída entregam a resposta final com sucesso mas pulam
+     `.complete()` no `ReplyOperation`, cobrindo pelo menos os 2 formatos
+     de turno já confirmados. Validar ao vivo depois com a mesma técnica
+     de rajada concorrente desta sessão (fila deve esvaziar em segundos,
+     não minutos). Não mexer no limiar de 5min do health-monitor rápido —
+     a cautela ali continua correta.
+
+  Nenhuma correção aplicada ainda (só diagnóstico e planejamento até
+  agora).
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
