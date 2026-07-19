@@ -169,26 +169,32 @@ Não afeta operação normal do servidor.
   pro usuário final.
 
   **Plano de correção em 2 etapas, decidido em 2026-07-19:**
-  1. 🟢 **Fácil, fazer logo** — mitigação de config, baixo risco,
-     reversível em minutos: aplicar `session.dmScope: "per-peer"` (ou
-     `"per-channel-peer"`) **antes** de abrir o Amigão pra múltiplos
-     alunos/clientes reais. Isola o raio de explosão por contato — um
-     aluno travado não afeta os outros. **Não corrige o bug em si**: o
-     mesmo aluno mandando 2 mensagens rápidas ainda trava ~6min pra ele
-     mesmo. Não precisa de sessão de investigação, só aplicar + testar.
-  2. 🔧 **Requer sessão dedicada de investigação** — a correção de
-     verdade: auditar todo `return` do pipeline de entrega
-     (`src/auto-reply/reply/dispatch-from-config.ts`,
+  1. [x] 🟢 **Fácil, fazer logo — ✅ APLICADO em 2026-07-19.** Mitigação de
+     config, baixo risco, reversível: `session.dmScope: "per-peer"`
+     aplicado em `~/.openclaw/openclaw.json` (só restart, sem rebuild).
+     Validado ao vivo: regressão do fluxo normal do WhatsApp OK
+     (`sessionKey` agora `agent:main:direct:<número>`, não mais
+     `agent:main:main`), e teste de concorrência com 2 números diferentes
+     confirmou processamento **em paralelo, sem qualquer travamento**
+     (ambos recebidos e respondidos em ~2.5s, mesma janela de tempo). Ver
+     [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#etapa-1-do-plano-aplicada-sessiondmscope-per-peer).
+     **Isola o raio de explosão por contato — não corrige o bug em si**:
+     o mesmo número mandando 2 mensagens rápidas em sequência ainda trava
+     ~6min pra ele mesmo (esperado, não testado de novo nesta etapa pois
+     já confirmado na investigação anterior).
+  2. [ ] 🔧 **Requer sessão dedicada de investigação** — a correção de
+     verdade, ainda pendente: auditar todo `return` do pipeline de
+     entrega (`src/auto-reply/reply/dispatch-from-config.ts`,
      `src/auto-reply/reply/agent-runner.ts`) pra achar qual(is)
      caminho(s) de saída entregam a resposta final com sucesso mas pulam
      `.complete()` no `ReplyOperation`, cobrindo pelo menos os 2 formatos
      de turno já confirmados. Validar ao vivo depois com a mesma técnica
      de rajada concorrente desta sessão (fila deve esvaziar em segundos,
      não minutos). Não mexer no limiar de 5min do health-monitor rápido —
-     a cautela ali continua correta.
-
-  Nenhuma correção aplicada ainda (só diagnóstico e planejamento até
-  agora).
+     a cautela ali continua correta. **Prioridade reduzida de urgência**
+     depois da etapa 1: o pior cenário multi-usuário (um contato travando
+     o Amigão pra todos) já está mitigado; isso é a correção de fundo,
+     não bloqueia mais um lançamento imediato.
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
