@@ -182,19 +182,42 @@ Não afeta operação normal do servidor.
      o mesmo número mandando 2 mensagens rápidas em sequência ainda trava
      ~6min pra ele mesmo (esperado, não testado de novo nesta etapa pois
      já confirmado na investigação anterior).
-  2. [ ] 🔧 **Requer sessão dedicada de investigação** — a correção de
-     verdade, ainda pendente: auditar todo `return` do pipeline de
-     entrega (`src/auto-reply/reply/dispatch-from-config.ts`,
-     `src/auto-reply/reply/agent-runner.ts`) pra achar qual(is)
-     caminho(s) de saída entregam a resposta final com sucesso mas pulam
-     `.complete()` no `ReplyOperation`, cobrindo pelo menos os 2 formatos
-     de turno já confirmados. Validar ao vivo depois com a mesma técnica
-     de rajada concorrente desta sessão (fila deve esvaziar em segundos,
-     não minutos). Não mexer no limiar de 5min do health-monitor rápido —
-     a cautela ali continua correta. **Prioridade reduzida de urgência**
-     depois da etapa 1: o pior cenário multi-usuário (um contato travando
-     o Amigão pra todos) já está mitigado; isso é a correção de fundo,
-     não bloqueia mais um lançamento imediato.
+  2. [x] ✅ **Causa raiz encontrada e CORRIGIDA (2026-07-19/20, 4 rodadas
+     de instrumentação ao vivo + Opção A implementada e validada).** Não
+     era `.complete()` pulado (hipótese anterior
+     descartada por leitura exaustiva de código). É um **deadlock real
+     do core do OpenClaw**: `foregroundReplyFenceByKey` em
+     `src/auto-reply/dispatch.ts` cria uma "geração" de entrega
+     (`beginForegroundReplyFence`) *antes* da sessão admitir o turno pra
+     rodar de verdade; o turno mais antigo, já rodando, espera
+     (`shouldCancelForegroundReplyDelivery`, `while(true)` sem timeout)
+     por uma geração mais nova que não consegue nem começar, porque a
+     fila da sessão só roda um turno por vez. Detalhe completo (as 4
+     rodadas + prova ao vivo com números de geração reais) em
+     [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#etapa-2-do-plano-causa-raiz-real-do-travamento--achada-com-prova-ao-vivo-em-4-rodadas-de-instrumentação-mesma-sessão-continuação).
+     **Bug conhecido upstream**: `openclaw/openclaw#91914` (aberta,
+     P1, thread canônica), com correção proposta em
+     `openclaw/openclaw#91963` ("defer foreground fence until
+     delivery") — tecnicamente validada pelo autor, mas **nunca
+     mergeada** (parada, sem mantenedor ativo). Não dá pra esperar
+     fix upstream a curto prazo.
+     **Correção aplicada (Opção A, mais segura — não mexe em core)**:
+     serialização por remetente dentro do nosso próprio
+     `extensions/whatsapp-cloud/src/webhook.ts` (antes disparava
+     `void dispatchWhatsAppCloudInboundEvent(...)` sem fila nenhuma) —
+     mesmo padrão que resolveu (parcialmente) o bug gêmeo no plugin
+     WeCom upstream (`openclaw/openclaw#95758`). Implementada, com 6
+     testes novos (22/22 passando), validada ao vivo pós-redeploy: a
+     mesma rajada de 4 mensagens que antes travava ~370s+ por mensagem
+     agora processa as 4, com respostas reais e distintas, em ~22s no
+     total — confirmado no transcript real da sessão, zero
+     `stalled`/`stuck` nos logs. Detalhe completo em
+     [SESSAO_2026-07-19.md](SESSAO_2026-07-19.md#correção-aplicada-opção-a--serialização-por-remetente-no-nosso-próprio-webhook-sem-tocar-em-código-core).
+     Opção mais completa mas mais arriscada (patch de core adaptado da
+     PR #91963) fica registrada como possibilidade futura, só se
+     precisarmos proteger outro canal além do WhatsApp. Não mexer no
+     limiar de 5min do health-monitor rápido — a cautela ali continua
+     correta e é assunto separado.
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
