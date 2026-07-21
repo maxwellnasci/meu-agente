@@ -1,0 +1,13 @@
+{
+  "id": "response-audit",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Response Audit",
+  "description": "Post-delivery check for functional hallucination, fabricated quotes, and falsely-declared actions in agent replies. Runs after the reply is already sent (agent_end), never blocks delivery.",
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}
