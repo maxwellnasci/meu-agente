@@ -1,0 +1,35 @@
+{
+  "id": "ask-max",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Ask Max",
+  "description": "Lets the agent escalate a real doubt to the operator's WhatsApp instead of guessing or saying it doesn't know, then routes the operator's reply back to the original conversation.",
+  "contracts": {
+    "tools": ["ask_max"]
+  },
+  "toolMetadata": {
+    "ask_max": {
+      "optional": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "channel": {
+        "type": "string",
+        "description": "Channel id to deliver the escalation to (e.g. \"whatsapp-cloud\")."
+      },
+      "to": {
+        "type": "string",
+        "description": "Fixed operator contact id on that channel (e.g. a WhatsApp phone number)."
+      },
+      "accountId": {
+        "type": "string",
+        "description": "Optional channel account id, when the channel has more than one configured account."
+      }
+    },
+    "required": ["channel", "to"],
+    "additionalProperties": false
+  }
+}

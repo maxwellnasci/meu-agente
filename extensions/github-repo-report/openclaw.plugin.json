@@ -1,0 +1,22 @@
+{
+  "id": "github-repo-report",
+  "activation": {
+    "onStartup": false
+  },
+  "name": "GitHub Repo Report",
+  "description": "Fetches and summarizes one allow-listed GitHub repository (read-only, host-process only, never touches the sandbox).",
+  "contracts": {
+    "tools": ["github_repo_report"],
+    "trustedToolPolicies": ["github-repo-report-policy"]
+  },
+  "toolMetadata": {
+    "github_repo_report": {
+      "optional": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

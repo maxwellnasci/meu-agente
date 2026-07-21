@@ -1,0 +1,14 @@
+{
+  "id": "whatsapp-cloud",
+  "name": "WhatsApp Cloud API",
+  "description": "Meta WhatsApp Cloud API (Graph API) channel plugin for OpenClaw.",
+  "activation": {
+    "onStartup": false
+  },
+  "channels": ["whatsapp-cloud"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

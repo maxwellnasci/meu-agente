@@ -1,0 +1,18 @@
+{
+  "name": "@openclaw/ask-max",
+  "version": "2026.7.18",
+  "private": true,
+  "description": "Lets the agent escalate a real doubt to the operator's WhatsApp instead of guessing, then routes the reply back to the original conversation.",
+  "type": "module",
+  "dependencies": {
+    "typebox": "1.1.39"
+  },
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
