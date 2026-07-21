@@ -20,6 +20,26 @@
 
 ---
 
+## ✅ MARCO — Bug de fila travada corrigido + backup git das extensões fechado (2026-07-20)
+
+- **Bug de fila travada (sessão trava ~6min por mensagem):** causa raiz
+  real confirmada — deadlock conhecido do core do OpenClaw
+  (`foregroundReplyFenceByKey`, bug upstream `openclaw/openclaw#91914`,
+  fix nunca mergeado). Corrigido via serialização por remetente em
+  `extensions/whatsapp-cloud/src/webhook.ts` (não mexe em core), 6 testes
+  novos, validado ao vivo pós-redeploy (rajada de 4 mensagens: 370s+/msg
+  → ~22s total, zero travamento). Detalhes:
+  [SESSAO_2026-07-20.md](SESSAO_2026-07-20.md).
+- **Backup git das 4 extensões próprias:** pendência fechada — `ask-max`,
+  `whatsapp-cloud`, `response-audit`, `github-repo-report` agora têm
+  snapshot real no GitHub (`maxwellnasci/meu-agente`), sem depender só do
+  branch local não-enviado dentro do `.git` interno do `openclaw/`. Ver
+  nota de arquitetura acima e [SESSAO_2026-07-20.md](SESSAO_2026-07-20.md).
+- **Próximo passo decidido:** planejar migração do Amigão pro servidor
+  Contabo.
+
+---
+
 ## ✅ MARCO — Bug 4 resolvido, `github-repo-report` conectado e funcional (2026-07-17)
 
 Investigação de 3 dias (15–17/07) concluída. Case completo, com linha do
@@ -231,9 +251,21 @@ Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 
 ## Nota de Arquitetura — Por que `openclaw/` não está no git do `meu-agente`
 
-A pasta `openclaw/` é um clone do repositório upstream oficial (`github.com/openclaw/openclaw`).
+A pasta `openclaw/` é um clone do repositório upstream oficial (`github.com/openclaw/openclaw`),
+com seu próprio `.git` interno.
 Ela está no `.gitignore` intencionalmente para manter separação entre código de terceiros e o projeto pessoal.
 As alterações feitas no `docker-compose.yml` ficam salvas localmente nesta pasta e **devem ser reaplicadas manualmente** caso a pasta seja deletada e reclonada.
+
+**Exceção — as 4 extensões próprias têm backup real desde 2026-07-20:**
+`ask-max`, `whatsapp-cloud`, `response-audit` e `github-repo-report` são
+código nosso, não de terceiros, mas moram dentro de `openclaw/extensions/`
+por exigência do Docker build (contexto = `openclaw/`). Git não permite
+rastrear seletivamente uma subpasta de um repo aninhado a partir do repo
+pai, e symlink pra fora quebraria o build da imagem. Solução: cópia de
+exportação em `extensions/` (raiz do `meu-agente`, rastreada normalmente),
+atualizada sob demanda via `scripts/sync-extensions-backup.sh`.
+`openclaw/extensions/*` continua sendo a fonte de verdade em produção —
+nada mudou no runtime. Detalhes: [SESSAO_2026-07-20.md](SESSAO_2026-07-20.md#pendência-fechada-backup-git-das-extensões-próprias).
 
 ### Alterações locais ao docker-compose.yml (não rastreadas pelo git):
 ```yaml

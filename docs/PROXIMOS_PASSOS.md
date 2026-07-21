@@ -219,6 +219,20 @@ Não afeta operação normal do servidor.
      limiar de 5min do health-monitor rápido — a cautela ali continua
      correta e é assunto separado.
 
+- [x] ✅ **Backup git das 4 extensões próprias — CONCLUÍDO em 2026-07-20.**
+  `ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report`
+  viviam só dentro de `openclaw/extensions/` (repo de terceiros, ignorado
+  inteiro pelo `.gitignore`) sem backup real. Solução: cópia de
+  exportação em `extensions/` na raiz do `meu-agente` (symlink descartado
+  — quebraria o build Docker, cujo contexto é `openclaw/`),
+  `scripts/sync-extensions-backup.sh` pra atualizar sob demanda. Commit
+  e push confirmados (`03bee75..f668374`). Detalhes:
+  [SESSAO_2026-07-20.md](SESSAO_2026-07-20.md#pendência-fechada-backup-git-das-extensões-próprias).
+
+- [ ] 🟡 **Migrar Amigão pro servidor Contabo — PRÓXIMO PASSO (decidido
+  em 2026-07-20, planejamento ainda não iniciado).** Ver motivação e
+  incidente real de 2026-07-18 na seção "Integrações reais" abaixo.
+
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
    a) Audita respostas do Amigão antes de entregar
