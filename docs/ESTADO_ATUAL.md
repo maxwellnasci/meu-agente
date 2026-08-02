@@ -1,5 +1,23 @@
 # Estado Atual do Projeto
 
+## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-03)
+
+**O Amigão roda em PRODUÇÃO no servidor Contabo, não mais no Kali.**
+Cutover do túnel Cloudflare feito às 22:51 UTC de 2026-08-02, entrega
+ponta a ponta confirmada via Contabo às 22:56 UTC. O Kali mantém só o
+container antigo parado/idle como fallback (Etapa 8, agendada
+condicional pra 2026-08-04, ainda vai desligá-lo de vez). Detalhes
+completos: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
+
+| | Antes (até 2026-08-02) | Agora |
+|---|---|---|
+| Servidor de produção | Kali (notebook do Max) | **Contabo** (VPS, 158.220.125.233) |
+| Depende do Kali ligado? | Sim (ponto único de falha) | **Não** |
+| Cloudflare Tunnel roda em | Kali | **Contabo** |
+| `~/.openclaw/` (estado) | Kali | **Contabo** (`/root/.openclaw/`) |
+
+---
+
 - **Nome do projeto:** MEU AGENTE (OpenClaw isolado para aprendizado)
 - **Objetivo:** aprender agentes autônomos com máxima segurança
 - **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro). Padrão configurado (`model.primary` em `openclaw.json`): `deepseek/deepseek-chat`
@@ -7,16 +25,36 @@
 - **Tentativa de update para v2026.6.10:** realizada em 05/07/2026
 - **Resultado da tentativa:** v2026.6.9 é a versão mais atual no repositório oficial. Banner "atualização disponível" aparece antes do código ser publicado no GitHub deles.
 - **Backup salvo em:** ~/backup-openclaw-20260705-0646/
-- **Sistema:** healthy ✅
-- **Servidor:** kernel 6.8.0-134, todos updates aplicados
-- **nginx-app-1:** requer início manual após reboot
-- **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde)
+- **Sistema:** healthy ✅ (Kali e Contabo, ambos confirmados em 2026-08-02)
+- **Servidor de produção:** Contabo (VPS, Docker 29.6.1, Ubuntu 24.04.4) desde 2026-08-02. Kali (kernel 6.8.0-134) mantido como fallback parado.
+- **nginx-app-1 (Contabo):** requer início manual após reboot
+- **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde) — agora servido pelo Contabo
 - **Canal ativo:** whatsapp-cloud (extensão customizada), substituindo Baileys/Evolution como canal principal de WhatsApp
 - **Baileys/Evolution:** descontinuado como canal principal
-- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática
+- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali)
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** verificação do app pra produção, avaliar migração pro Contabo
-- **Data da última atualização:** 2026-07-17
+- **Próximos passos:** Etapa 8 da migração (parar container antigo do Kali, condicional a 24h estáveis) + avaliar Claude Security pós-migração
+- **Data da última atualização:** 2026-08-02
+
+---
+
+## ✅ MARCO — Amigão migrado pro Contabo, cutover do túnel concluído (2026-08-02)
+
+- **Etapas 0-5** (backup, rsync do estado, transferência da imagem
+  Docker, compose ajustado, gateway `healthy` no Contabo, credencial
+  WhatsApp validada) concluídas na sessão de 2026-07-29.
+- **Etapa 6 (2026-08-02):** `cloudflared` instalado no Contabo, mesma
+  versão do Kali (2026.7.1), credenciais do túnel copiadas. Janela de 2
+  conectores simultâneos (Kali + Contabo) monitorada com atenção.
+- **Etapa 7 — cutover (2026-08-02, 22:51 UTC):** `cloudflared` parado
+  no Kali, confirmado só o conector do Contabo ativo. Mensagem real de
+  teste confirmou entrega ponta a ponta via Contabo às 22:56 UTC, sem
+  erro. **Janela de 2 conectores durou ~8 minutos.**
+- **Resultado:** Amigão rodando 100% em produção no Contabo — não
+  depende mais do Kali estar ligado (resolve o gap de disponibilidade
+  registrado no incidente de 2026-07-18). Etapa 8 (desligar de vez o
+  container antigo do Kali) agendada condicional a 24h de observação
+  estável. Detalhes completos: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 
 ---
 

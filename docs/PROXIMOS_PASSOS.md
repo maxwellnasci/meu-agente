@@ -37,14 +37,18 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 - [x] **Evolution API** — Conectar instância, enviar mensagem de teste via curl local (Validado)
 - [x] **WhatsApp Cloud API oficial (Meta)** — Webhook recebendo, Amigão respondendo ponta a ponta com memória de sessão. Substitui Evolution/Baileys como canal principal (2026-07-14, ver [SESSAO_2026-07-14.md](SESSAO_2026-07-14.md))
 - [ ] **Verificação do app WhatsApp Cloud pra produção** — remove restrição de allowlist de destinatários (hoje limitado a 5 números cadastrados manualmente)
-- [ ] **Migrar Amigão pro servidor Contabo** — hoje depende do Kali estar ligado; rodar no Contabo dá independência.
-  **Reforçado por incidente real em 2026-07-18**: notebook desligado (uso
-  normal, não bug) das 08:25 às 17:19 (`-03`, ~8h55min) deixou o gateway —
-  e o `response-audit` recém-conectado — fora do ar o dia inteiro sem
-  ninguém perceber até o usuário voltar e pedir um resumo. Container
-  voltou sozinho graças a `restart: unless-stopped` + `docker.service`
-  habilitado no boot, mas só porque a máquina foi religada; não teria
-  voltado sozinha se tivesse ficado desligada. Detalhes da investigação em
+- [x] **Migrar Amigão pro servidor Contabo** — ✅ **praticamente
+  concluída em 2026-08-02** (Etapas 0-7 feitas, cutover do túnel
+  confirmado, falta só a Etapa 8 de limpeza no Kali — ver checklist
+  detalhado acima). Já não depende mais do Kali estar ligado.
+  **Motivação original, reforçada por incidente real em 2026-07-18**:
+  notebook desligado (uso normal, não bug) das 08:25 às 17:19 (`-03`,
+  ~8h55min) deixou o gateway — e o `response-audit` recém-conectado —
+  fora do ar o dia inteiro sem ninguém perceber até o usuário voltar e
+  pedir um resumo. Container voltou sozinho graças a
+  `restart: unless-stopped` + `docker.service` habilitado no boot, mas
+  só porque a máquina foi religada; não teria voltado sozinha se
+  tivesse ficado desligada. Detalhes da investigação em
   [SESSAO_2026-07-18.md](SESSAO_2026-07-18.md#verificação-pós-deploy-tarde-e-descoberta-gap-de-9h-em-produção).
 - [ ] **Revisar AGENTS.md para foco claro do bot** — política da Meta desde jan/2026 proíbe "General Purpose AI" sem foco específico (risco de suspensão do WhatsApp Cloud API)
 - [ ] **Skill send-whatsapp** — Construir e habilitar no OpenClaw workspace
@@ -229,9 +233,26 @@ Não afeta operação normal do servidor.
   e push confirmados (`03bee75..f668374`). Detalhes:
   [SESSAO_2026-07-20.md](SESSAO_2026-07-20.md#pendência-fechada-backup-git-das-extensões-próprias).
 
-- [ ] 🟡 **Migrar Amigão pro servidor Contabo — PRÓXIMO PASSO (decidido
-  em 2026-07-20, planejamento ainda não iniciado).** Ver motivação e
-  incidente real de 2026-07-18 na seção "Integrações reais" abaixo.
+- [x] 🟡 **Migrar Amigão pro servidor Contabo — PRATICAMENTE CONCLUÍDA
+  (Etapas 0-7 feitas, falta só Etapa 8).** Ver motivação e incidente
+  real de 2026-07-18 na seção "Integrações reais" abaixo.
+  - Etapas 0-5 (backup, rsync do estado, imagem Docker, compose,
+    gateway `healthy` no Contabo, credencial WhatsApp validada):
+    concluídas em 2026-07-29.
+  - Etapa 6 (cloudflared instalado no Contabo, janela de 2 conectores
+    simultâneos) e Etapa 7 (cutover — parada do cloudflared no Kali,
+    confirmação de conector único, teste real de entrega ponta a
+    ponta): concluídas em **2026-08-02**, cutover às 22:51 UTC, janela
+    de 2 conectores durou ~8min. Detalhes:
+    [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
+  - [ ] **Etapa 8 (pendente):** parar (não apagar) o container antigo
+    `openclaw-openclaw-gateway-1` no Kali. Agendada para
+    **2026-08-04, ~22:56 UTC** (24h de observação, como previa o
+    plano original), **condicional** a tudo continuar estável até lá.
+  - [ ] **Pendência registrada 2026-08-02: instalar Claude Security no
+    Contabo** — só depois da observação de 24h confirmada estável
+    (não misturar mudança de infra com nova ferramenta antes de saber
+    que o cutover ficou sólido).
 
 2. Agente de Defesa/Segurança - duplo propósito a
    esclarecer (ainda em aberto, não iniciado):
