@@ -1,12 +1,12 @@
 # Estado Atual do Projeto
 
-## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-03)
+## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-02)
 
 **O Amigão roda em PRODUÇÃO no servidor Contabo, não mais no Kali.**
 Cutover do túnel Cloudflare feito às 22:51 UTC de 2026-08-02, entrega
 ponta a ponta confirmada via Contabo às 22:56 UTC. O Kali mantém só o
 container antigo parado/idle como fallback (Etapa 8, agendada
-condicional pra 2026-08-04, ainda vai desligá-lo de vez). Detalhes
+condicional pra 2026-08-03, ainda vai desligá-lo de vez). Detalhes
 completos: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 
 | | Antes (até 2026-08-02) | Agora |

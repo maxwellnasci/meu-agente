@@ -247,7 +247,7 @@ Não afeta operação normal do servidor.
     [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   - [ ] **Etapa 8 (pendente):** parar (não apagar) o container antigo
     `openclaw-openclaw-gateway-1` no Kali. Agendada para
-    **2026-08-04, ~22:56 UTC** (24h de observação, como previa o
+    **2026-08-03, ~22:56 UTC** (24h de observação, como previa o
     plano original), **condicional** a tudo continuar estável até lá.
   - [ ] **Pendência registrada 2026-08-02: instalar Claude Security no
     Contabo** — só depois da observação de 24h confirmada estável
