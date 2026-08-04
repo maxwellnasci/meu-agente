@@ -292,3 +292,59 @@ Confirmado (2026-07-18) que são só de tipagem de teste, zero impacto real:
 Baixa — não bloqueia nada, plugin já roda em produção sem erro real.
 Corrigir quando sobrar tempo de higiene (tipar os mocks; passar por
 `unknown` antes do cast; ou trocar os asserts por helpers tipados).
+
+---
+
+## Pendência de prioridade MÉDIA — response-audit: falso positivo confirmado (2026-08-04)
+
+`response-audit` marcou uma resposta real do Amigão como `hallucination`
+quando na verdade a resposta estava correta. **É falso positivo (o
+auditor sinalizou um problema que não existia), não falso negativo** —
+risco diferente, não confundir na priorização: um falso positivo mina a
+confiança no auditor e pode gerar ruído/alarme desnecessário; um falso
+negativo deixaria uma alucinação real passar sem ser pega. Este caso é
+do primeiro tipo.
+
+**Caso concreto:** turno em produção (canal `whatsapp-cloud`, runId
+`c4a22831-5f4f-4437-a5d7-c7e34d474041`, 2026-08-04T09:59:39 UTC) — Max
+perguntou o saldo de créditos, o Amigão rodou a tool `session_status` e
+respondeu "Saldo atual da API (DeepSeek): US$ 5.82". `response-audit`
+marcou `flagged: true`, `category: "hallucination"`, com `reason`:
+"O agente afirmou um saldo específico da API DeepSeek (US$ 5.82) sem ter
+ferramenta para saber isso: [...] session_status [...] não retorna
+saldo/creditos de conta da API." **Esse reason está factualmente
+incorreto** — confirmado por Max que os US$ 5.82 batem com o saldo real
+checado direto na DeepSeek.
+
+**Causa raiz (investigada via leitura de código-fonte):**
+`session_status` (`src/agents/tools/session-status-tool.ts`) chama
+`buildStatusText` (`src/status/status-text.ts:448-509`), que pra
+provedores não-OAuth-only como DeepSeek (`shouldLoadUsageSummary`,
+`status-text.ts:157`) faz uma **chamada HTTP real e ao vivo** pro
+endpoint oficial `GET https://api.deepseek.com/user/balance`
+(`src/infra/provider-usage.fetch.deepseek.ts:24-111`), autenticada com a
+API key configurada, e embute o resultado formatado (`Balance $X.XX`) no
+texto de status devolvido. O modelo-juiz do `response-audit` não tem
+visibilidade dessa cadeia interna — só vê o nome da tool e o texto
+final, não o que a tool realmente busca por baixo.
+
+**Hipótese de melhoria futura (registrada, não é tarefa pra fazer
+agora):** dar mais contexto/visibilidade ao modelo-juiz do
+`response-audit` sobre o que cada tool efetivamente faz (ex: descrição
+mais rica das tools no prompt de auditoria, ou incluir metadata sobre
+chamadas de rede/dados externos que a tool buscou), pra reduzir esse
+tipo de falso positivo.
+
+---
+
+## Pendências de baixa prioridade — 2026-08-04
+
+- Timeouts ocasionais do deepseek-v4-flash mesmo com fallback ativo -
+  causa raiz não confirmada.
+- cloudflared desatualizado no Contabo (2026.7.1 -> 2026.7.3
+  recomendado).
+- Update do OpenClaw disponível (v2026.6.9 -> v2026.7.1-2) - decisão de
+  esperar, sem nova data definida.
+- Arquivo de cache .serena/cache/typescript/document_symbols.pkl (83MB)
+  no repo Kali passou do limite recomendado do GitHub (50MB) -
+  considerar .gitignore ou Git LFS.
