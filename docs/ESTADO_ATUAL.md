@@ -35,7 +35,7 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 - **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde) — agora servido pelo Contabo
 - **Canal ativo:** whatsapp-cloud (extensão customizada), substituindo Baileys/Evolution como canal principal de WhatsApp
 - **Baileys/Evolution:** descontinuado como canal principal
-- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali). Portas 18789/18790 do Kali restritas a `127.0.0.1` desde 2026-08-04 (config antiga expunha em `0.0.0.0`, sem exploração confirmada)
+- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali). Portas 18789/18790 do Kali restritas a `127.0.0.1` desde 2026-08-04 (config antiga expunha em `0.0.0.0`, sem exploração confirmada). Porta 18790 (bridge legacy, sem uso) removida por completo do docker-compose tanto no Contabo (produção, host) quanto no Kali (fallback) em 2026-08-04
 - **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
 - **Próximos passos:** Etapa 8 concluída (2026-08-04) — próximo: avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)

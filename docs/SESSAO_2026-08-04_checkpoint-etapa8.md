@@ -116,3 +116,24 @@ detalhado acima e em `PROXIMOS_PASSOS.md`.
 Workflow validado: pensar (Claude, chat) -> Antigravity executa (Gemini
 3.6 Flash high + Sonnet 4.6 think) -> Claude Code audita com evidência
 real. Nenhuma correção do Antigravity precisou ser revertida hoje.
+
+## Addendum — porta 18790 removida (Contabo + Kali, mesmo dia)
+
+Achado pós-checkpoint: porta 18790 (OPENCLAW_BRIDGE_PORT) exposta em
+0.0.0.0/[::] no Contabo - resíduo de feature "bridge" já removida do
+OpenClaw (confirmado em docs/gateway/configuration-reference.md e
+CHANGELOG.md do próprio upstream: zero listener real, não usada pelo
+túnel Cloudflare). Bloqueio externo hoje dependia só de firewall de
+borda do provedor, não de config própria - corrigido por completo.
+
+- **Contabo (produção):** linha da porta removida direto no
+  docker-compose.yml do host (`/root/openclaw/`, sem versionamento git
+  nesse arquivo), backup em
+  `docker-compose.yml.bak-20260804-1030-port18790fix`. Container
+  recriado (`docker compose up -d`), confirmado healthy, porta 18790
+  ausente de `docker ps`/`ss -tlnp`, WhatsApp confirmado respondendo
+  pós-recriação (evidência de log real, 3 replies).
+- **Kali (fallback parado):** mesma linha removida no
+  docker-compose.yml versionado, commit `a7ad41b565`, branch
+  `production-local-fixes`. Container seguiu parado - mudança vale pra
+  próxima vez que subir.
