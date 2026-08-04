@@ -1,13 +1,17 @@
 # Estado Atual do Projeto
 
-## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-02)
+## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-02), Etapa 8 concluída (2026-08-04)
 
 **O Amigão roda em PRODUÇÃO no servidor Contabo, não mais no Kali.**
 Cutover do túnel Cloudflare feito às 22:51 UTC de 2026-08-02, entrega
-ponta a ponta confirmada via Contabo às 22:56 UTC. O Kali mantém só o
-container antigo parado/idle como fallback (Etapa 8, agendada
-condicional pra 2026-08-03, ainda vai desligá-lo de vez). Detalhes
-completos: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
+ponta a ponta confirmada via Contabo às 22:56 UTC. **Etapa 8 concluída
+em 2026-08-04**: container antigo do Kali parado (`docker compose
+stop`, não deletado, reversível), cloudflared do Kali confirmado
+inativo/desabilitado. Checkpoint de verificação (achado sobre boot do
+Kali fora do previsto, fix de segurança de portas, falso positivo do
+response-audit) em
+[SESSAO_2026-08-04_checkpoint-etapa8.md](SESSAO_2026-08-04_checkpoint-etapa8.md).
+Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 
 | | Antes (até 2026-08-02) | Agora |
 |---|---|---|
@@ -20,21 +24,49 @@ completos: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 
 - **Nome do projeto:** MEU AGENTE (OpenClaw isolado para aprendizado)
 - **Objetivo:** aprender agentes autônomos com máxima segurança
-- **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro). Padrão configurado (`model.primary` em `openclaw.json`): `deepseek/deepseek-chat`
+- **Modelo/cérebro:** Selecionável nativamente na interface web (V3, V4-flash, V4-pro). Em produção (Contabo) desde 2026-08-03: primary `deepseek/deepseek-v4-flash`, fallback `deepseek/deepseek-chat` (aplicado via Antigravity, reportado por Max — não auditado independentemente pelo Claude Code, ver [SESSAO_2026-08-04_checkpoint-etapa8.md](SESSAO_2026-08-04_checkpoint-etapa8.md))
 - **Versão OpenClaw:** v2026.6.9 (confirmado - mais recente disponível)
 - **Tentativa de update para v2026.6.10:** realizada em 05/07/2026
 - **Resultado da tentativa:** v2026.6.9 é a versão mais atual no repositório oficial. Banner "atualização disponível" aparece antes do código ser publicado no GitHub deles.
 - **Backup salvo em:** ~/backup-openclaw-20260705-0646/
-- **Sistema:** healthy ✅ (Kali e Contabo, ambos confirmados em 2026-08-02)
+- **Sistema:** Contabo healthy ✅ (produção). Kali parado por design desde 2026-08-04 (Etapa 8, fallback fechado — estado desejado, não erro)
 - **Servidor de produção:** Contabo (VPS, Docker 29.6.1, Ubuntu 24.04.4) desde 2026-08-02. Kali (kernel 6.8.0-134) mantido como fallback parado.
 - **nginx-app-1 (Contabo):** requer início manual após reboot
 - **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde) — agora servido pelo Contabo
 - **Canal ativo:** whatsapp-cloud (extensão customizada), substituindo Baileys/Evolution como canal principal de WhatsApp
 - **Baileys/Evolution:** descontinuado como canal principal
-- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali)
+- **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali). Portas 18789/18790 do Kali restritas a `127.0.0.1` desde 2026-08-04 (config antiga expunha em `0.0.0.0`, sem exploração confirmada)
+- **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** Etapa 8 da migração (parar container antigo do Kali, condicional a 24h estáveis) + avaliar Claude Security pós-migração
-- **Data da última atualização:** 2026-08-02
+- **Próximos passos:** Etapa 8 concluída (2026-08-04) — próximo: avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
+- **Data da última atualização:** 2026-08-04
+
+---
+
+## ✅ MARCO — Etapa 8 concluída, checkpoint pós-migração auditado (2026-08-04)
+
+- **Etapa 8 concluída**: `docker compose stop` no gateway do Kali —
+  parado, não deletado, reversível. Cloudflared do Kali confirmado
+  inativo e desabilitado antes e depois do stop.
+- **Achado durante o checkpoint**: o gateway do Kali foi encontrado
+  rodando (iniciado 2026-08-04 08:30:45 UTC, `RestartCount: 0`) antes da
+  Etapa 8 — boot da máquina foi 3h antes (05:30:24 UTC), gap não
+  totalmente reconciliado (ver atribuições de origem em
+  [SESSAO_2026-08-04_checkpoint-etapa8.md](SESSAO_2026-08-04_checkpoint-etapa8.md)).
+  Confirmado por Max que foi ele ligando o notebook.
+- **Fix de segurança**: bind de portas 18789/18790 do Kali trocado de
+  `0.0.0.0` (exposto, config desde 16/jul) pra `127.0.0.1`, mesma
+  prática já usada no Contabo. Commit `d1c658fd2d`, branch
+  `production-local-fixes`.
+- **Backup remoto do repo local criado**:
+  `github.com/maxwellnasci/max-openclaw-local-fixes` — `origin` do
+  `openclaw/` (upstream público) permanece intocado.
+- **Regressão do WhatsApp confirmada** (Max, 6 mensagens reais
+  recebidas) e cobertura do `response-audit` no canal `whatsapp-cloud`
+  confirmada via consulta direta na store (4 registros persistidos). Um
+  falso positivo (`hallucination`) identificado e explicado — causa raiz
+  e hipótese de melhoria futura em `PROXIMOS_PASSOS.md`. Detalhes:
+  [SESSAO_2026-08-04_checkpoint-etapa8.md](SESSAO_2026-08-04_checkpoint-etapa8.md).
 
 ---
 
