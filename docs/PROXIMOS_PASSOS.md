@@ -396,6 +396,15 @@ SESSAO_2026-08-04_checkpoint-etapa8.md.
    diagnosticado pelos logs (`chown 1000 ...` no próprio erro) e
    corrigido — gateway precisa do arquivo com dono uid 1000 (`node`),
    não root.
+   **Validação final (2026-08-06)**: teste ponta a ponta com pedido
+   real de execução do comando `id` via WhatsApp, confirmado por 3
+   fontes de evidência independentes (docker logs do gateway, docker
+   events do container `openclaw-sbx-agent-main-f331f052` com
+   `exec_create`→`exec_start`→`exec_die exitCode=0`, e resposta
+   funcional do agente sem o grupo 988 do host) — fecha a ressalva
+   registrada em 2026-08-05 11:39 UTC (execução real de tool ainda não
+   comprovada diretamente). P0.2 fechado sem pendências. Detalhes:
+   [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#validação-final-do-p02--sandbox-real-confirmado).
 3. P1 do plano do Amigão (não lido em detalhe ainda): gateway só
    loopback + TLS via Nginx Proxy Manager + firewall, pinar versão de
    imagem (parar de usar :latest), corrigir permissões.
