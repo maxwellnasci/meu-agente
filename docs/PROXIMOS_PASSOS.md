@@ -9,7 +9,7 @@ Antes de qualquer nova feature, religar o isolamento é o passo zero.
 
 - [x] **Configurar docker.sock no compose:** (Feito)
 - [x] **Religar sandbox:** (Feito)
-- [x] **Validar isolamento:** (Em andamento)
+- [x] **Validar isolamento:** ✅ Concluído em 2026-08-05 (ver P0.2 abaixo)
 
 ### Prioridade 🟡 PRÓXIMA FASE
 
@@ -363,9 +363,39 @@ SESSAO_2026-08-04_checkpoint-etapa8.md.
 1. Rotação de chaves: DeepSeek (console do provedor), gateway token
    (openssl rand -hex 32 + atualizar credencial), Meta/WhatsApp (Meta
    Business dashboard) - ação manual, sem dependência técnica.
-2. P0.2 - sandbox real: rebuild com OPENCLAW_INSTALL_DOCKER_CLI=1,
-   mode: "all", configurar memory/pidsLimit em sandbox.docker. Sessão
-   dedicada.
+2. [x] ✅ **P0.2 - sandbox real: CONCLUÍDO em 2026-08-05.** Rebuild da
+   imagem do gateway no Kali com `OPENCLAW_INSTALL_DOCKER_CLI=1` (tag
+   `openclaw:local-sandboxed`, Docker CLI + compose-plugin instalados
+   via repo APT oficial com verificação de fingerprint GPG), build da
+   imagem separada `openclaw-sandbox:bookworm-slim` (cache hit, sem
+   drift do Dockerfile), ambas transferidas pro Contabo via
+   `docker save | ssh | docker load` (mesmo método da migração
+   original, evitando expor código-fonte em produção). `openclaw.json`:
+   `sandbox.mode: "all"` (era `"off"`) + `docker.memory: "512m"` +
+   `docker.pidsLimit: 256` (valores conferidos contra o exemplo oficial
+   em `docs/gateway/config-agents.md` do upstream, que usa
+   `pidsLimit: 256` idêntico e `memory: "1g"` como referência mais
+   generosa). `docker-compose.yml`: `docker.sock` remontado só no
+   serviço `openclaw-gateway` (não no `openclaw-cli`) +
+   `group_add: "988"` (GID real do grupo `docker` no Contabo, diferente
+   do 124 usado no Kali). Backups dos 3 arquivos originais tirados
+   antes de qualquer mudança real.
+   **Validação ao vivo completa**: `docker exec ... docker --version`
+   funcional (29.7.1), `id` do processo do gateway confirma grupo 988,
+   e — mais importante — uma mensagem de teste real via WhatsApp gerou
+   um container `openclaw-sbx-agent-main-*` de verdade (imagem
+   `openclaw-sandbox:bookworm-slim`, `scope: "agent"`, `sleep infinity`
+   como esperado) com os logs do gateway confirmando a tool policy do
+   sandbox sendo aplicada (`tools.allow`/`tools.deny` filtrando tools) —
+   não é só o container subindo à toa, é o isolamento real em uso.
+   **Incidente no meio do processo, sem impacto residual**: um
+   `chown root:root` equivocado no `openclaw.json` (baseado numa
+   suposição errada a partir do dono do arquivo de backup, que só
+   ficou `root:root` porque o `cp` sem `-p` não preserva o dono
+   original) causou um crash loop de ~4min (`EACCES`, exit 78) até ser
+   diagnosticado pelos logs (`chown 1000 ...` no próprio erro) e
+   corrigido — gateway precisa do arquivo com dono uid 1000 (`node`),
+   não root.
 3. P1 do plano do Amigão (não lido em detalhe ainda): gateway só
    loopback + TLS via Nginx Proxy Manager + firewall, pinar versão de
    imagem (parar de usar :latest), corrigir permissões.

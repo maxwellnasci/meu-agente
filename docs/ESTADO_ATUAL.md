@@ -39,12 +39,65 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 - Docker socket removido do container do gateway (Contabo) em
   2026-08-04 - fechava rota RCE→root. Secrets DEEPSEEK_API_KEY e
   OPENCLAW_GATEWAY_TOKEN migrados de env cru pra SecretRef em arquivo
-  (modo 600). Rotação de chaves e sandbox real (P0.2) pendentes - ver
-  PROXIMOS_PASSOS.md.
+  (modo 600). **Docker socket religado em 2026-08-05 (P0.2, sandbox
+  real) — desta vez com isolamento de verdade**: `sandbox.mode: "all"`,
+  `docker.sock` montado só no `openclaw-gateway` (não no `openclaw-cli`),
+  `group_add: "988"` (GID real do Contabo), `memory: "512m"` +
+  `pidsLimit: 256` no `sandbox.docker`. Validado ao vivo: execução real
+  de tool via WhatsApp confirmada rodando dentro de um container
+  `openclaw-sbx-agent-main-*` efêmero, não direto no gateway. Rotação
+  de chaves ainda pendente - ver PROXIMOS_PASSOS.md. Detalhes completos
+  em [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 - **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** Etapa 8 concluída (2026-08-04) — próximo: avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
-- **Data da última atualização:** 2026-08-04
+- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05) — próximo: rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
+- **Data da última atualização:** 2026-08-05
+
+---
+
+## ✅ MARCO — P0.2 concluído: sandbox real ativo em produção (2026-08-05)
+
+- **Objetivo**: religar o isolamento por container removido em 2026-08-04
+  (P0.1), desta vez com sandbox de verdade em vez de acesso irrestrito ao
+  `docker.sock`.
+- **Build**: imagem do gateway reconstruída no Kali com
+  `--build-arg OPENCLAW_INSTALL_DOCKER_CLI=1` (tag
+  `openclaw:local-sandboxed`, Docker CLI + compose-plugin instalados via
+  repo APT oficial com verificação de fingerprint GPG). Imagem separada
+  `openclaw-sandbox:bookworm-slim` (usada pelos containers-filho
+  `openclaw-sbx-*`) rebuilded — cache hit, confirmando que já estava em
+  dia com o Dockerfile. Ambas transferidas pro Contabo via
+  `docker save | ssh | docker load` (mesmo método usado na migração
+  original de 2026-07-29), evitando manter um checkout de código-fonte
+  em produção (o Dockerfile só existe no Kali; o `/root/openclaw` do
+  Contabo nunca teve um, um gap descoberto durante a investigação).
+- **Config**: `openclaw.json` → `sandbox.mode: "all"` (era `"off"`),
+  `docker.memory: "512m"` + `docker.pidsLimit: 256` (`pidsLimit` bate
+  com o exemplo oficial do upstream em `docs/gateway/config-agents.md`;
+  `memory` é metade do exemplo de referência, ponto de partida
+  conservador). `docker-compose.yml` → `docker.sock` remontado só no
+  `openclaw-gateway` (não no `openclaw-cli`) + `group_add: "988"` (GID
+  real do grupo `docker` no Contabo — diferente do 124 usado no Kali,
+  confirmado antes de aplicar). `.env` → `OPENCLAW_IMAGE=openclaw:local-sandboxed`
+  (mantém `openclaw:local` intocada como rollback instantâneo).
+- **Validação ao vivo**: `docker exec ... docker --version` funcional
+  (29.7.1); `id` do processo do gateway confirma grupo 988; uma
+  mensagem de teste real via WhatsApp gerou um container
+  `openclaw-sbx-agent-main-*` de verdade (`sleep infinity`, `scope:
+  "agent"` como esperado), com os logs do gateway confirmando a tool
+  policy do sandbox sendo aplicada (`tools.allow`/`tools.deny`
+  filtrando tools) — isolamento real em uso, não só o container
+  subindo à toa.
+- **Incidente sem impacto residual**: um `chown root:root` equivocado
+  no `openclaw.json` (o backup só parecia `root:root` porque o `cp` sem
+  `-p` não preserva o dono original — o arquivo de produção real
+  precisa de uid 1000/`node`) causou um crash loop de ~4min (`EACCES`,
+  exit 78) até ser diagnosticado pela própria mensagem de erro do
+  OpenClaw e corrigido.
+- Backups dos 3 arquivos (`docker-compose.yml`, `.env`, `openclaw.json`)
+  tirados no Contabo antes de qualquer mudança real
+  (`*-20260805-1048-sandboxfix`), prontos pra rollback. Detalhes
+  completos: [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 
 ---
 
@@ -313,6 +366,13 @@ Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 ---
 
 ## Estado dos arquivos de configuração
+
+Tabela abaixo descreve o ambiente **Kali (dev local/fallback)**. A
+**produção real roda no Contabo** desde 2026-08-02 e diverge em dois
+pontos desde 2026-08-05 (P0.2): imagem `openclaw:local-sandboxed` (não
+`openclaw:local`) e `group_add` com GID **988** (não 124 — GID do grupo
+`docker` diverge entre as duas máquinas). Detalhes:
+[SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 
 | Arquivo | Localização | Status |
 |---|---|---|
