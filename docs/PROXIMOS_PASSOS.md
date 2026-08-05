@@ -357,3 +357,23 @@ docker-compose.yml (zero risco, upstream não tocou), src/plugins/hooks.ts
 mesmo objeto onde já temos nosso fix da Bug 4; resolução: manter as 3
 entradas). Detalhes completos em
 SESSAO_2026-08-04_checkpoint-etapa8.md.
+
+## Sequência de segurança pendente (plano do Amigão, 2026-08-04)
+
+1. Rotação de chaves: DeepSeek (console do provedor), gateway token
+   (openssl rand -hex 32 + atualizar credencial), Meta/WhatsApp (Meta
+   Business dashboard) - ação manual, sem dependência técnica.
+2. P0.2 - sandbox real: rebuild com OPENCLAW_INSTALL_DOCKER_CLI=1,
+   mode: "all", configurar memory/pidsLimit em sandbox.docker. Sessão
+   dedicada.
+3. P1 do plano do Amigão (não lido em detalhe ainda): gateway só
+   loopback + TLS via Nginx Proxy Manager + firewall, pinar versão de
+   imagem (parar de usar :latest), corrigir permissões.
+4. P2 do plano do Amigão (não lido em detalhe ainda): backup com teste
+   de restore, monitoramento, cadência de update.
+5. Update do OpenClaw v2026.6.9 → v2026.7.1-2 (ver addendum de hoje
+   mais acima - 2 conflitos de merge já mapeados).
+6. Melhoria do response-audit (falso positivo do caso DeepSeek balance
+   - dar visibilidade de tool ao modelo-juiz).
+7. Rodar o Claude Security de verdade (créditos pendentes da vez
+   anterior).
