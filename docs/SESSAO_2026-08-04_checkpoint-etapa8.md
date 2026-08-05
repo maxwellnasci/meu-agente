@@ -191,3 +191,53 @@ localmente, resolvida de forma independente pelo upstream também) mas
 NÃO aplicado - risco/escopo grande demais pra sessão atual, requer
 ambiente de staging dedicado. Plano de rebase já levantado, fica como
 próximo passo definido.
+
+## Addendum — remediação de segurança (plano do próprio Amigão)
+
+O Amigão gerou uma análise de segurança própria, read-only
+(/root/.openclaw/workspace/security-reports/PLANO-REMEDIACAO-2026-08-04.md,
+Contabo), identificando 3 itens P0. Todas as 4 claims verificadas
+(docker.sock montado RW, sandbox.mode off, 5 secrets em env cru,
+referência a "Arbo" = cliente real via WhatsApp) bateram com a infra
+real - ao contrário do achado de hallucination de timeout mais cedo
+hoje, esta análise específica do Amigão se confirmou precisa.
+
+**P0.1 (docker.sock/RCE→root) - CORRIGIDO.** Removidos docker.sock
+mount e group_add:988 do docker-compose.yml do Contabo (backup
+docker-compose.yml.bak-20260805-0034-dockersock-fix). Validado: grupo
+988 ausente, socket inexistente dentro do container, gateway healthy,
+mensagem real de WhatsApp respondida pós-recriação. Achado importante:
+o socket não era resíduo - é a base de uma feature real de sandbox
+Docker (sandbox.docker no schema, guard de segurança dedicado contra
+fuga aninhada, commit local no Kali já preparando isso antes:
+b9bf260cadb) que nunca foi ativada (sandbox.mode: off). Por isso a
+remoção de hoje é fechamento imediato do risco, não a arquitetura
+final - religar via sandbox propriamente configurado fica como P0.2.
+
+**P0.2 (sandbox real) - NÃO aplicado, bloqueado.** Requer rebuild da
+imagem com Docker CLI (--build-arg OPENCLAW_INSTALL_DOCKER_CLI=1,
+ausente hoje). Correção encontrada no plano original: o valor proposto
+"mode": "require" é inválido no schema (só aceita off/non-main/all).
+Com dmScope: per-peer já ativo, non-main e all se comportam de forma
+idêntica neste deployment (nenhuma sessão bate mais com sessionKey
+"main") - recomendado usar "all" diretamente por clareza. sandbox.docker
+vem com capDrop:ALL por padrão, mas memory/pidsLimit não têm default -
+precisam ser setados manualmente. Fica como próximo passo definido,
+junto com o update do OpenClaw.
+
+**P0.3 (segredos em env cru) - CORRIGIDO.** DEEPSEEK_API_KEY e
+OPENCLAW_GATEWAY_TOKEN migrados para arquivos de credencial
+(~/.openclaw/credentials/deepseek.json e gateway-token.json, modo 600)
+via SecretRef, mesmo padrão já usado pro whatsapp-cloud. As 3 vars do
+Claude Web (CLAUDE_WEB_SESSION_KEY, CLAUDE_WEB_COOKIE,
+CLAUDE_AI_SESSION_KEY) estavam vazias/sem uso - removidas sem migração.
+Backups: openclaw.json.bak-20260805-0048-secretsfix,
+docker-compose.yml.bak-20260805-0048-secretsfix,
+.env.bak-20260805-0048-secretsfix. Validado via log de boot
+("gateway.auth.token is active" - confirma que o SecretRef passou a
+valer de verdade, não só que o config parece certo) e mensagem real de
+WhatsApp respondida.
+
+**Pendência real: rotação de chaves não feita.** Migrar onde a
+credencial mora não invalida o valor antigo se já vazou. Fica
+registrado em PROXIMOS_PASSOS.md.
