@@ -137,3 +137,57 @@ borda do provedor, não de config própria - corrigido por completo.
   docker-compose.yml versionado, commit `a7ad41b565`, branch
   `production-local-fixes`. Container seguiu parado - mudança vale pra
   próxima vez que subir.
+
+## Addendum — limpeza de pendências (Kali + Contabo, mesmo dia)
+
+- **.env.backup**: encontrado untracked no repo openclaw/ do Kali
+  (23/06, credenciais reais confirmadas por padrão chave=valor, não
+  inspecionado em detalhe por segurança). Protegido no .gitignore
+  (commit 2e9b3004a8) e movido pra fora do repo:
+  ~/backups/env.backup-kali-20260623, permissão 600. Backup antigo
+  encontrado no mesmo diretório (openclaw-backup-20260729-065526.tar.gz)
+  também teve permissão corrigida pra 600 (estava 644, legível por
+  qualquer usuário local).
+- **docs/ deletado no working tree**: achado mais amplo que o esperado -
+  não só docs/.generated/ e docs/.i18n/ (32 arquivos), mas a árvore
+  docs/ inteira do repo vendorizado (612 arquivos), sem relação com
+  espaço em disco (284G livres) nem com nenhum script conhecido. Causa
+  raiz não identificada - possivelmente ligada ao mesmo evento de
+  23/06 do .env.backup (mesma janela temporal encontrada em outros
+  arquivos de cache). Restaurado via git restore (zero risco, conteúdo
+  já estava no histórico git).
+- **cloudflared 2026.7.1 → 2026.7.3** (Contabo): sem breaking changes
+  identificadas no changelog real (comparação de commits entre tags).
+  SHA256 verificado antes de instalar, binário antigo e .deb mantidos
+  em backup. Validado: prechecks PASS, 4 conexões QUIC reconectadas,
+  mensagem real de WhatsApp respondida pós-update.
+
+## Addendum — correção de pendência: timeout do deepseek
+
+A pendência registrada em PROXIMOS_PASSOS.md ("timeouts ocasionais do
+deepseek-v4-flash") tinha como base 3 menções na memória do projeto
+que, investigadas a fundo via consulta direta à store de auditoria
+(plugin_state_entries, 2026-07-18 a 2026-08-04, 53 registros), se
+revelaram ser o próprio Amigão fabricando números específicos de
+timeout numa resposta ao usuário (modelo citado nem batia com o
+runtime) - corretamente flagrado como hallucination pelo response-audit
+na hora (2026-08-03, 20 de 26 auditorias do dia flagged). Não é
+evidência de problema real de infraestrutura naquele horário.
+
+Achado real e independente, sem relação com a alucinação: não havia
+NENHUM timeout de aplicação configurado para as chamadas de chat do
+deepseek (só o hook de auditoria tinha, 20s hardcoded) - dependia só
+do comportamento de socket TCP/TLS. Corrigido: adicionado
+models.providers.deepseek.timeoutSeconds: 30 no openclaw.json do
+Contabo (backup em openclaw.json.bak-20260805-0005-timeoutfix),
+runtime-only, sem rebuild. Validado: gateway healthy pós-restart,
+mensagem real de WhatsApp processada sem erro.
+
+Investigação read-only separada: update do OpenClaw (v2026.6.9 →
+v2026.7.1-2) foi mapeado em detalhe (4.716 commits, 2 conflitos reais
+de merge identificados na branch production-local-fixes - um deles em
+src/plugins/hooks.ts, relacionado à mesma Bug 4 já corrigida
+localmente, resolvida de forma independente pelo upstream também) mas
+NÃO aplicado - risco/escopo grande demais pra sessão atual, requer
+ambiente de staging dedicado. Plano de rebase já levantado, fica como
+próximo passo definido.

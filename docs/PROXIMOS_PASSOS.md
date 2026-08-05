@@ -339,12 +339,21 @@ tipo de falso positivo.
 
 ## Pendências de baixa prioridade — 2026-08-04
 
-- Timeouts ocasionais do deepseek-v4-flash mesmo com fallback ativo -
-  causa raiz não confirmada.
 - cloudflared desatualizado no Contabo (2026.7.1 -> 2026.7.3
   recomendado).
-- Update do OpenClaw disponível (v2026.6.9 -> v2026.7.1-2) - decisão de
-  esperar, sem nova data definida.
 - Arquivo de cache .serena/cache/typescript/document_symbols.pkl (83MB)
   no repo Kali passou do limite recomendado do GitHub (50MB) -
   considerar .gitignore ou Git LFS.
+
+## Próximo passo definido: update do OpenClaw v2026.6.9 → v2026.7.1-2
+
+Requer sessão dedicada com ambiente de staging (não Kali/Contabo
+direto). Mudanças estruturais: Codex app-server ≥0.143, migrations
+automáticas no boot (rodar openclaw doctor --fix depois), Slack
+progress reactions requer messages.statusReactions.enabled. Dois
+conflitos de merge reais mapeados na branch production-local-fixes:
+docker-compose.yml (zero risco, upstream não tocou), src/plugins/hooks.ts
+(conflito real - upstream adicionou before_agent_finalize: 15_000 no
+mesmo objeto onde já temos nosso fix da Bug 4; resolução: manter as 3
+entradas). Detalhes completos em
+SESSAO_2026-08-04_checkpoint-etapa8.md.
