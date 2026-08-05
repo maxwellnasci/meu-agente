@@ -98,6 +98,14 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   tirados no Contabo antes de qualquer mudança real
   (`*-20260805-1048-sandboxfix`), prontos pra rollback. Detalhes
   completos: [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
+- **Validação final (2026-08-06)**: execução real da tool `exec`
+  dentro do container sandbox confirmada com evidência direta (docker
+  logs do gateway + docker events do container + resposta funcional
+  sem grupo 988 do host) — fecha a ressalva anterior sobre execução
+  não comprovada diretamente. **Os 3 itens P0 do plano de segurança do
+  Amigão (docker.sock/RCE, sandbox real, secrets fora do env) estão
+  todos corrigidos e validados com evidência real.** Detalhes:
+  [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#validação-final-do-p02--sandbox-real-confirmado).
 
 ---
 
