@@ -448,6 +448,21 @@ plugins.entries.ask-max.config.to) + phoneNumberId da Meta. Consolidar
 num único bloco claramente marcado "config por cliente", facilitando
 trocar tudo de uma vez ao clonar pra um cliente novo.
 
+**Decisão tomada (2026-08-05/06):** confirmado que openclaw.json
+suporta interpolação de ${VAR} em qualquer campo string (não só
+SecretRef) - env-substitution.ts:201-207, aplicado no pipeline
+principal (io.ts:1329). Diff já desenhado, opção B escolhida
+(preserva as 2 variantes do telefone do Max - "5541984445755" e
+"554184445755" - que existem de propósito pra casar com formatos
+diferentes que a Meta normaliza em eventos de webhook; templatizar só
+com 1 variável reduziria a allowlist funcionalmente). Variáveis:
+ARBO_OWNER_PHONE, ARBO_OWNER_PHONE_ALT, ARBO_PHONE_NUMBER_ID. Falta
+aplicar: adicionar as 3 linhas no .env do Contabo, aplicar o diff no
+openclaw.json (4 campos: commands.ownerAllowFrom,
+channels.whatsapp-cloud.allowFrom, ask-max.config.to,
+whatsapp-cloud.phoneNumberId), backup, restart, validar com mensagem
+real. Fica pra próxima sessão com tempo de acompanhar a validação.
+
 **2. Tirar o repo-registry.ts do código-fonte**
 extensions/github-repo-report/src/repo-registry.ts tem owner/slugs
 hardcoded em TypeScript (GITHUB_REPO_OWNER = "maxwellnasci", slugs
