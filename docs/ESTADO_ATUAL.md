@@ -50,8 +50,64 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   em [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 - **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05), regressão do tool-policy (ask_max/github_repo_report bloqueados pelo sandbox) encontrada e corrigida (2026-08-06) — próximo: rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
+- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05), regressão do tool-policy (ask_max/github_repo_report bloqueados pelo sandbox) encontrada e corrigida (2026-08-06), github-repo-report migrado pra config-driven e deployado em produção (2026-08-06) — próximo: itens 3-5 do roteiro de template (AGENTS.md Parte B, setup de infra por cliente, core vs. add-on), rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
 - **Data da última atualização:** 2026-08-06
+
+---
+
+## ✅ MARCO — github-repo-report migrado para config-driven, deploy validado em produção (2026-08-06)
+
+- **Objetivo**: item 2 do "Roteiro: extrair template genérico" —
+  `repo-registry.ts` tinha owner/slugs hardcoded em TypeScript, exigia
+  editar código-fonte (e rebuild de imagem) pra reusar em outro
+  cliente. Movido pra config carregável via `openclaw.json`, sem
+  regressão de comportamento.
+- **Refactor**: `configSchema` novo no `openclaw.plugin.json`
+  (`owner` + `repos[]`); `src/config.ts` novo (parse `zod`, mesmo
+  padrão de `extensions/webhooks`); `repo-registry.ts` virou builders
+  genéricos; `schema.ts` virou função (enum construído em runtime a
+  partir do config); `tool.ts`/`policy.ts` recebem o registry como
+  parâmetro; `plugin.ts` decide **não registrar a tool** se zero repos
+  configurados (safe-by-default — enum vazio degradaria pra string
+  livre sem essa checagem). 36 testes, 9 arquivos, 100% verde.
+- **Achado sem relação com o refactor**: falha do `pnpm build:docker`
+  local (`ERR_NO_TYPESCRIPT` no script do plugin `canvas`) confirmada
+  como ambiente do host (Node do Kali), não bug — o build Docker real
+  rodou esse mesmo passo limpo dentro do container oficial.
+- **Achado crítico pré-deploy**: `openclaw.json` de produção tinha
+  `github-repo-report: { enabled: true }` **sem bloco `config`** — com
+  o código novo isso desregistraria a tool silenciosamente (zero
+  erro/crash, só um log INFO). Resolvido antes do corte: config
+  equivalente adicionado (owner `maxwellnasci`, `meu-agente`/`arbo`
+  desabilitados, `Mox---Sistemas` habilitado), replicando exatamente o
+  comportamento hardcoded anterior.
+- **Build e transferência**: `docker build
+  --build-arg OPENCLAW_INSTALL_DOCKER_CLI=1 -t
+  openclaw:local-sandboxed-v2 .` — limpo, `sha256:0cc028678cfe...`,
+  880MB. Transferido via `docker save | gzip | ssh | gunzip | docker
+  load`. Divergência de Image ID entre Kali e Contabo investigada e
+  explicada (versões de Docker diferentes) — conteúdo confirmado
+  idêntico via `sha256sum` dos arquivos compilados, não só pelo ID.
+- **Validação ao vivo**: mensagem real via WhatsApp ("me dá um
+  relatório do repositório Mox") retornou relatório real e detalhado
+  do repo (URL de produção, stack, contagem de arquivos) — confirma a
+  tool registrada e executando de verdade com o config novo, não só o
+  container subindo saudável.
+- **Backups**:
+  `openclaw.json.bak-20260806-1339-github-repo-report-config`,
+  `.env.bak-20260806-1341-github-repo-report-deploy`. Rollback em 2
+  passos independentes, documentado e não usado (imagem antiga
+  `openclaw:local-sandboxed` nunca foi tocada). Detalhes completos:
+  [SESSAO_2026-08-06_github-repo-report.md](SESSAO_2026-08-06_github-repo-report.md).
+
+**Referência rápida de rollback:**
+```bash
+# 1. Reverter a imagem (via .env + recriação):
+ssh contabo "cd /root/openclaw && sed -i 's/OPENCLAW_IMAGE=openclaw:local-sandboxed-v2\$/OPENCLAW_IMAGE=openclaw:local-sandboxed/' .env && docker compose up -d"
+
+# 2. Reverter o config (openclaw.json, comportamento hardcoded antigo volta):
+ssh contabo "cp /root/.openclaw/openclaw.json /root/.openclaw/openclaw.json.pre-rollback && cp /root/.openclaw/openclaw.json.bak-20260806-1339-github-repo-report-config /root/.openclaw/openclaw.json && docker compose up -d"
+```
 
 ---
 
