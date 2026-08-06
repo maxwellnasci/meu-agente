@@ -50,8 +50,8 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   em [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 - **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05) — próximo: rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
-- **Data da última atualização:** 2026-08-05
+- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05), regressão do tool-policy (ask_max/github_repo_report bloqueados pelo sandbox) encontrada e corrigida (2026-08-06) — próximo: rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
+- **Data da última atualização:** 2026-08-06
 
 ---
 
@@ -106,6 +106,19 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   Amigão (docker.sock/RCE, sandbox real, secrets fora do env) estão
   todos corrigidos e validados com evidência real.** Detalhes:
   [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#validação-final-do-p02--sandbox-real-confirmado).
+- **⚠️→✅ Regressão encontrada e corrigida (2026-08-06)**: ligar
+  `sandbox.mode: "all"` fez a política de tools do sandbox cair no
+  `DEFAULT_TOOL_ALLOW` (allowlist default do OpenClaw), que bloqueava
+  `ask_max` (rede de segurança contra alucinação) e
+  `github_repo_report` desde a ativação do P0.2, sem ninguém perceber
+  até uma investigação de inventário de capacidades. Causa raiz: faltava
+  `tools.sandbox.tools.alsoAllow` (campo distinto do `tools.alsoAllow`
+  de raiz, que só expõe a tool ao modelo — não à política do sandbox).
+  Corrigido no `openclaw.json` do Contabo (backup
+  `openclaw.json.bak-20260806-0041-toolpolicyfix`), validado ao vivo
+  (log caiu de 14 → 12 tools removidas por turno, isolamento do
+  `exec`/Docker intocado). Detalhes:
+  [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#regressão-encontrada-e-corrigida-ask_maxgithub_repo_report-bloqueados-pelo-sandbox).
 
 ---
 
