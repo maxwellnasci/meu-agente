@@ -16,7 +16,47 @@
   },
   "configSchema": {
     "type": "object",
-    "properties": {},
-    "additionalProperties": false
+    "additionalProperties": false,
+    "properties": {
+      "owner": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Default GitHub org/user that owns the configured repos. Used when a repo entry does not set its own owner."
+      },
+      "repos": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Exact GitHub repo name (case-sensitive)."
+            },
+            "owner": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Overrides the top-level owner for this repo only."
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Friendly display name. Defaults to slug."
+            },
+            "defaultRef": {
+              "type": "string",
+              "minLength": 1,
+              "default": "main"
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "required": ["slug"]
+        }
+      }
+    }
   }
 }

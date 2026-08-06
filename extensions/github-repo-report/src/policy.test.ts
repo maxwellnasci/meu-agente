@@ -1,11 +1,30 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearPendingGithubRepoReportAuditForTest } from "./audit-log.js";
 import { registerGithubRepoReportPolicy } from "./policy.js";
+import { buildGithubRepoRegistry } from "./repo-registry.js";
 
 type CapturedEvaluate = (
   event: { toolName: string; params: Record<string, unknown>; toolCallId?: string },
   ctx: { runId?: string; sessionKey?: string; agentId?: string },
 ) => unknown;
+
+const REGISTRY = buildGithubRepoRegistry([
+  {
+    slug: "meu-agente",
+    owner: "maxwellnasci",
+    label: "meu-agente",
+    defaultRef: "master",
+    enabled: false,
+  },
+  { slug: "arbo", owner: "maxwellnasci", label: "arbo", defaultRef: "master", enabled: false },
+  {
+    slug: "Mox---Sistemas",
+    owner: "maxwellnasci",
+    label: "mox",
+    defaultRef: "main",
+    enabled: true,
+  },
+]);
 
 function registerAndCapture(): CapturedEvaluate {
   let captured: CapturedEvaluate | undefined;
@@ -14,7 +33,7 @@ function registerAndCapture(): CapturedEvaluate {
       captured = policy.evaluate;
     },
   } as unknown as import("../api.js").OpenClawPluginApi;
-  registerGithubRepoReportPolicy(api);
+  registerGithubRepoReportPolicy(api, REGISTRY);
   if (!captured) {
     throw new Error("policy.evaluate was not captured");
   }
