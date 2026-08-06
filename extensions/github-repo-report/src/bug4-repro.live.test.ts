@@ -6,10 +6,21 @@
 // Delete this file, and the STOP_AFTER gates it drives, once Bug 4 is closed.
 import { describe, expect, it } from "vitest";
 import type { PluginLogger } from "../api.js";
+import { buildGithubRepoRegistry } from "./repo-registry.js";
 import { createGithubRepoReportTool } from "./tool.js";
 
 const liveEnabled = process.env.OPENCLAW_LIVE_TEST === "1";
 const describeLive = liveEnabled ? describe : describe.skip;
+
+const MOX_REGISTRY = buildGithubRepoRegistry([
+  {
+    slug: "Mox---Sistemas",
+    owner: "maxwellnasci",
+    label: "mox",
+    defaultRef: "main",
+    enabled: true,
+  },
+]);
 
 function timestampedLogger(stage: string): PluginLogger {
   const startedAt = performance.now();
@@ -30,7 +41,7 @@ describeLive("bug4 circuit-breaker isolation (real network, real Mox---Sistemas 
     "TESTE 1: fetch + write only (stop before extract)",
     async () => {
       process.env.GITHUB_REPORT_DEBUG_STOP_AFTER = "write";
-      const tool = createGithubRepoReportTool(timestampedLogger("teste1-write"));
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, timestampedLogger("teste1-write"));
       const result = await tool.execute("bug4-teste1", { repo: "Mox---Sistemas" });
       const text = result.content[0]?.type === "text" ? result.content[0].text : "";
       expect(text).toMatch(/stopped after fetch stage "write"/);
@@ -42,7 +53,7 @@ describeLive("bug4 circuit-breaker isolation (real network, real Mox---Sistemas 
     "TESTE 2: fetch + write + extract (stop before walk)",
     async () => {
       process.env.GITHUB_REPORT_DEBUG_STOP_AFTER = "extract";
-      const tool = createGithubRepoReportTool(timestampedLogger("teste2-extract"));
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, timestampedLogger("teste2-extract"));
       const result = await tool.execute("bug4-teste2", { repo: "Mox---Sistemas" });
       const text = result.content[0]?.type === "text" ? result.content[0].text : "";
       expect(text).toMatch(/stopped after fetch stage "extract"/);
@@ -54,7 +65,7 @@ describeLive("bug4 circuit-breaker isolation (real network, real Mox---Sistemas 
     "TESTE 3: + walk file tree (stop before inline-file reads / final report)",
     async () => {
       process.env.GITHUB_REPORT_DEBUG_STOP_AFTER = "walk";
-      const tool = createGithubRepoReportTool(timestampedLogger("teste3-walk"));
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, timestampedLogger("teste3-walk"));
       const result = await tool.execute("bug4-teste3", { repo: "Mox---Sistemas" });
       const text = result.content[0]?.type === "text" ? result.content[0].text : "";
       expect(text).toMatch(/## File tree/);
@@ -66,7 +77,7 @@ describeLive("bug4 circuit-breaker isolation (real network, real Mox---Sistemas 
     "TESTE 4: full pipeline, no circuit breaker",
     async () => {
       delete process.env.GITHUB_REPORT_DEBUG_STOP_AFTER;
-      const tool = createGithubRepoReportTool(timestampedLogger("teste4-full"));
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, timestampedLogger("teste4-full"));
       const result = await tool.execute("bug4-teste4", { repo: "Mox---Sistemas" });
       const text = result.content[0]?.type === "text" ? result.content[0].text : "";
       expect(text).toMatch(/# Repo report: mox/);

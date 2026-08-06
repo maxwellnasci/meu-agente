@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { PluginLogger } from "../api.js";
+import { buildGithubRepoRegistry } from "./repo-registry.js";
 import { createGithubRepoReportTool } from "./tool.js";
 
 const STAGE_TIMEOUT_MS = 100_000;
+
+const MOX_REGISTRY = buildGithubRepoRegistry([
+  {
+    slug: "Mox---Sistemas",
+    owner: "maxwellnasci",
+    label: "mox",
+    defaultRef: "main",
+    enabled: true,
+  },
+]);
 
 function timestampedLogger(stage: string): PluginLogger {
   const startedAt = performance.now();
@@ -23,7 +34,7 @@ describe("bug4 concurrency reproduction", () => {
     const promises = Array.from({ length: concurrency }).map(async (_, i) => {
       const id = `req-${i}`;
       console.log(`[${id}] Started`);
-      const tool = createGithubRepoReportTool(timestampedLogger(`concurrent-${i}`));
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, timestampedLogger(`concurrent-${i}`));
       const result = await tool.execute(`run-${i}`, { repo: "Mox---Sistemas" });
       console.log(`[${id}] Finished`);
       return result;

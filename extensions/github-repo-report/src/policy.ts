@@ -6,21 +6,28 @@
 // src/plugins/contracts/host-hook-fixture.ts:63-73.
 import type { OpenClawPluginApi } from "../api.js";
 import { rememberPendingGithubRepoReportAudit } from "./audit-log.js";
-import { isGithubRepoEnabled, resolveGithubRepoEntry } from "./repo-registry.js";
+import {
+  isGithubRepoEnabled,
+  resolveGithubRepoEntry,
+  type GithubRepoRegistry,
+} from "./repo-registry.js";
 
 const TOOL_NAME = "github_repo_report";
 
-export function registerGithubRepoReportPolicy(api: OpenClawPluginApi): void {
+export function registerGithubRepoReportPolicy(
+  api: OpenClawPluginApi,
+  registry: GithubRepoRegistry,
+): void {
   api.registerTrustedToolPolicy({
     id: "github-repo-report-policy",
     description:
-      "Auto-allows github_repo_report for repos enabled in repo-registry.ts; requires manual approval for the rest.",
+      "Auto-allows github_repo_report for repos enabled in the plugin config; requires manual approval for the rest.",
     evaluate(event, ctx) {
       if (event.toolName !== TOOL_NAME) {
         return undefined;
       }
       const repo = typeof event.params.repo === "string" ? event.params.repo : undefined;
-      const entry = repo ? resolveGithubRepoEntry(repo) : undefined;
+      const entry = repo ? resolveGithubRepoEntry(registry, repo) : undefined;
       // A repo outside the registry enum can never be approved into anything
       // sensible (there's no owner/ref to fetch), so it is rejected outright
       // instead of entering the same require-approval flow as a recognized
@@ -29,7 +36,7 @@ export function registerGithubRepoReportPolicy(api: OpenClawPluginApi): void {
       // would otherwise leave the turn silently blocked for the full
       // approval timeout with no way for the user to act on it.
       const decision = entry
-        ? isGithubRepoEnabled(entry.slug)
+        ? isGithubRepoEnabled(registry, entry.slug)
           ? "auto-allow"
           : "require-approval"
         : "block";
@@ -53,7 +60,7 @@ export function registerGithubRepoReportPolicy(api: OpenClawPluginApi): void {
         return {
           block: true,
           blockReason: repo
-            ? `Unknown repo "${repo}" — not present in repo-registry.ts.`
+            ? `Unknown repo "${repo}" — not present in the plugin config.`
             : "Missing or invalid repo parameter for github_repo_report.",
         };
       }
@@ -61,7 +68,7 @@ export function registerGithubRepoReportPolicy(api: OpenClawPluginApi): void {
       return {
         requireApproval: {
           title: "Fetch non-enabled GitHub repo",
-          description: `Repo "${repo}" is not enabled in repo-registry.ts yet. Approve once, or edit the registry to enable it permanently.`,
+          description: `Repo "${repo}" is not enabled in the plugin config yet. Approve once, or update the config to enable it permanently.`,
           severity: "warning",
           allowedDecisions: ["allow-once", "deny"],
         },

@@ -1,21 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { GITHUB_REPO_SLUGS } from "./repo-registry.js";
-import { GithubRepoReportSchema } from "./schema.js";
+import { createGithubRepoReportSchema } from "./schema.js";
 
-describe("GithubRepoReportSchema", () => {
+describe("createGithubRepoReportSchema", () => {
   it("has no free-text/command field — only repo and ref", () => {
-    expect(Object.keys(GithubRepoReportSchema.properties)).toEqual(["repo", "ref"]);
+    const schema = createGithubRepoReportSchema(["Mox---Sistemas"]);
+    expect(Object.keys(schema.properties)).toEqual(["repo", "ref"]);
   });
 
   it("rejects unknown properties", () => {
-    expect(GithubRepoReportSchema.additionalProperties).toBe(false);
+    const schema = createGithubRepoReportSchema(["Mox---Sistemas"]);
+    expect(schema.additionalProperties).toBe(false);
   });
 
-  it("repo enum matches the repo registry exactly (no drift)", () => {
-    expect(GithubRepoReportSchema.properties.repo.enum).toEqual(GITHUB_REPO_SLUGS);
+  it("repo enum matches the given slugs exactly (no drift)", () => {
+    const slugs = ["meu-agente", "arbo", "Mox---Sistemas"];
+    const schema = createGithubRepoReportSchema(slugs);
+    expect(schema.properties.repo.enum).toEqual(slugs);
   });
 
   it("ref is optional", () => {
-    expect(GithubRepoReportSchema.required ?? []).not.toContain("ref");
+    const schema = createGithubRepoReportSchema(["Mox---Sistemas"]);
+    expect(schema.required ?? []).not.toContain("ref");
+  });
+
+  it("documents that an empty slug list drops the enum constraint entirely (must never be called with [])", () => {
+    const schema = createGithubRepoReportSchema([]);
+    expect(schema.properties.repo.enum).toBeUndefined();
   });
 });

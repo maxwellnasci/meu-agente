@@ -6,10 +6,21 @@
 // Delete after the audit concludes.
 import { describe, expect, it } from "vitest";
 import type { PluginLogger } from "../api.js";
+import { buildGithubRepoRegistry } from "./repo-registry.js";
 import { createGithubRepoReportTool } from "./tool.js";
 
 const liveEnabled = process.env.OPENCLAW_LIVE_TEST === "1";
 const describeLive = liveEnabled ? describe : describe.skip;
+
+const MOX_REGISTRY = buildGithubRepoRegistry([
+  {
+    slug: "Mox---Sistemas",
+    owner: "maxwellnasci",
+    label: "mox",
+    defaultRef: "main",
+    enabled: true,
+  },
+]);
 
 function silentLogger(): PluginLogger {
   const noop = () => {};
@@ -26,7 +37,7 @@ function estimateTokens(text: string): number {
 describe("bug4 payload-size audit (real mox report + simulated WhatsApp history)", () => {
   describeLive("live", () => {
     it("measures real report size for Mox---Sistemas and a simulated large-history payload", async () => {
-      const tool = createGithubRepoReportTool(silentLogger());
+      const tool = createGithubRepoReportTool(MOX_REGISTRY, silentLogger());
       const result = await tool.execute("bug4-payload-audit", { repo: "Mox---Sistemas" });
       const reportText = result.content[0]?.type === "text" ? result.content[0].text : "";
 
