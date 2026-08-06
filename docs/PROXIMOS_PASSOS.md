@@ -405,6 +405,23 @@ SESSAO_2026-08-04_checkpoint-etapa8.md.
    registrada em 2026-08-05 11:39 UTC (execução real de tool ainda não
    comprovada diretamente). P0.2 fechado sem pendências. Detalhes:
    [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#validação-final-do-p02--sandbox-real-confirmado).
+   [x] ✅ **Regressão encontrada e corrigida (2026-08-06)**: ligar
+   `sandbox.mode: "all"` fez a política de tools do sandbox cair no
+   `DEFAULT_TOOL_ALLOW` (`constants.ts:18-38`), que bloqueava
+   `ask_max` (rede de segurança contra alucinação) e
+   `github_repo_report` desde a ativação do P0.2, sem ninguém
+   perceber. Causa raiz confirmada no zod-schema: faltava
+   `tools.sandbox.tools.alsoAllow` (distinto do `tools.alsoAllow` de
+   raiz, que só expõe a tool ao modelo). Corrigido adicionando
+   `tools.sandbox.tools.alsoAllow: ["github_repo_report", "ask_max"]`
+   no `openclaw.json` do Contabo (backup
+   `openclaw.json.bak-20260806-0041-toolpolicyfix`), restart do
+   gateway, validado ao vivo (log caiu de 14 → 12 tools removidas por
+   turno, isolamento do `exec`/Docker do P0.2 intocado). As outras 12
+   tools bloqueadas (`web_search`, `web_fetch`, `message`, `tts`,
+   `agents_list`, goal tools etc.) ficaram de fora por decisão de
+   escopo — sem caso de uso comprovado hoje. Detalhes:
+   [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md#regressão-encontrada-e-corrigida-ask_maxgithub_repo_report-bloqueados-pelo-sandbox).
 3. P1 do plano do Amigão (não lido em detalhe ainda): gateway só
    loopback + TLS via Nginx Proxy Manager + firewall, pinar versão de
    imagem (parar de usar :latest), corrigir permissões.
