@@ -433,3 +433,49 @@ SESSAO_2026-08-04_checkpoint-etapa8.md.
    - dar visibilidade de tool ao modelo-juiz).
 7. Rodar o Claude Security de verdade (créditos pendentes da vez
    anterior).
+
+## Roteiro: extrair template genérico (sem Arbo) do Amigão
+
+Objetivo: usar a base de hoje (sandbox seguro + secrets via SecretRef)
+como template reutilizável pra implantar em servidores de outros
+clientes, cada um com seu próprio agente. Baseado no mapeamento
+completo de 2026-08-05 (ver SESSAO_2026-08-05.md).
+
+**1. Extrair identificadores de cliente pra um bloco de config único**
+Hoje o telefone/allowlist está espalhado em 3 lugares
+(commands.ownerAllowFrom, channels.whatsapp-cloud.allowFrom,
+plugins.entries.ask-max.config.to) + phoneNumberId da Meta. Consolidar
+num único bloco claramente marcado "config por cliente", facilitando
+trocar tudo de uma vez ao clonar pra um cliente novo.
+
+**2. Tirar o repo-registry.ts do código-fonte**
+extensions/github-repo-report/src/repo-registry.ts tem owner/slugs
+hardcoded em TypeScript (GITHUB_REPO_OWNER = "maxwellnasci", slugs
+"meu-agente"/"arbo"/"Mox---Sistemas"). Isso é o ponto mais "preso" -
+pra reusar em outro cliente exige editar código, não só JSON. Mover
+pra config carregável.
+
+**3. Criar um template vazio da AGENTS.md Parte B**
+A Parte A (regras universais) já está limpa e genérica. A Parte B
+(contexto do cliente atual, hoje = Arbo) precisa de um modelo em
+branco documentado, com os campos que cada cliente novo preenche
+(nome, tipo de negócio, tabela de respostas padrão).
+
+**4. Padronizar o setup de infraestrutura por cliente/servidor**
+Cada implantação nova precisa de: GID do grupo docker redescoberto
+(varia por host - stat -c '%g' /var/run/docker.sock), túnel Cloudflare
+próprio (UUID + hostname + credentials-file), e uma imagem buildada
+(hoje só existe porque foi feita manualmente no Kali e transferida -
+usar scripts/docker/setup.sh OPENCLAW_SANDBOX=1 do próprio upstream,
+que já automatiza isso, em vez do processo manual que fizemos hoje).
+
+**5. Decidir o que fica no "core" vs. vira add-on opcional por cliente**
+github_repo_report e ask-max são genéricos no código, só a config
+injeta o dado do cliente - ok manter no core. Definir se cada cliente
+novo usa as mesmas 2 tools reintroduzidas hoje no sandbox, ou se isso
+também vira decisão por instância.
+
+**Já pronto, sem trabalho adicional:** sandbox de segurança inteiro
+(mode/workspaceAccess/docker limits), padrão de SecretRef,
+response-audit (zero menção à Arbo no código), SOUL.md/TOOLS.md/
+HEARTBEAT.md (textos padrão do OpenClaw, nunca customizados).
