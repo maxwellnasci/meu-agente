@@ -442,6 +442,10 @@ clientes, cada um com seu próprio agente. Baseado no mapeamento
 completo de 2026-08-05 (ver SESSAO_2026-08-05.md).
 
 **1. Extrair identificadores de cliente pra um bloco de config único**
+✅ Concluído em 2026-08-06 - ver SESSAO_2026-08-05.md (seção do
+incidente/correção) para detalhes da aplicação e do incidente que
+aconteceu no meio do processo.
+
 Hoje o telefone/allowlist está espalhado em 3 lugares
 (commands.ownerAllowFrom, channels.whatsapp-cloud.allowFrom,
 plugins.entries.ask-max.config.to) + phoneNumberId da Meta. Consolidar
