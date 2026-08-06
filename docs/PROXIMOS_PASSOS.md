@@ -273,12 +273,16 @@ Lines claras antes de ativar.
 
 ---
 
-## Pendência (baixa prioridade): 7 erros de typecheck em github-repo-report/*.test.ts
+## Pendência (baixa prioridade): 8 erros de typecheck em github-repo-report/*.test.ts
 
 ### Problema
-`pnpm tsgo:extensions:test` acusa 7 erros em
-`extensions/github-repo-report/src/{audit-log,github-fetch,schema,tool}.test.ts`.
-Confirmado (2026-07-18) que são só de tipagem de teste, zero impacto real:
+`pnpm tsgo:extensions:test` acusa 8 erros em
+`extensions/github-repo-report/src/{audit-log,github-fetch,schema,tool}.test.ts`
+(reconfirmado em 2026-08-06 após o refactor config-driven do plugin -
+schema.test.ts/tool.test.ts foram reescritos nessa sessão e o problema
+persiste, mesma natureza, +1 erro pelo teste novo de enum vazio em
+schema.test.ts). Confirmado originalmente em 2026-07-18 que são só de
+tipagem de teste, zero impacto real:
 - `tsgo -p extensions/github-repo-report/tsconfig.json` (tsconfig de
   produção, exclui `*.test.ts`) → 0 erros.
 - Os 27 testes do plugin (incluindo os 4 arquivos com erro) → 27/27 passam.
@@ -468,11 +472,20 @@ whatsapp-cloud.phoneNumberId), backup, restart, validar com mensagem
 real. Fica pra próxima sessão com tempo de acompanhar a validação.
 
 **2. Tirar o repo-registry.ts do código-fonte**
-extensions/github-repo-report/src/repo-registry.ts tem owner/slugs
+✅ Concluído em 2026-08-06 e em produção - ver
+SESSAO_2026-08-06_github-repo-report.md para o refactor completo
+(config-driven via openclaw.plugin.json configSchema + src/config.ts),
+os 36 testes, o achado crítico do config de produção sem bloco
+`config` (resolvido antes do corte), o build Docker real
+(openclaw:local-sandboxed-v2) e a validação ponta a ponta via
+WhatsApp (relatório real do Mox retornado). Rollback documentado, dois
+comandos independentes (imagem via .env, config via openclaw.json.bak).
+
+~~extensions/github-repo-report/src/repo-registry.ts tem owner/slugs
 hardcoded em TypeScript (GITHUB_REPO_OWNER = "maxwellnasci", slugs
 "meu-agente"/"arbo"/"Mox---Sistemas"). Isso é o ponto mais "preso" -
 pra reusar em outro cliente exige editar código, não só JSON. Mover
-pra config carregável.
+pra config carregável.~~
 
 **3. Criar um template vazio da AGENTS.md Parte B**
 A Parte A (regras universais) já está limpa e genérica. A Parte B
