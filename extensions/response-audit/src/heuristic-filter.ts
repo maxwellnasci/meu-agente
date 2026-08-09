@@ -26,6 +26,15 @@ export type AuditTriggerReason = "declared_action_text" | "tool_executed" | "lon
 export type HeuristicDecision = {
   shouldAudit: boolean;
   reasons: AuditTriggerReason[];
+  // Declared-action wording with zero tool calls this turn — the exact shape
+  // of a false_action claim. This is a PRIORITY signal for the LLM judge's
+  // context, never a verdict on its own: DECLARED_ACTION_PATTERN is a plain
+  // regex over completed-action verbs and cannot tell a genuine claim apart
+  // from a negation ("não enviei"), a quotation, or a non-literal/idiomatic
+  // use of the same verb. The LLM judge (audit-runner.ts) always makes the
+  // final flagged/category call; this field only raises the turn's priority
+  // and adds a hint to the audit prompt.
+  highSuspicionFalseAction: boolean;
 };
 
 export function evaluateAuditHeuristic(
@@ -33,7 +42,8 @@ export function evaluateAuditHeuristic(
 ): HeuristicDecision {
   const reasons: AuditTriggerReason[] = [];
 
-  if (DECLARED_ACTION_PATTERN.test(turn.finalText)) {
+  const declaredAction = DECLARED_ACTION_PATTERN.test(turn.finalText);
+  if (declaredAction) {
     reasons.push("declared_action_text");
   }
   if (turn.toolsExecuted.length > 0) {
@@ -43,5 +53,9 @@ export function evaluateAuditHeuristic(
     reasons.push("long_response");
   }
 
-  return { shouldAudit: reasons.length > 0, reasons };
+  return {
+    shouldAudit: reasons.length > 0,
+    reasons,
+    highSuspicionFalseAction: declaredAction && turn.toolsExecuted.length === 0,
+  };
 }

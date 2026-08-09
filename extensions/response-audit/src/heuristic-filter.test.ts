@@ -6,6 +6,7 @@ describe("evaluateAuditHeuristic", () => {
     const decision = evaluateAuditHeuristic({ finalText: "oi, tudo bem?", toolsExecuted: [] });
     expect(decision.shouldAudit).toBe(false);
     expect(decision.reasons).toEqual([]);
+    expect(decision.highSuspicionFalseAction).toBe(false);
   });
 
   it("triggers on a declared-action verb (Problem 3 shape: 'Já alertei o Coach')", () => {
@@ -24,6 +25,23 @@ describe("evaluateAuditHeuristic", () => {
     });
     expect(decision.shouldAudit).toBe(true);
     expect(decision.reasons).toEqual(["tool_executed"]);
+  });
+
+  it("marks highSuspicionFalseAction when a declared action has zero tool calls this turn", () => {
+    const decision = evaluateAuditHeuristic({
+      finalText: "Pronto! Já enviei o email de confirmação pro cliente.",
+      toolsExecuted: [],
+    });
+    expect(decision.highSuspicionFalseAction).toBe(true);
+  });
+
+  it("does not mark highSuspicionFalseAction when a tool actually backs the declared action", () => {
+    const decision = evaluateAuditHeuristic({
+      finalText: "Já enviei o email de confirmação pro cliente.",
+      toolsExecuted: ["send_email"],
+    });
+    expect(decision.reasons).toContain("declared_action_text");
+    expect(decision.highSuspicionFalseAction).toBe(false);
   });
 
   it("triggers on length alone once the reply reaches AUDIT_MIN_LENGTH", () => {
