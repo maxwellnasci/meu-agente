@@ -35,7 +35,7 @@ async function auditFinalReply(api: OpenClawPluginApi, runId: string): Promise<v
   }
 
   try {
-    const verdict = await runResponseAudit(api, turn);
+    const verdict = await runResponseAudit(api, turn, decision);
     await persistAuditResult(api, {
       runId: turn.runId,
       sessionKey: turn.sessionKey,

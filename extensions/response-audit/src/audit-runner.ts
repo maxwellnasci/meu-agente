@@ -6,6 +6,7 @@ import path from "node:path";
 import { resolvePreferredOpenClawTmpDir, withTempWorkspace } from "../api.js";
 import type { OpenClawPluginApi } from "../api.js";
 import type { AuditFlagCategory } from "./audit-store.js";
+import type { HeuristicDecision } from "./heuristic-filter.js";
 import type { CapturedTurn } from "./turn-capture.js";
 
 // Confirmed against extensions/deepseek/openclaw.plugin.json's modelCatalog:
@@ -59,7 +60,7 @@ function parseAuditVerdict(raw: string): AuditVerdict {
   return verdict;
 }
 
-function buildAuditPrompt(turn: CapturedTurn): string {
+function buildAuditPrompt(turn: CapturedTurn, heuristic: HeuristicDecision): string {
   const toolsLine =
     turn.toolsExecuted.length > 0
       ? turn.toolsExecuted.join(", ")
@@ -81,6 +82,18 @@ function buildAuditPrompt(turn: CapturedTurn): string {
     `RESPOSTA FINAL DO AGENTE:\n${turn.finalText}`,
     "",
     `FERRAMENTAS REALMENTE EXECUTADAS NESTE TURNO: ${toolsLine}`,
+    // Priority hint only, never a verdict — see HeuristicDecision.highSuspicionFalseAction
+    // in heuristic-filter.ts for why a regex match alone can't decide this.
+    ...(heuristic.highSuspicionFalseAction
+      ? [
+          "",
+          "SINAL HEURÍSTICO (contexto, não é o veredito): a resposta contém um verbo de ação",
+          "concluída e nenhuma ferramenta rodou neste turno — suspeita forte de false_action.",
+          "Pode ser falso positivo do regex (não distingue negação, citação, ou uso não-literal",
+          "do verbo); a decisão final continua sendo sua, com base em FERRAMENTAS REALMENTE",
+          "EXECUTADAS acima.",
+        ]
+      : []),
     "",
     "Responda APENAS com um objeto JSON, sem markdown, no formato:",
     '{"flagged": boolean, "category": "hallucination" | "fabricated_quote" | "false_action" | null, "reason": string}',
@@ -90,6 +103,7 @@ function buildAuditPrompt(turn: CapturedTurn): string {
 export async function runResponseAudit(
   api: OpenClawPluginApi,
   turn: CapturedTurn,
+  heuristic: HeuristicDecision,
 ): Promise<AuditVerdict> {
   return await withTempWorkspace(
     { rootDir: resolvePreferredOpenClawTmpDir(), prefix: "openclaw-response-audit-" },
@@ -101,7 +115,7 @@ export async function runResponseAudit(
         sessionFile,
         workspaceDir: api.config?.agents?.defaults?.workspace ?? process.cwd(),
         config: api.config,
-        prompt: buildAuditPrompt(turn),
+        prompt: buildAuditPrompt(turn, heuristic),
         timeoutMs: AUDIT_TIMEOUT_MS,
         runId: sessionId,
         provider: AUDIT_PROVIDER,
