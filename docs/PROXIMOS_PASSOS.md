@@ -341,6 +341,32 @@ tipo de falso positivo.
 
 ---
 
+## ✅ Recomendação do Adendo 3 (teste local híbrido) — IMPLEMENTADA em 2026-08-10
+
+O Adendo 3 do teste local híbrido (branch `test/local-hybrid-audit`, commit
+`bb95eac`, não mergeada — investigação sobre HHEM/NLI como verificador
+local) identificou um achado que sobrevivia independente do resultado do
+HHEM: a condição `declared_action_text` + zero ferramentas executadas no
+turno já é computável a partir de dados que `heuristic-filter.ts` calcula, e
+pega a categoria `false_action` com custo zero de modelo. Recomendação
+registrada: "somar essa regra (~5 linhas, sem modelo algum) ao invés de
+tentar resolver `false_action` só via modelo."
+
+**Implementada e deployada em produção em 2026-08-10** — com uma diferença
+importante em relação ao que o Adendo 3 cogitou: em vez de veredito direto
+sem modelo (como testado lá), a regra virou **sinal de prioridade no prompt
+do juiz LLM, nunca bypass** — decisão final continua sempre do LLM. A
+validação ao vivo do deploy confirmou por que essa cautela era necessária:
+um teste real de injeção de prompt fez o agente recusar corretamente uma
+confirmação falsa, o que disparou o sinal heurístico (`declared_action_text`
+presente, zero ferramentas), mas o juiz LLM leu o contexto completo e não
+marcou como `false_action` — uma regra de veredito direto teria gerado um
+falso positivo justamente nesse caso, o comportamento mais correto possível
+do agente. Detalhes completos:
+[SESSAO_2026-08-10_false-action-heuristic-deploy.md](SESSAO_2026-08-10_false-action-heuristic-deploy.md).
+
+---
+
 ## Pendências de baixa prioridade — 2026-08-04
 
 - cloudflared desatualizado no Contabo (2026.7.1 -> 2026.7.3

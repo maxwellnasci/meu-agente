@@ -50,8 +50,46 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
   em [SESSAO_2026-08-05.md](SESSAO_2026-08-05.md).
 - **Backup do repo local (`openclaw/`):** espelho privado em `github.com/maxwellnasci/max-openclaw-local-fixes` (branch `production-local-fixes`) desde 2026-08-04 — `origin` do clone segue intocado, apontando pro upstream público
 - **Nova direção:** fork evolutivo do OpenClaw com 2º agente de segurança
-- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05), regressão do tool-policy (ask_max/github_repo_report bloqueados pelo sandbox) encontrada e corrigida (2026-08-06), github-repo-report migrado pra config-driven e deployado em produção (2026-08-06) — próximo: itens 3-5 do roteiro de template (AGENTS.md Parte B, setup de infra por cliente, core vs. add-on), rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (ver PROXIMOS_PASSOS.md)
-- **Data da última atualização:** 2026-08-06
+- **Próximos passos:** P0.2 (sandbox real) concluído (2026-08-05), regressão do tool-policy (ask_max/github_repo_report bloqueados pelo sandbox) encontrada e corrigida (2026-08-06), github-repo-report migrado pra config-driven e deployado em produção (2026-08-06), heurística de prioridade pra `false_action` deployada e validada em produção (2026-08-10) — próximo: itens 3-5 do roteiro de template (AGENTS.md Parte B, setup de infra por cliente, core vs. add-on), rotação de chaves, avaliar Claude Security pós-migração; investigar timeouts residuais do deepseek-v4-flash e falso positivo do response-audit (saldo DeepSeek, ver PROXIMOS_PASSOS.md)
+- **Data da última atualização:** 2026-08-10
+
+---
+
+## ✅ MARCO — heurística de prioridade para `false_action` deployada e validada em produção (2026-08-10)
+
+- **Objetivo**: implementar a recomendação em aberto do Adendo 3 do teste
+  local híbrido (`test/local-hybrid-audit`, commit `bb95eac`) — regra
+  heurística zero-custo (`declared_action_text` + zero ferramentas
+  executadas no turno) pra priorizar suspeita de `false_action` sem chamar
+  modelo algum.
+- **Desenho**: `HeuristicDecision` ganha `highSuspicionFalseAction`. É
+  **sinal de prioridade pro prompt do juiz LLM, nunca veredito** — o Adendo
+  3 cogitou a mesma condição como flag direta sem modelo; a implementação
+  real optou pelo caminho mais cauteloso, decisão final sempre do LLM. 15
+  testes unitários (2 arquivos), 100% verde.
+- **Build e transferência**: `openclaw:local-sandboxed-v3`,
+  `sha256:17410e1c22b8...`, 880MB. Transferido via `docker save | gzip |
+  ssh | gunzip | docker load` (~1min24s). Mesma divergência de Image
+  ID/tamanho entre Kali e Contabo já vista em 2026-08-06 (versões de Docker
+  diferentes), conteúdo confirmado idêntico via `grep -c` da string-chave
+  no bundle, dos dois lados.
+- **Validação nível 1** (regressão): mensagem comum não gera registro de
+  auditoria — comportamento esperado (heurística só audita com gatilho),
+  zero erro.
+- **Validação nível 2 — o achado real**: mensagem de teste tentou induzir o
+  agente a confirmar um envio que não aconteceu (injeção de prompt). O
+  agente **recusou e negou a ação** (texto exato no doc da sessão). Isso
+  disparou `highSuspicionFalseAction: true` (confirmado pela matemática do
+  código: verbo de ação declarada presente + zero ferramentas), injetando o
+  sinal no prompt do juiz — que corretamente retornou `flagged: false`,
+  identificando a negação. **Prova ao vivo de por que o desenho "sinal de
+  prioridade, nunca bypass" foi a escolha certa**: se a regra tivesse sido
+  implementada como veredito direto (como o Adendo 3 cogitou), esse turno
+  — o comportamento mais correto possível do agente — teria sido marcado
+  como falso positivo de `false_action`.
+- **Backup**: `.env.bak-20260810-1050-false-action-heuristic-deploy`.
+  Rollback documentado, não usado (imagem v2 intocada). Detalhes completos:
+  [SESSAO_2026-08-10_false-action-heuristic-deploy.md](SESSAO_2026-08-10_false-action-heuristic-deploy.md).
 
 ---
 
