@@ -3,21 +3,25 @@ import { resolveStableChannelMessageIngress } from "openclaw/plugin-sdk/channel-
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type { PluginRuntime } from "openclaw/plugin-sdk/plugin-runtime";
 import { resolveWhatsAppCloudAccessToken } from "./accounts.js";
+import { callOrchestratorTurn, OrchestratorClientError } from "./orchestrator-client.js";
 import { normalizeWhatsAppCloudPhoneNumber, toWhatsAppCloudSendableNumber } from "./phone.js";
 import { sendWhatsAppCloudTextChunks } from "./send.js";
 import type { ResolvedWhatsAppCloudAccount, WhatsAppCloudInboundMessage } from "./types.js";
 
 const CHANNEL_ID = "whatsapp-cloud";
 
+// Shown to the user only when the Orchestrator itself is unreachable (down,
+// network error, timeout) - the Orchestrator's own internal failures already
+// come back as a reply_text, so this string never overlaps with that path.
+const ORCHESTRATOR_UNREACHABLE_FALLBACK_TEXT =
+  "Desculpa, tive um problema para processar sua mensagem agora. Tenta de novo em instantes.";
+
 type WhatsAppCloudLog = {
   info?: (message: string) => void;
   warn?: (message: string) => void;
 };
 
-export type WhatsAppCloudChannelRuntime = Pick<
-  PluginRuntime["channel"],
-  "inbound" | "pairing" | "reply" | "routing" | "session"
->;
+export type WhatsAppCloudChannelRuntime = Pick<PluginRuntime["channel"], "pairing" | "routing">;
 
 async function authorizeWhatsAppCloudSender(params: {
   cfg: OpenClawConfig;
@@ -95,94 +99,28 @@ export async function dispatchWhatsAppCloudInboundEvent(params: {
       id: from,
     },
   });
-  const sessionKey = route.sessionKey;
 
-  await params.channelRuntime.inbound.run({
-    channel: CHANNEL_ID,
-    accountId: params.account.accountId,
-    raw: params.msg,
-    adapter: {
-      ingest: (msg) => ({
-        id: msg.messageId,
-        timestamp: msg.timestamp,
-        rawText: msg.body,
-        textForAgent: msg.body,
-        textForCommands: msg.body,
-        raw: msg,
-      }),
-      resolveTurn: async (input) => {
-        const ctxPayload = params.channelRuntime.inbound.buildContext({
-          channel: CHANNEL_ID,
-          accountId: params.account.accountId,
-          timestamp: input.timestamp,
-          from: `whatsapp-cloud:${from}`,
-          sender: {
-            id: from,
-            name: from,
-          },
-          conversation: {
-            kind: "direct",
-            id: from,
-            label: from,
-          },
-          route: {
-            agentId: route.agentId,
-            accountId: params.account.accountId,
-            routeSessionKey: sessionKey,
-            dispatchSessionKey: sessionKey,
-          },
-          reply: {
-            to: `whatsapp-cloud:${from}`,
-          },
-          message: {
-            rawBody: input.rawText,
-            commandBody: input.textForCommands,
-            bodyForAgent: input.textForAgent,
-          },
-          extra: {
-            MessageId: params.msg.messageId,
-            To: params.msg.to,
-          },
-        });
-        const storePath = params.channelRuntime.session.resolveStorePath(
-          params.cfg.session?.store,
-          {
-            agentId: route.agentId,
-          },
-        );
-        return {
-          cfg: params.cfg,
-          channel: CHANNEL_ID,
-          accountId: params.account.accountId,
-          agentId: route.agentId,
-          routeSessionKey: sessionKey,
-          storePath,
-          ctxPayload,
-          recordInboundSession: params.channelRuntime.session.recordInboundSession,
-          dispatchReplyWithBufferedBlockDispatcher:
-            params.channelRuntime.reply.dispatchReplyWithBufferedBlockDispatcher,
-          delivery: {
-            deliver: async (payload) => {
-              const text = payload.text;
-              if (!text) {
-                return { visibleReplySent: false };
-              }
-              await sendWhatsAppCloudReply({
-                cfg: params.cfg,
-                account: params.account,
-                to: toWhatsAppCloudSendableNumber(from),
-                text,
-              });
-              return { visibleReplySent: true };
-            },
-          },
-          dispatcherOptions: {
-            onReplyStart: () => {
-              params.log?.info?.(`WhatsApp Cloud reply started for ${from}`);
-            },
-          },
-        };
-      },
-    },
+  // Handoff to the Python Orchestrator (the "Cerebro"): it owns the agent
+  // turn end-to-end and always resolves with reply text, so this call
+  // replaces the internal OpenClaw agent pipeline for this channel.
+  let replyText: string;
+  try {
+    const turn = await callOrchestratorTurn({
+      sessionKey: route.sessionKey,
+      text: params.msg.body,
+      from,
+    });
+    replyText = turn.replyText;
+  } catch (err) {
+    const message = err instanceof OrchestratorClientError ? err.message : String(err);
+    params.log?.warn?.(`Orchestrator turn failed for ${from}: ${message}`);
+    replyText = ORCHESTRATOR_UNREACHABLE_FALLBACK_TEXT;
+  }
+
+  await sendWhatsAppCloudReply({
+    cfg: params.cfg,
+    account: params.account,
+    to: toWhatsAppCloudSendableNumber(from),
+    text: replyText,
   });
 }

@@ -3,3 +3,21 @@ openclaw/
 # Seguranca extra: ignora qualquer .env em qualquer lugar
 **/.env
 *.env
+# Tokens e segredos locais
+gateway-token.json
+**/gateway-token.json
+
+# Dados locais / runtime (bancos sqlite, caches, ambientes virtuais)
+data/
+**/data/
+__pycache__/
+**/__pycache__/
+.venv/
+**/.venv/
+node_modules/
+**/node_modules/
+.ruff_cache/
+**/.ruff_cache/
+
+# Logs locais
+logs/
