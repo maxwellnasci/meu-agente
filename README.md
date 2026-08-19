@@ -51,6 +51,16 @@ Este projeto usa um protocolo de múltiplas IAs trabalhando em papéis distintos
 
 Detalhes em [docs/FLUXO_MULTI_IA.md](docs/FLUXO_MULTI_IA.md).
 
+## 🧠 Orquestrador (LangGraph)
+
+Em `orchestrator/` mora um orquestrador LangGraph (o "cérebro") que delega
+tarefas de programação ao OpenClaw (o "especialista") via API. O roteador
+desse cérebro usa **OpenRouter** (via `langchain_openai`), com o modelo
+padrão `deepseek/deepseek-chat` e a chave configurada em
+`ORCHESTRATOR_OPENROUTER_API_KEY`. Detalhes de setup em
+[orchestrator/README.md](orchestrator/README.md) e
+[docs/ARQUITETURA_ORQUESTRADOR.md](docs/ARQUITETURA_ORQUESTRADOR.md).
+
 ## 📁 Estrutura
 meu-agente/
 
