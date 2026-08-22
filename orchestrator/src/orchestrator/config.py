@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     openclaw_agent_model: str = "openclaw/default"
     openclaw_request_timeout_sec: int = 120
 
+    # n8n (Especialista de Automacao) - fala com a API REST publica de uma
+    # instancia de n8n externa em producao (Contabo, https://n8n.mxos.com.br).
+    # Ver clients/n8n_client.py. A API key fica em ORCHESTRATOR_N8N_API_KEY.
+    n8n_url: str | None = None
+    n8n_api_key: str | None = None
+    n8n_request_timeout_sec: int = 30
+
     # Roteador do Cerebro (no `reason`) - via OpenRouter (padrao OpenAI,
     # base_url apontando pro OpenRouter). A chave fica em
     # ORCHESTRATOR_OPENROUTER_API_KEY.
@@ -31,6 +38,14 @@ class Settings(BaseSettings):
     # do roteador acima - modelo separado pra poder trocar independente do
     # roteador (classificacao barata vs conversa natural) sem acoplar os dois.
     general_model: str = "deepseek/deepseek-chat"
+
+    # Trava de loop infinito do Enxame: quantas vezes o no `supervisor` pode
+    # rodar numa unica execucao do grafo antes de `synthesize_final` abortar
+    # com uma mensagem de seguranca fixa (ver graph/nodes.py). Cada rodada
+    # do supervisor pode despachar varios especialistas de uma vez (tool
+    # calls paralelas), entao isto limita "quantas vezes o supervisor
+    # reavalia o progresso", nao quantos especialistas rodam no total.
+    max_supervisor_iterations: int = 4
 
     # Endpoint sincrono /v1/turn (porta de entrada Node.js) - tempo maximo de
     # espera pela execucao completa do grafo antes de devolver uma resposta

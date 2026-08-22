@@ -1,6 +1,5 @@
 from typing import Any
 
-from orchestrator.graph.nodes import extract_task_description
 from orchestrator.schemas.events import (
     NodeStartedEvent,
     SpecialistCalledEvent,
@@ -10,8 +9,13 @@ from orchestrator.schemas.events import (
 )
 
 # Nome que o LangGraph da ao evento de inicio/fim do grafo como um todo
-# (distinto dos nos individuais "reason"/"specialist_call").
+# (distinto dos nos individuais "supervisor"/"specialist_openclaw"/
+# "synthesize_final").
 _GRAPH_ROOT_NAME = "LangGraph"
+
+# Nos de especialista cujo on_chain_start deve virar SpecialistCalledEvent -
+# mesmo conjunto de nos que orchestrator.graph.nodes.SPECIALIST_ROUTES mapeia.
+_SPECIALIST_NODE_NAMES = {"specialist_openclaw", "specialist_cybersec", "specialist_n8n"}
 
 
 def map_langgraph_event(raw_event: dict[str, Any]) -> StreamEvent | None:
@@ -27,12 +31,13 @@ def map_langgraph_event(raw_event: dict[str, Any]) -> StreamEvent | None:
     name = raw_event.get("name", "")
     data = raw_event.get("data", {})
 
-    if event_type == "on_chain_start" and name == "specialist_call":
+    if event_type == "on_chain_start" and name in _SPECIALIST_NODE_NAMES:
         graph_input = data.get("input") or {}
-        messages = graph_input.get("messages", []) if isinstance(graph_input, dict) else []
-        return SpecialistCalledEvent(task_description=extract_task_description(messages))
+        pending = graph_input.get("pending_specialists") or [] if isinstance(graph_input, dict) else []
+        task_description = pending[0].get("instructions", "") if pending else ""
+        return SpecialistCalledEvent(task_description=task_description)
 
-    if event_type == "on_chain_start" and name in ("reason", "general_answer"):
+    if event_type == "on_chain_start" and name in ("supervisor", "synthesize_final"):
         return NodeStartedEvent(node_name=name)
 
     if event_type == "on_chat_model_stream":
