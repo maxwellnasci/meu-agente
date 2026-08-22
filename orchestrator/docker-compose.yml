@@ -1,0 +1,20 @@
+services:
+  orchestrator:
+    build: .
+    image: meu-agente-orchestrator:local
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ${ORCHESTRATOR_DATA_DIR:-./data}:/app/data
+    ports:
+      - "127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8000}:8000"
+    restart: unless-stopped
+
+# Reusa a rede do docker-compose do gateway OpenClaw (projeto "openclaw") para
+# resolver o gateway pelo nome do container, sem depender da porta exposta no
+# host. Precisa que o gateway ja tenha sido subido nesse host antes.
+networks:
+  default:
+    name: ${ORCHESTRATOR_NETWORK:-openclaw_default}
+    external: true
