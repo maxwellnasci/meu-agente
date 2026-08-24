@@ -1,5 +1,34 @@
 # Estado Atual do Projeto
 
+## ✅ LangSmith ativado de verdade + achado de segurança corrigido (2026-08-24, tarde)
+
+- **LangSmith tracing confirmado funcionando em produção**: chave
+  validada contra a API real da LangSmith (200 OK), configurada em
+  `/root/meu-agente-orchestrator/.env` (`ORCHESTRATOR_LANGCHAIN_*`),
+  container recriado (`docker compose up -d`, não `restart` — env var
+  exige recriação). Confirmado com evidência real: uma trace do projeto
+  `orchestrator-portfolio` apareceu na API da LangSmith segundos depois
+  de uma mensagem de teste via `/v1/turn`.
+- **Achado de segurança durante a configuração**: o `.env` do orquestrador
+  (contendo `OPENROUTER_API_KEY`, `N8N_API_KEY`) estava **versionado no
+  git** do repo do Contabo desde o commit inicial (`d7a053e`, sessão do
+  Antigravity) — o `.gitignore` criado mais cedo neste mesmo dia só
+  bloqueia arquivos novos, não destrava um arquivo já rastreado antes
+  dele existir. Sem impacto externo (repo sem remote, só nesse próprio
+  servidor), mas corrigido: `git rm --cached .env` +  commit. Registrado
+  em memória (`feedback_never_paste_secrets_in_chat`) o aprendizado: ao
+  criar `.gitignore` num repo com histórico existente, sempre conferir
+  com `git ls-files` se algo sensível já estava rastreado.
+- **Nota de processo**: a chave da LangSmith foi colada pelo usuário
+  diretamente na conversa do Claude Code (não é um canal seguro pra
+  segredos, apesar da conversa não se apagar sozinha como ele pensava).
+  Configurada 100% server-side a partir daí, nunca reimpressa. Recomendação
+  passada ao usuário: se achar necessário, pode regenerar essa chave na
+  LangSmith por precaução (não obrigatório — risco é baixo, é uma chave
+  de tracing, não de infraestrutura crítica).
+
+---
+
 ## ✅ MARCO — 3 melhorias de maturidade aplicadas: retry seguro, observabilidade, eval (2026-08-24)
 
 Continuação da revisão do mesmo dia — depois de avaliar o nível do código
