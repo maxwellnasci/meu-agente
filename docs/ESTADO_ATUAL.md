@@ -1,5 +1,60 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Orquestrador Python (LangGraph): revisão completa + hardening de segurança (2026-08-24)
+
+**Novo objetivo do projeto, definido nesta sessão**: o Orquestrador deixa
+de ser só um esqueleto e vira a base de um **portfólio replicável** de
+agentes de IA (enxame Supervisor + Especialistas) para uso com empresas.
+Ritmo de trabalho combinado: incremental — analisar, melhorar, testar via
+WhatsApp pedindo tarefas reais aos agentes, documentar, repetir.
+
+- **Contexto**: em 2026-08-22 o Max usou o Antigravity (Gemini) pra
+  destravar a integração Orquestrador↔Gateway↔n8n direto no Contabo (rede
+  Docker, bind mount do sandbox, crash-loop de config). Funcionou —
+  confirmado via log real (`[whatsapp-cloud] WhatsApp Cloud reply started`
+  às 2026-08-22 11:22 UTC) — e ficou documentado em
+  `/root/meu-agente-orchestrator/DOCUMENTACAO_ARQUITETURA_E_ERROS.md`
+  **no servidor** (ainda não trazido pro repo — pendência aberta, ver
+  Próximos Passos).
+- **Revisão de código feita nesta sessão** (leitura de todo
+  `orchestrator/src/`, testes rodados, config de sandbox do Contabo
+  auditada): arquitetura é sólida — supervisor/enxame via LangGraph, trava
+  de loop infinito, fallback sempre responde 200 pro WhatsApp, defesa em
+  profundidade real no especialista cybersec (bloqueio em Python puro,
+  independente do LLM respeitar o prompt). `dangerouslyAllowExternalBindSources`
+  aplicado pelo Antigravity no `openclaw.json` do Contabo foi auditado:
+  escopo correto (só agente `cybersec`, bind **read-only**, só
+  `/opt/claude-skills`, sem segredo exposto).
+- **Gap de segurança encontrado e corrigido**: o especialista **n8n**
+  (mexe numa instância real de produção — criar/editar/**deletar**/
+  ativar/desativar workflows) só tinha proteção via prompt ("REGRA DE
+  CAUTELA"), sem bloqueio em código — diferente do cybersec. Criado
+  `orchestrator/src/orchestrator/graph/n8n_guard.py`: mesma filosofia do
+  `cybersec_guard.py`, bloqueia incondicionalmente `N8nDeleteWorkflow`/
+  `N8nDeactivateWorkflow` se a instrução da tarefa não contiver um verbo
+  de autorização explícito. Também fechado o fix que já estava pendente
+  de sessão anterior: `cybersec_guard` agora cobre mais marcadores de
+  negação e checa tanto a mensagem original do usuário quanto as
+  instruções repassadas pelo supervisor (defesa multi-turn), evitando a
+  janela de bypass por eco/prompt injection.
+- **Validado**: 27/27 testes (local + novos), build da imagem Docker no
+  Contabo, gates testados de verdade dentro do container recém-deployado
+  (bloqueiam produção sem autorização, liberam com autorização explícita).
+  Commit local `0ceb8d9` (push pro GitHub ainda pendente de confirmação),
+  commit espelho no repo do Contabo `340bed7`.
+- **Gaps identificados, ainda não corrigidos** (próximos passos):
+  1. Doc do Antigravity (`DOCUMENTACAO_ARQUITETURA_E_ERROS.md`) trazer do
+     Contabo pro `docs/` do repo.
+  2. Deploy do orchestrator pro Contabo é manual, repo lá **sem remote
+     git configurado** — não é repetível/versionado de verdade. Considerar
+     apontar um remote real (GitHub) ou script de deploy.
+  3. `test_api.py` (raiz do repo) tem um **token Bearer hardcoded** —
+     remover/mover pra fora do git antes de commitar qualquer coisa dali.
+  4. `orchestrator/response.json` é resíduo de teste manual, sem uso —
+     candidato a remoção.
+
+---
+
 ## 🚀 MUDANÇA DE INFRAESTRUTURA — Amigão migrado pro Contabo (2026-08-02), Etapa 8 concluída (2026-08-04)
 
 **O Amigão roda em PRODUÇÃO no servidor Contabo, não mais no Kali.**
