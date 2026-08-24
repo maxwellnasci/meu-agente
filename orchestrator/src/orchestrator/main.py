@@ -8,6 +8,7 @@ from sse_starlette.sse import EventSourceResponse
 from orchestrator.config import settings
 from orchestrator.graph.builder import build_graph
 from orchestrator.graph.event_mapper import map_langgraph_event
+from orchestrator.graph.state import fresh_turn_input
 from orchestrator.persistence.checkpointer import checkpointer_context
 from orchestrator.schemas.events import ErrorEvent, TaskFailedEvent
 from orchestrator.schemas.requests import TaskRequest, TurnRequest, TurnResponse
@@ -59,7 +60,7 @@ async def turn(request: TurnRequest, http_request: Request) -> TurnResponse:
     """
     graph = http_request.app.state.graph
     config = {"configurable": {"thread_id": request.session_key}}
-    graph_input = {"messages": [{"role": "user", "content": request.text}]}
+    graph_input = fresh_turn_input(request.text)
 
     try:
         final_state = await asyncio.wait_for(
@@ -82,7 +83,7 @@ async def stream_task(request: TaskRequest, http_request: Request) -> EventSourc
 
     async def event_generator():
         config = {"configurable": {"thread_id": request.thread_id}}
-        graph_input = {"messages": [{"role": "user", "content": request.message}]}
+        graph_input = fresh_turn_input(request.message)
 
         try:
             async for raw_event in graph.astream_events(graph_input, config=config, version="v2"):

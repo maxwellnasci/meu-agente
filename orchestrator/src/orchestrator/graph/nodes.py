@@ -303,9 +303,9 @@ async def specialist_openclaw_node(state: GraphState) -> dict:
         "current_specialist": None,
     }
     if result.success:
-        update["internal_scratchpad"] = [f"[openclaw] {result.output}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[openclaw] {result.output}"]
     else:
-        update["internal_scratchpad"] = [f"[openclaw] ERRO: {result.error}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[openclaw] ERRO: {result.error}"]
         update["last_error"] = result.error or "falha desconhecida no especialista OpenClaw"
     return update
 
@@ -345,7 +345,7 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
         job.get("instructions", "")
     )
     if refusal:
-        update["internal_scratchpad"] = [f"[cybersec] {refusal}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[cybersec] {refusal}"]
         return update
 
     hardened_prompt = f"{_CYBERSEC_SYSTEM_PROMPT}\n\nInstrucao da tarefa:\n{job['instructions']}"
@@ -354,9 +354,9 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
     result = await client.call(request)
 
     if result.success:
-        update["internal_scratchpad"] = [f"[cybersec] {result.output}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[cybersec] {result.output}"]
     else:
-        update["internal_scratchpad"] = [f"[cybersec] ERRO: {result.error}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[cybersec] ERRO: {result.error}"]
         update["last_error"] = result.error or "falha desconhecida no especialista de ciberseguranca"
     return update
 
@@ -470,14 +470,14 @@ async def specialist_n8n_node(state: GraphState) -> dict:
         error = "especialista n8n atingiu o limite de passos de tool-calling sem concluir"
 
     if error:
-        update["internal_scratchpad"] = [f"[n8n] ERRO: {error}. Acoes realizadas: {actions_log}"]
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[n8n] ERRO: {error}. Acoes realizadas: {actions_log}"]
         update["last_error"] = error
         return update
 
     note = final_text or "Especialista n8n concluiu sem resumo textual."
     if actions_log:
         note += "\n\nAcoes executadas:\n" + "\n".join(f"- {a}" for a in actions_log)
-    update["internal_scratchpad"] = [f"[n8n] {note}"]
+    update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[n8n] {note}"]
     return update
 
 
