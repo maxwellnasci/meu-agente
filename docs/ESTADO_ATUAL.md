@@ -1,5 +1,52 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — 3 melhorias de maturidade aplicadas: retry seguro, observabilidade, eval (2026-08-24)
+
+Continuação da revisão do mesmo dia — depois de avaliar o nível do código
+(Python/LangGraph "bom padrão, não básico" foi o veredito), aplicadas as
+melhorias que davam pra fazer sem depender de conta/serviço externo:
+
+- **Retry com backoff, mas só quando é seguro**: `openclaw_client.py` e
+  `n8n_client.py` agora usam `tenacity` para reexecutar automaticamente só
+  em falha de **conexão** (`httpx.ConnectError`/`ConnectTimeout` — o
+  request nunca chegou a sair). Deliberadamente **não** reexecuta em
+  timeout de leitura: essas chamadas rodam ações reais (comandos,
+  criar/deletar workflow) — reexecutar um request que já pode ter
+  chegado no servidor arriscaria rodar a mesma ação duas vezes. Validado
+  ao vivo (porta fechada → 3 tentativas com backoff, ~1.5s, depois falha
+  limpa).
+- **Observabilidade sem custo/conta externa**: `logging.basicConfig`
+  adicionado em `main.py` (o nível INFO nunca tinha efeito antes — a raiz
+  do logging Python é WARNING por padrão, os logs ficavam invisíveis
+  mesmo existindo no código). Logs novos em pontos de decisão do grafo
+  (qual especialista foi despachado, duração de cada chamada, resultado)
+  — visível via `docker logs`, confirmado ao vivo em produção.
+- **LangSmith — wiring corrigido, mas precisa da SUA conta pra ativar**:
+  os campos em `config.py` (`langchain_tracing_v2`, etc.) existiam sem
+  nunca terem efeito — o SDK do LangChain lê variáveis de ambiente CRUAS
+  (`LANGCHAIN_TRACING_V2`...), não os `Settings` deste projeto (prefixo
+  `ORCHESTRATOR_`). `_configure_langsmith_tracing()` em `main.py` agora
+  faz essa ponte de verdade, testada (3 testes unitários). **Só ativa
+  quando `ORCHESTRATOR_LANGCHAIN_API_KEY` for configurado** — precisa de
+  uma conta gratuita em smith.langchain.com, não é algo que o Claude Code
+  consegue criar por conta própria.
+- **`scripts/eval-router.py`**: smoke test repetível contra o serviço
+  real (não mocka nada), rodável a qualquer momento contra produção.
+  Escopo deliberado: só testa o que é observável e determinístico via a
+  API pública (health + estabilidade multi-turno) — testar se o LLM
+  *decide* acionar um especialista pra uma frase específica é
+  não-determinístico por natureza e já é coberto de forma determinística
+  pela suíte mockada. Validado ao vivo via `docker exec` no container de
+  produção.
+- **Decisão consciente, não feita agora**: trocar o checkpointer de
+  SQLite pra Postgres. Sem necessidade real no volume de uso atual (uma
+  instância só, baixo tráfego); adicionaria infraestrutura nova sem
+  ganho imediato. Revisitar se o volume de conversas crescer ou se
+  precisar rodar mais de uma réplica do orchestrator.
+- Deploy via `scripts/deploy-orchestrator.sh`, 32/32 testes passando.
+
+---
+
 ## 🔴→✅ BUG CRÍTICO DE PRODUÇÃO — conversa travava permanentemente após poucas mensagens (2026-08-24)
 
 **Achado explicando por que o uso multi-turno natural (conversar livremente
