@@ -162,6 +162,16 @@ orchestrator/
 
 ## Estado desta fase
 
-Esqueleto de arquitetura, contratos e classes base. **Sem lógica de
-negócio implementada** — próxima fase: implementar os nós reais do grafo,
-a chamada real ao gateway do OpenClaw, e ligar o streaming ponta a ponta.
+**Atualizado em 2026-08-24** — este documento descreve o desenho original
+(fase de esqueleto). O sistema evoluiu além dele: o padrão real
+implementado é **Supervisor/Enxame de Especialistas** (não um único nó
+"specialist_call" linear) — o `supervisor` decide via tool-calling quais
+especialistas acionar entre `openclaw` (Programação), `cybersec`
+(Ciberseguranca) e `n8n` (Automação), podendo despachar mais de um por
+rodada. Cada especialista roda em produção de verdade, incluindo defesa em
+profundidade em Python puro para os dois que têm efeito real sobre
+infraestrutura (`graph/cybersec_guard.py`, `graph/n8n_guard.py`) — ver
+detalhes e histórico em [ESTADO_ATUAL.md](ESTADO_ATUAL.md) e
+[SESSAO_2026-08-22_orchestrator-deploy-contabo.md](SESSAO_2026-08-22_orchestrator-deploy-contabo.md).
+Rodando em produção no Contabo desde 2026-08-22, deploy via
+`scripts/deploy-orchestrator.sh`.
