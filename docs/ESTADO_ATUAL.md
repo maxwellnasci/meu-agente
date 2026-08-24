@@ -1,5 +1,40 @@
 # Estado Atual do Projeto
 
+## 🔴→✅ BUG CRÍTICO DE PRODUÇÃO — conversa travava permanentemente após poucas mensagens (2026-08-24)
+
+**Achado explicando por que o uso multi-turno natural (conversar livremente
+e deixar o agente ajudar a refinar o pedido) não funcionava direito.**
+Reproduzido ao vivo: numa mesma conversa do WhatsApp, a 5ª mensagem em
+diante (mesmo mensagens triviais tipo "oi") sempre virava
+`"Desculpa, essa tarefa ficou complexa demais... limite de iteracoes do
+supervisor excedido"` — **permanentemente**, para sempre naquela conversa.
+
+- **Causa raiz**: o checkpointer do LangGraph persiste o `GraphState`
+  inteiro por `thread_id` (estável por conversa — número de telefone —
+  não por mensagem). `iteration_count` nunca resetava entre chamadas
+  **separadas** de `/v1/turn` (só entre nós dentro de uma mesma chamada),
+  então depois de `max_supervisor_iterations` (4) mensagens **no total**
+  daquela conversa (não por tarefa), o supervisor abortava toda mensagem
+  seguinte para sempre. `internal_scratchpad` tinha o mesmo problema por
+  outro ângulo: reducer `operator.add` fazia notas de tarefas antigas
+  vazarem pro prompt do supervisor de tarefas futuras não-relacionadas,
+  crescendo sem limite.
+- **Fix**: `orchestrator/src/orchestrator/graph/state.py` ganhou
+  `fresh_turn_input(text)`, usado por `main.py` nos dois endpoints como
+  input do grafo — reseta explicitamente todo campo de escopo "por
+  tarefa" a cada chamada de nível superior. Só `messages` persiste entre
+  chamadas (memória de conversa de verdade). `internal_scratchpad` perdeu
+  o reducer `operator.add` (impedia reset via input); os 3 nós de
+  especialista agora leem+acumulam manualmente.
+- **Validado**: reproduzido ao vivo em produção (8 mensagens sequenciais
+  na mesma conversa, mesmo `session_key`) — sem o fix, abortava a partir
+  da 5ª; com o fix, as 8 responderam normalmente. 2 testes de regressão
+  novos (`test_graph_multiturn_state_reset.py`) simulam múltiplas chamadas
+  de `ainvoke` com o mesmo `thread_id` — nenhum teste anterior fazia isso.
+  29/29 testes passando, deployado via `scripts/deploy-orchestrator.sh`.
+
+---
+
 ## ✅ MARCO — Orquestrador Python (LangGraph): revisão completa + hardening de segurança (2026-08-24)
 
 **Novo objetivo do projeto, definido nesta sessão**: o Orquestrador deixa
