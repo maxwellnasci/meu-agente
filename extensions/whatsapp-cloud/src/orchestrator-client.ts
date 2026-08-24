@@ -6,7 +6,7 @@
 // unreachable (down, network error, timeout).
 import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
 
-const DEFAULT_ORCHESTRATOR_URL = "http://localhost:8000";
+const DEFAULT_ORCHESTRATOR_URL = "http://host.docker.internal:8000";
 // Slightly above the Orchestrator's own ORCHESTRATOR_TURN_TIMEOUT_SEC (default
 // 90s, see orchestrator/src/orchestrator/config.py): the Orchestrator always
 // resolves /v1/turn within its own timeout, so the client timeout only needs

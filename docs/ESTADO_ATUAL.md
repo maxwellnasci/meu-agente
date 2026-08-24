@@ -33,8 +33,8 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 - **Servidor de produção:** Contabo (VPS, Docker 29.6.1, Ubuntu 24.04.4) desde 2026-08-02. Kali (kernel 6.8.0-134) mantido como fallback parado.
 - **nginx-app-1 (Contabo):** requer início manual após reboot
 - **WhatsApp:** ✅ Cloud API oficial (Meta) FUNCIONANDO ponta a ponta (webhook recebe, Amigão responde) — agora servido pelo Contabo
-- **Canal ativo:** whatsapp-cloud (extensão customizada), substituindo Baileys/Evolution como canal principal de WhatsApp
-- **Baileys/Evolution:** descontinuado como canal principal
+- **Canal ativo:** whatsapp-cloud (extensão customizada). O canal oficial é **exclusivamente** a WhatsApp Cloud API.
+- **Baileys/Evolution/Chatwoot:** Desativados e removidos fisicamente do servidor Contabo (RAM recuperada).
 - **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali). Portas 18789/18790 do Kali restritas a `127.0.0.1` desde 2026-08-04 (config antiga expunha em `0.0.0.0`, sem exploração confirmada). Porta 18790 (bridge legacy, sem uso) removida por completo do docker-compose tanto no Contabo (produção, host) quanto no Kali (fallback) em 2026-08-04
 - Docker socket removido do container do gateway (Contabo) em
   2026-08-04 - fechava rota RCE→root. Secrets DEEPSEEK_API_KEY e
@@ -463,18 +463,17 @@ Detalhes completos: [docs/TREINAMENTO_AGENTS_MD.md](TREINAMENTO_AGENTS_MD.md)
 - ~~⚠️ **Ações sem integração declaradas como concluídas**~~ → ✅ Resolvido via AGENTS.md (Red Lines)
 - ⚠️ **Sem integrações reais** — agente ainda não acessa sistemas da Arbo (agenda, banco, WhatsApp)
 
-## TESTES DE INTEGRAÇÃO (EVOLUTION API):
+## TESTES DE INTEGRAÇÃO (EVOLUTION API) - DESCONTINUADO:
 
-- [x] ✅ **Max coloca o chip de teste no celular e conecta instância "amigao"**
-- [x] ✅ **Primeiro WhatsApp real enviado** via comando `curl` local na Contabo (2026-06-26)
+- [x] ❌ (Desativado) Max coloca o chip de teste no celular e conecta instância "amigao"
+- [x] ❌ (Desativado) Primeiro WhatsApp real enviado via comando `curl` local na Contabo (2026-06-26)
+- **Status:** Serviços removidos do servidor; substituídos pela WhatsApp Cloud API oficial.
 
 ## PRÓXIMOS PASSOS:
 
-- [ ] Configurar webhook na instância "amigao" para receber mensagens
-- [ ] Configurar plugin webhooks do OpenClaw (rota evolution-inbound)
-- [ ] Construir skill send-whatsapp no OpenClaw workspace
 - [ ] Configurar secrets.json (cofre centralizado)
 - [ ] Criar `references/politicas-arbo.md` como skill para dar base de conhecimento real ao agente
+- [ ] Construir skill send-whatsapp-cloud no OpenClaw workspace (se necessário enviar ativamente)
 - [ ] Testar reusabilidade do AGENTS.md Parte A em cenário diferente (clínica, oficina)
 - [ ] Aplicar blueprint MXOS em cliente real
 

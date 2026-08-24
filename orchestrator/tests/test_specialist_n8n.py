@@ -97,7 +97,7 @@ async def test_run_n8n_tool_translates_http_error_into_error_dict():
     response = httpx.Response(status_code=404, request=request)
     client.delete_workflow = AsyncMock(side_effect=httpx.HTTPStatusError("not found", request=request, response=response))
 
-    result = await _run_n8n_tool(client, "N8nDeleteWorkflow", {"workflow_id": "x"})
+    result = await _run_n8n_tool(client, "N8nDeleteWorkflow", {"workflow_id": "x"}, "deleta o workflow x")
 
     assert "404" in result["error"]
 
@@ -105,8 +105,54 @@ async def test_run_n8n_tool_translates_http_error_into_error_dict():
 @pytest.mark.asyncio
 async def test_run_n8n_tool_rejects_unknown_tool_name():
     client = MagicMock()
-    result = await _run_n8n_tool(client, "SomeUnknownTool", {})
+    result = await _run_n8n_tool(client, "SomeUnknownTool", {}, "")
     assert result == {"error": "tool desconhecida: SomeUnknownTool"}
+
+
+@pytest.mark.asyncio
+async def test_run_n8n_tool_blocks_delete_without_explicit_authorization():
+    """Regressao: o gate de acao destrutiva (n8n_guard.py) deve recusar
+    N8nDeleteWorkflow quando a instrucao da tarefa nao contem nenhum verbo
+    de autorizacao explicita - mesmo que o LLM do especialista decida
+    chamar a tool por conta propria (ex.: interpretando mal um pedido
+    exploratorio como 'organiza os workflows')."""
+    client = MagicMock()
+    client.delete_workflow = AsyncMock()
+
+    result = await _run_n8n_tool(client, "N8nDeleteWorkflow", {"workflow_id": "x"}, "organiza os workflows")
+
+    assert "RECUSADO" in result["error"]
+    client.delete_workflow.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_node_blocks_llm_initiated_deactivate_without_authorization():
+    """Regressao end-to-end: mesmo que o LLM do especialista n8n chame
+    N8nDeactivateWorkflow por conta propria, o node nao deve executar a
+    tool de verdade se a instrucao original nao autorizou isso - o erro do
+    gate vira ToolMessage e o especialista reporta a recusa, sem side
+    effect real na instancia de producao."""
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "lista os workflows ativos"}],
+        "internal_scratchpad": [],
+    }
+    tool_call_response = AIMessage(
+        content="",
+        tool_calls=[{"name": "N8nDeactivateWorkflow", "args": {"workflow_id": "wf1"}, "id": "call_1"}],
+    )
+    final_response = AIMessage(content="Nao consegui desativar: acao nao autorizada pela instrucao.")
+
+    with (
+        patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
+        patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
+    ):
+        mock_chat_cls.return_value = _mock_llm([tool_call_response, final_response])
+        mock_client_cls.return_value.deactivate_workflow = AsyncMock()
+
+        result = await specialist_n8n_node(state)
+
+    mock_client_cls.return_value.deactivate_workflow.assert_not_awaited()
+    assert "RECUSADO" in result["internal_scratchpad"][0]
 
 
 @requires_n8n_credentials
