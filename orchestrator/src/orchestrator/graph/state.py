@@ -1,4 +1,3 @@
-import operator
 from typing import Annotated, TypedDict
 
 from langgraph.graph.message import add_messages
@@ -42,12 +41,18 @@ class GraphState(TypedDict):
 
     final_result: str | None
 
-    # Notas acumuladas de cada especialista que rodou nesta execucao (ex.:
-    # "[openclaw] <resultado>"). Reducer `operator.add` porque e uma lista
-    # que so cresce - cada no de especialista so anexa a sua propria nota,
-    # nunca reescreve o que outro especialista ja registrou. Lido pelo
+    # Notas acumuladas de cada especialista que rodou nesta TAREFA (ex.:
+    # "[openclaw] <resultado>"). Sem reducer (LastValue, como os demais
+    # campos de escopo "por tarefa" abaixo): cada no de especialista le o
+    # valor atual e devolve `existente + [nota nova]` (ver nodes.py) - o
+    # efeito e o mesmo de um accumulator (`operator.add`) DENTRO de uma
+    # execucao, mas sem o problema de um reducer aditivo: o
+    # `fresh_turn_input` (abaixo) precisa poder RESETAR este campo pra
+    # lista vazia a cada nova chamada de nivel superior ao grafo, e
+    # `operator.add` nao permite reset via input (so soma) - ver
+    # `fresh_turn_input` para o motivo disso importar. Lido pelo
     # `synthesize_final` para montar a resposta final ao usuario.
-    internal_scratchpad: Annotated[list[str], operator.add]
+    internal_scratchpad: list[str]
 
     # Fila de despachos decididos pelo `supervisor` (via bind_tools) e ainda
     # nao executados. O `supervisor` pode enfileirar mais de um especialista
@@ -70,3 +75,36 @@ class GraphState(TypedDict):
     # ao estourar o limite de iteracoes) - lido pelo `synthesize_final` para
     # informar a falha na resposta final, quando aplicavel.
     last_error: str | None
+
+
+def fresh_turn_input(text: str) -> dict:
+    """Estado inicial para uma NOVA chamada de nivel superior ao grafo (um
+    request em `/v1/turn` ou `/tasks/stream`), usado como `input` de
+    `graph.ainvoke`/`astream_events` em vez de so `{"messages": [...]}`.
+
+    Motivo de existir - bug real observado em producao (2026-08-24): como o
+    checkpointer persiste o estado INTEIRO por `thread_id`, e o `thread_id`
+    e estavel por conversa (numero de telefone do WhatsApp, nao por
+    mensagem), todo campo do `GraphState` sem reset explicito vaza/acumula
+    entre mensagens SEPARADAS da MESMA conversa - nao so dentro de uma
+    unica tarefa. Isso e catastrofico especificamente para
+    `iteration_count`: sem reset, ele nunca volta a 0, entao depois de
+    poucas mensagens NO TOTAL (nao por tarefa) a trava de seguranca do
+    supervisor dispara e o orquestrador passa a abortar TODA mensagem
+    futura daquela conversa, permanentemente - confirmado ao vivo: 4
+    mensagens triviais ("responda ola") bastaram para a 5a em diante
+    virar sempre a mensagem de abort.
+
+    So `messages` deve mesmo persistir entre chamadas (e o que da memoria
+    de conversa de verdade, via o reducer `add_messages`) - todo o resto
+    aqui e escopo "por tarefa" e precisa comecar do zero a cada chamada."""
+    return {
+        "messages": [{"role": "user", "content": text}],
+        "route": None,
+        "final_result": None,
+        "internal_scratchpad": [],
+        "pending_specialists": [],
+        "current_specialist": None,
+        "iteration_count": 0,
+        "last_error": None,
+    }
