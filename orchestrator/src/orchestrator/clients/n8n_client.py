@@ -1,6 +1,16 @@
 import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from orchestrator.config import settings
+
+# So reexecuta se a conexao nunca foi estabelecida - o n8n com certeza nao
+# recebeu o request, entao repetir e seguro mesmo para os metodos que
+# criam/editam/deletam (nao-idempotentes). Deliberadamente NAO inclui
+# timeout de leitura: se o request ja chegou no n8n e so a resposta
+# demorou, reexecutar um create/delete/trigger_webhook arrisca duplicar o
+# efeito colateral - vira erro direto, sem retry (mesmo raciocinio do
+# OpenClawClient, ver openclaw_client.py).
+_CONNECT_FAILURE_EXCEPTIONS = (httpx.ConnectError, httpx.ConnectTimeout)
 
 # Referencia: /usr/local/lib/node_modules/n8n/dist/public-api/v1/openapi.yml
 # dentro do container n8n em producao (Contabo). Confirmado lendo o spec real
@@ -30,6 +40,12 @@ class N8nClient:
             headers["X-N8N-API-KEY"] = self._api_key
         return headers
 
+    @retry(
+        retry=retry_if_exception_type(_CONNECT_FAILURE_EXCEPTIONS),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, max=4),
+        reraise=True,
+    )
     async def _request(self, method: str, path: str, json: dict | None = None, params: dict | None = None) -> dict:
         async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
             response = await client.request(method, path, json=json, params=params, headers=self._headers())
@@ -77,12 +93,22 @@ class N8nClient:
         de /webhook (producao, workflow precisa estar ativo)."""
         prefix = "/webhook-test" if test else "/webhook"
         full_path = f"{prefix}/{path.lstrip('/')}"
+        response = await self._request_webhook(method.upper(), full_path, body)
+        if not response.content:
+            return {}
+        try:
+            return response.json()
+        except ValueError:
+            return {"raw": response.text}
+
+    @retry(
+        retry=retry_if_exception_type(_CONNECT_FAILURE_EXCEPTIONS),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, max=4),
+        reraise=True,
+    )
+    async def _request_webhook(self, method: str, path: str, body: dict | None) -> httpx.Response:
         async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
-            response = await client.request(method.upper(), full_path, json=body)
+            response = await client.request(method, path, json=body)
             response.raise_for_status()
-            if not response.content:
-                return {}
-            try:
-                return response.json()
-            except ValueError:
-                return {"raw": response.text}
+            return response

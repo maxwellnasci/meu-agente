@@ -1,7 +1,18 @@
 import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from orchestrator.config import settings
 from orchestrator.schemas.requests import SpecialistCallRequest, SpecialistCallResult
+
+# So reexecuta a chamada se a conexao NUNCA foi estabelecida (DNS falhou,
+# gateway recusou a conexao, etc.) - ou seja, o Gateway com certeza nao
+# recebeu o request, entao repetir e seguro. Deliberadamente NAO inclui
+# timeout de leitura (`httpx.ReadTimeout`/`TimeoutException`): esta chamada
+# roda um agent turn real (pode executar comandos, editar arquivos) - se o
+# request JA chegou no Gateway e so a resposta demorou, reexecutar arrisca
+# rodar a mesma acao duas vezes. Timeout de leitura vira erro direto (ver
+# `call`), sem retry.
+_CONNECT_FAILURE_EXCEPTIONS = (httpx.ConnectError, httpx.ConnectTimeout)
 
 # Confirmado lendo o codigo-fonte real do Gateway (openclaw/src/gateway/) e
 # openclaw/docs/gateway/openai-http-api.md: nao existe rota REST "/api/tasks"
@@ -50,14 +61,7 @@ class OpenClawClient:
         }
 
         try:
-            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
-                response = await client.post(
-                    _TASK_ENDPOINT,
-                    json=body,
-                    headers=headers,
-                )
-                response.raise_for_status()
-                payload = response.json()
+            payload = await self._post(body, headers)
         except httpx.TimeoutException as exc:
             return SpecialistCallResult(success=False, output="", error=f"timeout ao chamar OpenClaw: {exc}")
         except httpx.HTTPStatusError as exc:
@@ -81,3 +85,15 @@ class OpenClawClient:
             )
 
         return SpecialistCallResult(success=True, output=output)
+
+    @retry(
+        retry=retry_if_exception_type(_CONNECT_FAILURE_EXCEPTIONS),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, max=4),
+        reraise=True,
+    )
+    async def _post(self, body: dict, headers: dict) -> dict:
+        async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+            response = await client.post(_TASK_ENDPOINT, json=body, headers=headers)
+            response.raise_for_status()
+            return response.json()

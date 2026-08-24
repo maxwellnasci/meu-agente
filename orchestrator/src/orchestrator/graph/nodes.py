@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import httpx
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
@@ -252,6 +253,7 @@ async def supervisor_node(state: GraphState) -> dict:
     dispatches = [tc for tc in response.tool_calls if tc["name"] == DispatchSpecialist.__name__]
 
     if not dispatches:
+        _logger.info("supervisor_node: rodada %d, nenhum especialista despachado (rota=general)", iteration_count)
         return {
             "iteration_count": iteration_count,
             "pending_specialists": [],
@@ -261,6 +263,12 @@ async def supervisor_node(state: GraphState) -> dict:
     queue: list[PendingSpecialist] = [
         {"specialist": call["args"]["specialist"], "instructions": call["args"]["instructions"]} for call in dispatches
     ]
+    _logger.info(
+        "supervisor_node: rodada %d, despachando %d especialista(s): %s",
+        iteration_count,
+        len(queue),
+        [item["specialist"] for item in queue],
+    )
     return {
         "iteration_count": iteration_count,
         "pending_specialists": queue,
@@ -296,7 +304,10 @@ async def specialist_openclaw_node(state: GraphState) -> dict:
     job = pending.pop(0)
     client = OpenClawClient()
     request = SpecialistCallRequest(task_description=job["instructions"])
+    started_at = time.monotonic()
     result = await client.call(request)
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    _logger.info("specialist_openclaw_node: concluido em %dms, sucesso=%s", elapsed_ms, result.success)
 
     update: dict = {
         "pending_specialists": pending,
@@ -345,13 +356,17 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
         job.get("instructions", "")
     )
     if refusal:
+        _logger.info("specialist_cybersec_node: bloqueado pelo guard de infra de producao")
         update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[cybersec] {refusal}"]
         return update
 
     hardened_prompt = f"{_CYBERSEC_SYSTEM_PROMPT}\n\nInstrucao da tarefa:\n{job['instructions']}"
     client = OpenClawClient()
     request = SpecialistCallRequest(task_description=hardened_prompt)
+    started_at = time.monotonic()
     result = await client.call(request)
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    _logger.info("specialist_cybersec_node: concluido em %dms, sucesso=%s", elapsed_ms, result.success)
 
     if result.success:
         update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[cybersec] {result.output}"]
@@ -446,6 +461,7 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     actions_log: list[str] = []
     final_text = ""
     error: str | None = None
+    started_at = time.monotonic()
 
     for _ in range(_N8N_MAX_STEPS):
         try:
@@ -468,6 +484,14 @@ async def specialist_n8n_node(state: GraphState) -> dict:
             )
     else:
         error = "especialista n8n atingiu o limite de passos de tool-calling sem concluir"
+
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    _logger.info(
+        "specialist_n8n_node: concluido em %dms, sucesso=%s, %d acao(oes) executada(s)",
+        elapsed_ms,
+        error is None,
+        len(actions_log),
+    )
 
     if error:
         update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[n8n] ERRO: {error}. Acoes realizadas: {actions_log}"]
@@ -498,6 +522,7 @@ async def synthesize_final_node(state: GraphState) -> dict:
     seguranca por limite de iteracoes vira uma mensagem fixa, sem chamar o
     LLM - o proprio limite estourado e sinal de que algo esta em loop."""
     if state.get("iteration_count", 0) > settings.max_supervisor_iterations:
+        _logger.warning("synthesize_final_node: abortando por limite de iteracoes do supervisor")
         return {"final_result": _ABORT_MESSAGE}
 
     scratchpad_text = _format_scratchpad(state.get("internal_scratchpad") or [])
@@ -517,4 +542,5 @@ async def synthesize_final_node(state: GraphState) -> dict:
     )
     response = await llm.ainvoke([SystemMessage(content=_SYNTHESIZE_SYSTEM_PROMPT), HumanMessage(content=prompt)])
     text = response.content if isinstance(response.content, str) else str(response.content)
+    _logger.info("synthesize_final_node: concluido, iteration_count=%d", state.get("iteration_count", 0))
     return {"messages": [response], "final_result": text}

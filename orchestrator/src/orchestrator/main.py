@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -23,7 +24,40 @@ _SSE_HEARTBEAT_SEC = 15
 # uma resposta que nunca chega.
 _TURN_FALLBACK_REPLY = "Desculpa, tive um problema para processar sua mensagem agora. Tenta de novo em instantes."
 
+# Sem isto, o nivel padrao da raiz e WARNING - os logs de observabilidade
+# em nivel INFO adicionados em graph/nodes.py (decisao do supervisor,
+# duracao/resultado de cada chamada a especialista) ficariam invisiveis no
+# `docker logs`, mesmo existindo no codigo.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 _logger = logging.getLogger(__name__)
+
+
+def _configure_langsmith_tracing() -> None:
+    """Ativa tracing real do LangSmith quando configurado.
+
+    `settings.langchain_tracing_v2`/`langchain_api_key`/`langchain_project`
+    (config.py) existiam sem efeito nenhum: o SDK do LangChain le as
+    variaveis de ambiente CRUAS (`LANGCHAIN_TRACING_V2`,
+    `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`), nao os `Settings` deste
+    projeto (que usam o prefixo `ORCHESTRATOR_`) - esta funcao e a ponte
+    entre os dois, chamada uma vez no import deste modulo (antes de
+    qualquer chamada real ao LangChain). Precisa de uma chave real da
+    LangSmith (conta gratuita em smith.langchain.com) em
+    `ORCHESTRATOR_LANGCHAIN_API_KEY` para ter efeito; sem chave, o
+    tracing continua desligado como sempre esteve."""
+    if settings.langchain_tracing_v2 and settings.langchain_api_key:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+        os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
+        _logger.info("observabilidade: LangSmith tracing ativado (projeto=%s)", settings.langchain_project)
+    elif settings.langchain_tracing_v2:
+        _logger.warning(
+            "ORCHESTRATOR_LANGCHAIN_TRACING_V2=true mas ORCHESTRATOR_LANGCHAIN_API_KEY nao "
+            "configurado - tracing continua desligado"
+        )
+
+
+_configure_langsmith_tracing()
 
 
 @asynccontextmanager
