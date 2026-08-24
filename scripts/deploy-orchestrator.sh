@@ -33,6 +33,7 @@ rsync -a --delete \
   --exclude ".ruff_cache" \
   --exclude "__pycache__" \
   --exclude "response.json" \
+  --exclude ".gitignore" \
   "$SRC" "$REMOTE_HOST:$REMOTE_DIR/"
 
 echo "==> Commitando snapshot no repo do servidor (rastreabilidade local)..."
