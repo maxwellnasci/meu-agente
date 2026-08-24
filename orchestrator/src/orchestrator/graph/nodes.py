@@ -9,6 +9,7 @@ from orchestrator.clients.n8n_client import N8nClient
 from orchestrator.clients.openclaw_client import OpenClawClient
 from orchestrator.config import settings
 from orchestrator.graph.cybersec_guard import check_production_infra_block
+from orchestrator.graph.n8n_guard import check_destructive_n8n_action
 from orchestrator.graph.state import GraphState, PendingSpecialist
 from orchestrator.schemas.n8n_tools import (
     N8nActivateWorkflow,
@@ -264,6 +265,11 @@ async def supervisor_node(state: GraphState) -> dict:
         "iteration_count": iteration_count,
         "pending_specialists": queue,
         "route": RouteDestination.SPECIALIST.value,
+        # Limpa o ultimo erro ao iniciar nova rodada de especialistas: se um
+        # especialista anterior falhou mas o supervisor decidiu tentar de novo
+        # (ou acionar outro especialista), o erro antigo nao deve poluir o
+        # synthesize_final caso esta nova rodada bem-suceda.
+        "last_error": None,
     }
 
 
@@ -329,7 +335,15 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
     }
 
     task_description = extract_task_description(state["messages"])
-    refusal = check_production_infra_block(task_description)
+
+    # Defesa em profundidade multi-turn: avalia tanto a mensagem original do
+    # usuario quanto as instrucoes repassadas pelo supervisor. O supervisor
+    # pode injetar (por prompt injection ou eco involuntario) uma keyword de
+    # producao em `job["instructions"]` mesmo que a mensagem original nao a
+    # contenha - checar apenas uma das duas cria uma janela de bypass.
+    refusal = check_production_infra_block(task_description) or check_production_infra_block(
+        job.get("instructions", "")
+    )
     if refusal:
         update["internal_scratchpad"] = [f"[cybersec] {refusal}"]
         return update
@@ -347,12 +361,23 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
     return update
 
 
-async def _run_n8n_tool(client: N8nClient, name: str, args: dict) -> dict:
+async def _run_n8n_tool(client: N8nClient, name: str, args: dict, instructions: str) -> dict:
     """Executa uma chamada de tool do especialista n8n contra o N8nClient de
     verdade, traduzindo qualquer erro HTTP/rede num dict `{"error": ...}` -
     o loop do especialista devolve isso como ToolMessage pro LLM decidir o
     proximo passo (ex.: tentar de novo, desistir e reportar), em vez de
-    deixar a excecao estourar o no inteiro."""
+    deixar a excecao estourar o no inteiro.
+
+    Antes de executar, aplica `check_destructive_n8n_action` (defesa em
+    profundidade em Python puro, ver n8n_guard.py): tools destrutivas
+    (delete/deactivate) sao recusadas incondicionalmente se a instrucao da
+    tarefa nao autorizar aquela acao explicitamente, mesmo que o LLM do
+    especialista decida chama-las por conta propria.
+    """
+    refusal = check_destructive_n8n_action(name, instructions)
+    if refusal:
+        return {"error": refusal}
+
     try:
         if name == N8nListWorkflows.__name__:
             return await client.list_workflows(active=args.get("active"), name=args.get("name"))
@@ -436,7 +461,7 @@ async def specialist_n8n_node(state: GraphState) -> dict:
             break
 
         for call in response.tool_calls:
-            result = await _run_n8n_tool(client, call["name"], call["args"])
+            result = await _run_n8n_tool(client, call["name"], call["args"], job["instructions"])
             actions_log.append(f"{call['name']}({call['args']}) -> {result}")
             conversation.append(
                 ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call["id"])

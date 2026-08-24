@@ -108,7 +108,7 @@ meu-agente/
 ## 🚧 Próximos passos
 
 - Criar `references/politicas-arbo.md` como skill para base de conhecimento real
-- Integrações reais: n8n + WhatsApp Business API + Supabase
+- Integrações reais: n8n + Supabase (WhatsApp Cloud API oficial já é o canal exclusivo em produção; Evolution API e Chatwoot desativados e removidos da VPS)
 - Testar reusabilidade do template AGENTS.md Parte A em outros segmentos (clínica, oficina)
 - Aplicação do blueprint no projeto MXOS (funcionários digitais para PMEs)
 

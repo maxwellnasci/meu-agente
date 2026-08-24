@@ -50,6 +50,13 @@ _NEGATION_CUES = (
     "proibida",
     "sem autorizacao",
     "sem autorização",
+    "ignorado",
+    "ignorar",
+    "excluir",
+    "excluido",
+    "excluído",
+    "desconsiderar",
+    "desconsidere",
 )
 
 # Palavras-chave da infraestrutura de producao propria (servidor Contabo:
