@@ -12,10 +12,8 @@ WhatsApp pedindo tarefas reais aos agentes, documentar, repetir.
   destravar a integração Orquestrador↔Gateway↔n8n direto no Contabo (rede
   Docker, bind mount do sandbox, crash-loop de config). Funcionou —
   confirmado via log real (`[whatsapp-cloud] WhatsApp Cloud reply started`
-  às 2026-08-22 11:22 UTC) — e ficou documentado em
-  `/root/meu-agente-orchestrator/DOCUMENTACAO_ARQUITETURA_E_ERROS.md`
-  **no servidor** (ainda não trazido pro repo — pendência aberta, ver
-  Próximos Passos).
+  às 2026-08-22 11:22 UTC). Documentação trazida do servidor pro repo:
+  [SESSAO_2026-08-22_orchestrator-deploy-contabo.md](SESSAO_2026-08-22_orchestrator-deploy-contabo.md).
 - **Revisão de código feita nesta sessão** (leitura de todo
   `orchestrator/src/`, testes rodados, config de sandbox do Contabo
   auditada): arquitetura é sólida — supervisor/enxame via LangGraph, trava
@@ -42,16 +40,21 @@ WhatsApp pedindo tarefas reais aos agentes, documentar, repetir.
   (bloqueiam produção sem autorização, liberam com autorização explícita).
   Commit local `0ceb8d9` (push pro GitHub ainda pendente de confirmação),
   commit espelho no repo do Contabo `340bed7`.
-- **Gaps identificados, ainda não corrigidos** (próximos passos):
-  1. Doc do Antigravity (`DOCUMENTACAO_ARQUITETURA_E_ERROS.md`) trazer do
-     Contabo pro `docs/` do repo.
-  2. Deploy do orchestrator pro Contabo é manual, repo lá **sem remote
-     git configurado** — não é repetível/versionado de verdade. Considerar
-     apontar um remote real (GitHub) ou script de deploy.
-  3. `test_api.py` (raiz do repo) tem um **token Bearer hardcoded** —
-     remover/mover pra fora do git antes de commitar qualquer coisa dali.
-  4. `orchestrator/response.json` é resíduo de teste manual, sem uso —
-     candidato a remoção.
+- **Gaps fechados no mesmo dia (2026-08-24)**:
+  1. Doc do Antigravity trazida pro repo:
+     [SESSAO_2026-08-22_orchestrator-deploy-contabo.md](SESSAO_2026-08-22_orchestrator-deploy-contabo.md).
+  2. Deploy pro Contabo agora é via `scripts/deploy-orchestrator.sh`
+     (rsync + commit local no repo do servidor + rebuild + healthcheck,
+     um comando só) — repo do Contabo continua sem remote git próprio
+     (estrutura de pastas diverge do monorepo local, mesmo motivo já
+     documentado para as extensões em
+     [technique_nested_repo_backup_via_copy]), mas o processo deixou de
+     ser manual/ad-hoc.
+  3. `test_api.py` (token Bearer hardcoded) removido. **Verificado antes
+     de remover**: hash do token não bate com o `gateway-token.json` de
+     produção atual no Contabo — não era um segredo ativo, não precisou
+     rotação.
+  4. `orchestrator/response.json` removido (resíduo de teste manual).
 
 ---
 
