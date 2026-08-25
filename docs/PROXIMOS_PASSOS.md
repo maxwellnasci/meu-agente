@@ -504,17 +504,22 @@ trocar tudo de uma vez ao clonar pra um cliente novo.
 **Decisão tomada (2026-08-05/06):** confirmado que openclaw.json
 suporta interpolação de ${VAR} em qualquer campo string (não só
 SecretRef) - env-substitution.ts:201-207, aplicado no pipeline
-principal (io.ts:1329). Diff já desenhado, opção B escolhida
-(preserva as 2 variantes do telefone do Max - "5541984445755" e
-"554184445755" - que existem de propósito pra casar com formatos
-diferentes que a Meta normaliza em eventos de webhook; templatizar só
-com 1 variável reduziria a allowlist funcionalmente). Variáveis:
-ARBO_OWNER_PHONE, ARBO_OWNER_PHONE_ALT, ARBO_PHONE_NUMBER_ID. Falta
-aplicar: adicionar as 3 linhas no .env do Contabo, aplicar o diff no
-openclaw.json (4 campos: commands.ownerAllowFrom,
-channels.whatsapp-cloud.allowFrom, ask-max.config.to,
-whatsapp-cloud.phoneNumberId), backup, restart, validar com mensagem
-real. Fica pra próxima sessão com tempo de acompanhar a validação.
+principal (io.ts:1329). Opção B escolhida (preserva as 2 variantes do
+telefone do Max - "5541984445755" e "554184445755" - que existem de
+propósito pra casar com formatos diferentes que a Meta normaliza em
+eventos de webhook; templatizar só com 1 variável reduziria a
+allowlist funcionalmente). Variáveis: ARBO_OWNER_PHONE,
+ARBO_OWNER_PHONE_ALT, ARBO_PHONE_NUMBER_ID.
+
+**Aplicação confirmada ao vivo em 2026-08-25** (a nota anterior deste
+item estava desatualizada): as 3 variáveis estão em `/root/openclaw/.env`
+no Contabo (caminho real do repo do gateway lá, diferente do que a nota
+antiga sugeria), os 4 campos do `openclaw.json`
+(`commands.ownerAllowFrom`, `channels.whatsapp-cloud.allowFrom`,
+`ask-max.config.to`, `whatsapp-cloud.phoneNumberId`) usam `${VAR}`, e o
+container do gateway em execução (`docker exec`) confirma as 3 variáveis
+resolvidas com os valores certos — não é só config no disco, chegou no
+processo rodando.
 
 **2. Tirar o repo-registry.ts do código-fonte**
 ✅ Concluído em 2026-08-06 e em produção - ver
@@ -570,10 +575,9 @@ túnel real foi criado por este item.
 
 Registrado também em `docs/templates/SETUP_NOVO_CLIENTE.md`.
 
-**Roteiro completo** (itens 1-5) em 2026-08-25. Ressalva: o item 1 ainda
-tem uma pendência de aplicação não confirmada (parágrafo "Falta aplicar"
-logo acima) — vale conferir o `openclaw.json` real do Contabo antes de
-assumir que está 100% fechado.
+**Roteiro completo** (itens 1-5) em 2026-08-25, todos confirmados —
+incluindo o item 1, cuja aplicação foi validada ao vivo no Contabo nesta
+mesma data (ver nota atualizada acima).
 
 **Já pronto, sem trabalho adicional:** sandbox de segurança inteiro
 (mode/workspaceAccess/docker limits), padrão de SecretRef,
