@@ -533,10 +533,11 @@ pra reusar em outro cliente exige editar código, não só JSON. Mover
 pra config carregável.~~
 
 **3. Criar um template vazio da AGENTS.md Parte B**
-A Parte A (regras universais) já está limpa e genérica. A Parte B
-(contexto do cliente atual, hoje = Arbo) precisa de um modelo em
-branco documentado, com os campos que cada cliente novo preenche
-(nome, tipo de negócio, tabela de respostas padrão).
+✅ Concluído em 2026-08-25 —
+[docs/templates/AGENTS_PARTE_B_TEMPLATE.md](templates/AGENTS_PARTE_B_TEMPLATE.md).
+Template completo (Parte A copiada literal do Amigão/Arbo + Parte B com
+campos entre [COLCHETES] e instruções de preenchimento), pronto pra
+copiar direto pro `~/.openclaw/workspace/AGENTS.md` de um cliente novo.
 
 **4. Padronizar o setup de infraestrutura por cliente/servidor**
 Cada implantação nova precisa de: GID do grupo docker redescoberto
