@@ -109,45 +109,50 @@ mount extra fake: os 6 mounts customizados existentes (skills, projeto
 `DOCKER_GID`) e a ausência da porta legada 18790 sobreviveram intactos,
 e o mount novo entrou junto — é aditivo, não substitutivo. A ressalva
 "não trocar produção sem validar antes" não se aplica mais nesse ponto.
+(Nota: `docker-compose.extra.yml` aqui é gerado pelo próprio script pra
+mounts — não confundir com `docker-compose.override.yml`, arquivo que
+nós criamos manualmente pro fix do `group_add` abaixo; são dois
+mecanismos diferentes.)
 
-🔴 **Achado real, roda ponta a ponta em 2026-08-25 num ambiente isolado
-(cópia própria em `/tmp`, portas/projeto Docker/config dir diferentes —
-não tocou no gateway real que estava rodando): a Opção B QUEBRA a
-ativação do sandbox quando combinada com o fix do `DOCKER_GID` desta
-sessão.**
+✅ **Bug do sandbox achado e CORRIGIDO (2026-08-25, validado ao vivo).**
+Histórico: rodando a Opção B ponta a ponta (build+up+sandbox) num
+ambiente isolado, achei que a ativação do sandbox quebrava
+silenciosamente — o `group_add` estático do `docker-compose.yml` base
+(fix do `DOCKER_GID` desta sessão) colidia com o `group_add` que o
+próprio script injeta ao habilitar sandbox (`docker-compose.sandbox.yml`
+gerado por ele), a validação de config rejeitava 2 entradas idênticas
+(`group_add items at 0 and 1 are equal`), e o script revertia
+`agents.defaults.sandbox.mode` pra `off` sem erro visível — só um
+`WARNING` no log. Um cliente novo seguindo a Opção B como documentada
+antes ficaria rodando sem a isolação de segurança principal do produto.
 
-O script builda e sobe o gateway normalmente, mas na etapa de sandbox
-gera seu próprio overlay (`docker-compose.sandbox.yml`) com
-`group_add: ["${DOCKER_GID}"]` — que se soma ao `group_add:
-["${DOCKER_GID:-124}"]` que já existe no `docker-compose.yml` base
-(nosso fix). O resultado tem 2 entradas idênticas, e a validação de
-config do OpenClaw rejeita isso (`group_add items at 0 and 1 are
-equal` — schema `uniqueItems`). O script **não trava com erro visível**:
-ele detecta a falha, reverte `agents.defaults.sandbox.mode` pra `off` e
-segue rodando o gateway **sem sandbox**, só com um `WARNING` no log. Ou
-seja: seguir a Opção B como documentada antes ia deixar um cliente novo
-rodando com o sandbox de segurança desligado sem ninguém perceber.
+**Correção aplicada**: o `group_add` saiu do `docker-compose.yml` base e
+virou `docker-compose.override.yml` (novo arquivo). O Compose inclui
+`docker-compose.override.yml` automaticamente só quando **ninguém passa
+`-f` explícito** — que é exatamente como a Opção A/produção sobe hoje
+(`docker compose up -d`/`build`, sem flags, confirmado no histórico de
+comandos do Contabo). `scripts/docker/setup.sh` (Opção B) passa `-f`
+explícito e por isso **não** pega o override — deixando o script livre
+pra injetar o `group_add` dele sozinho, sem colisão.
 
-**Como evitar**: pra usar a Opção B com sandbox habilitado, o
-`docker-compose.yml` base usado por ela não pode ter `group_add`
-pré-populado — ou remover a linha antes de rodar o script (deixando ele
-injetar sozinho via `docker-compose.sandbox.yml`), ou rodar o script
-contra um checkout limpo do upstream em vez do nosso compose já
-customizado. Ainda não decidido qual caminho adotar; por enquanto, se
-for usar a Opção B, **conferir o log do script procurando por
-"Sandbox mode rolled back to off"** antes de considerar o setup pronto.
+**Validado ao vivo, duas vezes** (antes e depois do fix, mesmo ambiente
+isolado): antes do fix, sandbox revertia pra `off` com `WARNING`; depois
+do fix, `Sandbox enabled: mode=non-main, scope=agent,
+workspaceAccess=none` sem erro — confirmado em 3 níveis independentes
+(não só o log): `docker inspect` mostra `GroupAdd: [124]` no container
+real, o mount do `docker.sock` está presente, e o `openclaw.json`
+persistido tem `sandbox.mode: "non-main"` de verdade. Produção
+(Contabo) não foi tocada — testado só na cópia isolada em `/tmp`.
 
 **Opção C, mencionada só pra registro**: publicar a imagem do gateway no
 ghcr.io como foi feito pro orchestrator — resolveria "buildar uma vez
 só" de verdade, mas é escopo maior (decidir extensões antes) e já está
 marcado como pendência separada em `docs/DEPLOY_IMAGEM.md`.
 
-**Recomendação atualizada**: o mecanismo de merge de compose (mounts
-extras) está confirmado seguro, mas **a Opção B não pode virar padrão
-ainda** por causa do bug do sandbox acima — resolver isso primeiro
-(provavelmente removendo o `group_add` estático do `docker-compose.yml`
-base e deixando o script de qualquer uma das opções injetar sozinho)
-antes de recomendar pra um cliente novo.
+**Recomendação final**: a Opção B agora pode virar padrão pro próximo
+cliente — merge de compose e ativação de sandbox, os dois pontos de
+risco, estão validados ao vivo. Falta só decidir quando migrar o Contabo
+pra esse fluxo (não obrigatório, os dois caminhos coexistem).
 
 ## 4. Quais extensões habilitar (item 5 do roteiro, decidido 2026-08-25)
 
