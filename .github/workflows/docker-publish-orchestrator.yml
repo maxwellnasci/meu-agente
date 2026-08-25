@@ -1,0 +1,69 @@
+name: Publish orchestrator image
+
+# Builda e publica a imagem Docker do orquestrador no GitHub Container
+# Registry (ghcr.io). Nao roda em todo push - so quando alguem cria uma tag
+# "orchestrator-vX.Y.Z" (release deliberado) ou dispara manualmente. Ver
+# docs/DEPLOY_IMAGEM.md pro fluxo completo (como cortar release, como um
+# servidor de cliente puxa a imagem, como fazer rollback).
+
+on:
+  push:
+    tags:
+      - "orchestrator-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da imagem a publicar (ex.: manual-test)"
+        required: true
+        default: "manual-test"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/meu-agente-orchestrator
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine image tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            # tag do git e "orchestrator-v1.2.3" -> tag da imagem "v1.2.3"
+            echo "tag=${GITHUB_REF_NAME#orchestrator-}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run test suite before publishing
+        working-directory: orchestrator
+        run: |
+          pip install -e ".[dev]"
+          python -m pytest -q
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: orchestrator
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE_NAME }}:latest
