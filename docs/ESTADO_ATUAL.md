@@ -1,5 +1,34 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — roteiro de template multi-cliente fechado (itens 1-5), 2026-08-25
+
+Ver `docs/PROXIMOS_PASSOS.md` (seção "Roteiro: extrair template genérico
+do Amigão") pro detalhe item a item. Resumo:
+
+- **Item 1** (config por cliente consolidada): confirmado ao vivo nesta
+  data que já estava aplicado no Contabo — as 3 variáveis `ARBO_*` no
+  `.env`, os 4 campos do `openclaw.json` usando `${VAR}`, e o container
+  do gateway rodando com os valores resolvidos (`docker exec` confirmou).
+  A nota anterior no roadmap estava desatualizada (dizia "falta aplicar").
+- **Item 2**: já estava concluído desde 06/08 (repo-registry config-driven).
+- **Item 3** (novo): template completo da `AGENTS.md` pra bootstrap de
+  cliente novo — `docs/templates/AGENTS_PARTE_B_TEMPLATE.md`.
+- **Item 4** (novo): runbook de setup de infra por cliente/servidor —
+  `docs/templates/SETUP_NOVO_CLIENTE.md` (GID do Docker, túnel Cloudflare,
+  opções de imagem do gateway). Documentação só, nenhum túnel/servidor real
+  criado.
+- **Item 5** (novo): decisão core vs. add-on por cliente —
+  `ask-max` fica core, `github-repo-report` vira add-on (revisa a
+  suposição original do roadmap depois de reler o código dos 2 plugins).
+- **Fix de portabilidade validado funcionalmente** (não só sintaxe): o
+  `DOCKER_GID` hardcoded no `openclaw/docker-compose.yml` foi testado de
+  verdade com um socket Unix fake e GID arbitrário dentro de containers
+  isolados — confirmado que sem o GID certo o kernel nega acesso
+  (`Permission denied`) e com o GID certo o acesso é concedido. Prova que
+  o mecanismo do fix funciona, não só que a sintaxe do compose é válida.
+
+---
+
 ## ✅ MARCO — deploy do orquestrador via imagem publicada, validado ao vivo (2026-08-25)
 
 Objetivo do Max: quando for a hora de replicar pra um cliente novo, subir
