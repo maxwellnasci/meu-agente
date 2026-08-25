@@ -1,9 +1,17 @@
 # Deploy via imagem publicada (registry) — orquestrador
 
-Preparado em 2026-08-25, ainda **não ativado** (nenhuma imagem foi
-publicada de verdade). Este doc é o "quando decidirem usar, é assim que
-funciona" — os arquivos já estão prontos, falta só o passo de ativação
-(seção "Como ativar" no fim).
+Preparado em 2026-08-25 e **validado ao vivo no mesmo dia**: tag
+`orchestrator-v0.1.0` criada, workflow rodou de ponta a ponta (32 testes
++ build + push), imagem puxada de volta via `docker pull` e subida via
+`ORCHESTRATOR_IMAGE` (sem build local) — `/health` respondeu `ok`. A
+imagem real está em `ghcr.io/maxwellnasci/meu-agente-orchestrator:v0.1.0`
+(e `:latest`).
+
+**Nota de visibilidade**: o repo `meu-agente` é público no GitHub, então
+o pacote também ficou público por padrão — mesma exposição que o código
+já tinha no repo (a imagem não carrega segredo nenhum, confirmado via
+`.dockerignore`). Se decidirem tornar o repo privado no futuro, revisitar
+a visibilidade do pacote também.
 
 ## Ideia
 
@@ -50,23 +58,21 @@ isso junto com "qual conjunto de extensões vai na imagem oficial do
 cliente" antes de montar o pipeline, pra não empacotar código
 não-finalizado.
 
-## Como ativar quando decidirem
+## Como usar num servidor de cliente
 
-1. Criar uma conta/token de leitura (PAT `read:packages`) pra cada
-   servidor de cliente autenticar no ghcr.io — tratar com o mesmo cuidado
-   dos outros segredos (nunca colado em chat, configurado direto no
-   servidor).
-2. Cortar o primeiro release: `git tag orchestrator-v0.1.0 && git push
-   origin orchestrator-v0.1.0` — isso dispara o workflow, que roda os
-   testes e publica `ghcr.io/maxwellnasci/meu-agente-orchestrator:v0.1.0` e
-   `:latest`.
-3. No servidor (Contabo ou cliente novo): `docker login ghcr.io` (com o
-   PAT), exportar `ORCHESTRATOR_IMAGE=ghcr.io/maxwellnasci/meu-agente-orchestrator:v0.1.0`
-   no `.env`, rodar `docker compose pull && docker compose up -d`.
-4. Deploy atual (`scripts/deploy-orchestrator.sh`, rsync + build no
+1. Como o pacote é público (repo público), não precisa de PAT pra
+   **puxar** a imagem — só `docker pull ghcr.io/maxwellnasci/meu-agente-orchestrator:v0.1.0`
+   direto funciona em qualquer servidor. PAT só seria necessário se o
+   pacote virasse privado no futuro.
+2. Exportar `ORCHESTRATOR_IMAGE=ghcr.io/maxwellnasci/meu-agente-orchestrator:v0.1.0`
+   no `.env` do servidor, rodar `docker compose pull && docker compose up -d`
+   — validado ao vivo, é exatamente esse fluxo que rodou no teste.
+3. Deploy atual (`scripts/deploy-orchestrator.sh`, rsync + build no
    servidor) continua funcionando sem nenhuma mudança — os dois caminhos
    coexistem; migrar o Contabo pro modo registry é uma decisão separada,
    não obrigatória por essa mudança.
+4. Pra cortar um release novo: `git tag orchestrator-vX.Y.Z && git push
+   origin orchestrator-vX.Y.Z` — dispara o workflow automaticamente.
 
 ## Versionamento e rollback
 

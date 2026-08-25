@@ -1,12 +1,23 @@
 # Estado Atual do Projeto
 
-## ✅ PREPARADO (não ativado) — deploy do orquestrador via imagem publicada (2026-08-25)
+## ✅ MARCO — deploy do orquestrador via imagem publicada, validado ao vivo (2026-08-25)
 
 Objetivo do Max: quando for a hora de replicar pra um cliente novo, subir
 via `docker pull` de uma imagem já pronta em vez de buildar/copiar código
 manualmente por servidor — segredos/dados de cada cliente ficam sempre
-fora da imagem. Deixado pronto pra ativar quando decidirem, nada mudou em
-produção ainda.
+fora da imagem.
+
+- Primeira tag cortada e testada de ponta a ponta no mesmo dia:
+  `orchestrator-v0.1.0` → workflow rodou (32 testes + build + push) →
+  imagem puxada de volta via `docker pull` num container isolado →
+  subida via `ORCHESTRATOR_IMAGE` (sem build local) → `/health` respondeu
+  `{"status":"ok"}`. Fluxo real, não só desenhado.
+- Repo é público, então o pacote publicado (`ghcr.io/maxwellnasci/meu-agente-orchestrator`)
+  também ficou público por padrão — mesma exposição que o código-fonte já
+  tinha (sem segredo na imagem, confirmado via `.dockerignore`).
+- Produção (Contabo) **não foi tocada** — continua no fluxo antigo
+  (`scripts/deploy-orchestrator.sh`, rsync + build local); migrar pro
+  modo registry é decisão separada, os dois caminhos coexistem.
 
 - `orchestrator/docker-compose.yml`: imagem agora configurável via
   `ORCHESTRATOR_IMAGE` (default preserva o comportamento atual — testado
