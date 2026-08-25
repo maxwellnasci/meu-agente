@@ -1,10 +1,11 @@
 # Setup de infraestrutura — servidor de um cliente novo
 
-Runbook pro item 4 do roteiro de template multi-cliente
+Runbook pros itens 4 e 5 do roteiro de template multi-cliente
 (`docs/PROXIMOS_PASSOS.md`). Preparado em 2026-08-25, é documentação —
 nenhum túnel/imagem/servidor real foi criado por esta análise. Cobre os
-3 pontos que variam por servidor: GID do Docker, túnel Cloudflare, e
-imagem do gateway.
+3 pontos de infra que variam por servidor (GID do Docker, túnel
+Cloudflare, imagem do gateway) e a decisão de quais extensões entram por
+padrão em cada cliente novo.
 
 ## 0. Antes de começar
 
@@ -77,10 +78,12 @@ pro servidor novo. Funciona (é o que roda no Contabo), mas não escala —
 repete o processo manual a cada cliente.
 
 **Opção B — usar o script de setup do próprio upstream**, que já
-automatiza build + detecção de `DOCKER_GID` + config do sandbox:
+automatiza build + detecção de `DOCKER_GID` + config do sandbox. Exemplo
+já refletindo a decisão do item 5 abaixo (`github-repo-report` de fora
+por padrão):
 ```bash
 cd openclaw/
-OPENCLAW_SANDBOX=1 OPENCLAW_EXTENSIONS="ask-max,github-repo-report,whatsapp-cloud" \
+OPENCLAW_SANDBOX=1 OPENCLAW_EXTENSIONS="ask-max,whatsapp-cloud" \
   scripts/docker/setup.sh
 ```
 Ainda builda localmente em cada servidor (não resolve "buildar uma vez só"),
@@ -103,7 +106,21 @@ ambiente de teste isolado (não Contabo) pra validar se o overlay resolve
 sem perder as customizações — aí sim vira o padrão. Não decidido ainda,
 fica como próximo passo.
 
-## 4. Depois da infra: config específica do cliente
+## 4. Quais extensões habilitar (item 5 do roteiro, decidido 2026-08-25)
+
+- **`whatsapp-cloud`** — o canal em si, sempre necessário se o cliente
+  usa WhatsApp como interface. Não é uma escolha, é a infra de transporte.
+- **`ask-max`** → **core, habilitar sempre**. `channel`/`to`/`accountId`
+  já injetam o operador daquele cliente (config, não código) — é o
+  mecanismo de escalonamento humano que a PARTE A do AGENTS.md (universal)
+  já pressupõe que existe.
+- **`github-repo-report`** → **add-on, não habilitar por padrão**. É
+  ferramenta de dev-ops do próprio Max (relatório dos repos GitHub dele —
+  `meu-agente`, `Mox---Sistemas`, `arbo`), sem uso pra um cliente típico
+  de PME. Só habilitar se aquele cliente específico for um negócio de
+  software/dev que precise disso.
+
+## 5. Depois da infra: config específica do cliente
 
 Não é escopo deste doc (é o resto do roteiro de template), mas pra
 fechar o checklist de um cliente novo, falta também:
