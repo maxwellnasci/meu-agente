@@ -1,7 +1,12 @@
 services:
   orchestrator:
     build: .
-    image: meu-agente-orchestrator:local
+    # Padrao preserva o comportamento atual (build local, tag "local"). Pra
+    # rodar a partir de uma imagem publicada no registry (ghcr.io), exporte
+    # ORCHESTRATOR_IMAGE=ghcr.io/<owner>/meu-agente-orchestrator:<tag> e use
+    # `docker compose pull && docker compose up -d` (sem --build) - ver
+    # docs/DEPLOY_IMAGEM.md.
+    image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
     env_file:
       - path: .env
         required: false

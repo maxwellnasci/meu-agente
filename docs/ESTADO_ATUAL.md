@@ -1,5 +1,36 @@
 # Estado Atual do Projeto
 
+## ✅ PREPARADO (não ativado) — deploy do orquestrador via imagem publicada (2026-08-25)
+
+Objetivo do Max: quando for a hora de replicar pra um cliente novo, subir
+via `docker pull` de uma imagem já pronta em vez de buildar/copiar código
+manualmente por servidor — segredos/dados de cada cliente ficam sempre
+fora da imagem. Deixado pronto pra ativar quando decidirem, nada mudou em
+produção ainda.
+
+- `orchestrator/docker-compose.yml`: imagem agora configurável via
+  `ORCHESTRATOR_IMAGE` (default preserva o comportamento atual — testado
+  build+run real, `/health` respondeu `ok`).
+- `.github/workflows/docker-publish-orchestrator.yml` (novo): builda,
+  roda os 32 testes e publica no ghcr.io — só dispara em tag
+  `orchestrator-vX.Y.Z` ou manualmente, nunca em todo push.
+- **Bug de portabilidade achado e corrigido**: `openclaw/docker-compose.yml`
+  tinha o GID do grupo docker do Kali (`124`) hardcoded em `group_add` —
+  um servidor de cliente com GID diferente perderia acesso ao
+  `docker.sock` montado, quebrando o sandbox real do agente
+  silenciosamente. Virou `${DOCKER_GID:-124}`, testado nos dois modos.
+  Editado só o arquivo (repo vendorizado `openclaw/` tem git e política de
+  contribuição próprias); commitar essa mudança específica lá fica a
+  critério de vocês.
+- Detalhes completos, passo a passo de ativação e política de
+  versionamento/rollback: [DEPLOY_IMAGEM.md](DEPLOY_IMAGEM.md).
+- **Fora de escopo por decisão consciente**: publicar a imagem do gateway
+  OpenClaw via CI — build bem mais pesado (multi-stage Node/Bun) e
+  depende de decidir antes quais extensões customizadas (hoje ainda não
+  commitadas no repo vendorizado) entram na imagem oficial.
+
+---
+
 ## ✅ LangSmith ativado de verdade + achado de segurança corrigido (2026-08-24, tarde)
 
 - **LangSmith tracing confirmado funcionando em produção**: chave

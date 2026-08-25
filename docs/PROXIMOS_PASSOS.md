@@ -464,6 +464,25 @@ SESSAO_2026-08-04_checkpoint-etapa8.md.
 7. Rodar o Claude Security de verdade (créditos pendentes da vez
    anterior).
 
+## Deploy via imagem publicada — preparado, falta ativar (2026-08-25)
+
+Infraestrutura pronta (compose parametrizado, workflow de CI, bug do
+DOCKER_GID corrigido) pra publicar a imagem do orquestrador no ghcr.io e
+deploy virar `docker pull` em vez de build no servidor. Ver
+[DEPLOY_IMAGEM.md](DEPLOY_IMAGEM.md) pro que falta:
+
+1. Criar o PAT de leitura do ghcr.io e decidir onde/como guardar por
+   servidor.
+2. Cortar a primeira tag (`orchestrator-v0.1.0`) e confirmar que o
+   workflow publica de verdade.
+3. Decidir se/quando migrar o Contabo do fluxo atual
+   (`scripts/deploy-orchestrator.sh`) pro modo registry (não é
+   obrigatório, os dois coexistem).
+4. Decisão em aberto, maior escopo: publicar também a imagem do gateway
+   OpenClaw via CI — depende de fechar antes quais extensões
+   customizadas (hoje só locais, não commitadas no repo vendorizado)
+   entram na imagem oficial do cliente.
+
 ## Roteiro: extrair template genérico (sem Arbo) do Amigão
 
 Objetivo: usar a base de hoje (sandbox seguro + secrets via SecretRef)
