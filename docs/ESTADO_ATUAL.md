@@ -1,5 +1,25 @@
 # Estado Atual do Projeto
 
+## ✅ Fix do group_add aplicado em produção no Contabo (2026-08-26)
+
+Diferente do resto do trabalho do roteiro (que ficou só em Git/testes
+isolados), este fix **chegou de verdade no servidor**: `group_add` saiu
+do `docker-compose.yml` e virou `docker-compose.override.yml` também em
+`/root/openclaw/` no Contabo (GID real 988, via `DOCKER_GID=988` no
+`.env`). Backup do arquivo antigo preservado
+(`docker-compose.yml.bak-20260826-0136-groupadd-override-fix`).
+Validado ao vivo: `docker compose config` confirmou `group_add=[988]`
+idêntico ao anterior antes de aplicar; depois do `docker compose up -d`
+(que recriou os containers — Compose detecta mudança na lista de
+arquivos, mesmo com config final idêntica), `docker inspect` confirmou
+`GroupAdd:[988]` e `docker.sock` montado no container real, ambos
+`openclaw-gateway` e `openclaw-cli` voltaram `healthy`, zero erro nos
+logs. Registrado no git local do `/root/openclaw` (sem remote, achado
+lateral: `.env` já era rastreado nesse repo desde antes desta sessão —
+pendência de limpeza de histórico, não urgente, sem impacto externo).
+
+---
+
 ## ✅ MARCO — roteiro de template multi-cliente fechado (itens 1-5), 2026-08-25
 
 Ver `docs/PROXIMOS_PASSOS.md` (seção "Roteiro: extrair template genérico
