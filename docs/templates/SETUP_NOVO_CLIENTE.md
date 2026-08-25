@@ -96,23 +96,29 @@ certo (runtime, não build-time).
 
 Ainda builda localmente em cada servidor (não resolve "buildar uma vez só"),
 mas elimina o processo manual de hoje e já lê `DOCKER_GID` sozinho.
-**Atenção**: esse script gera seu próprio `docker-compose.yml` a partir de
-`docker-compose.extra.yml` (mecanismo de overlay do próprio upstream) — o
-`docker-compose.yml` atual do projeto tem customizações acumuladas ao
-longo de meses (mount de skills, mount do projeto `meu-agente`, remoção
-da porta legada 18790, hardening de `cap_drop`/`security_opt`) que
-**não foram testadas** contra esse fluxo. Não trocar a produção pra essa
-opção sem antes validar isolado que o overlay preserva tudo isso.
+
+**Correção da ressalva anterior (validado com teste real em 2026-08-25):**
+o script **não** gera um `docker-compose.yml` do zero — ele usa o
+`docker-compose.yml` real do projeto como base (`COMPOSE_FILE` no script)
+e só *adiciona* um `docker-compose.extra.yml` gerado por cima (mounts
+extras via `OPENCLAW_EXTRA_MOUNTS`/`OPENCLAW_HOME_VOLUME`), sem
+substituir nada. Testei o merge de verdade
+(`docker compose -f docker-compose.yml -f <extra>.yml config`) com um
+mount extra fake: os 6 mounts customizados existentes (skills, projeto
+`meu-agente`, docker.sock, etc.), `cap_drop`, `group_add` (com o fix do
+`DOCKER_GID`) e a ausência da porta legada 18790 sobreviveram intactos,
+e o mount novo entrou junto — é aditivo, não substitutivo. A ressalva
+"não trocar produção sem validar antes" não se aplica mais nesse ponto.
 
 **Opção C, mencionada só pra registro**: publicar a imagem do gateway no
 ghcr.io como foi feito pro orchestrator — resolveria "buildar uma vez
 só" de verdade, mas é escopo maior (decidir extensões antes) e já está
 marcado como pendência separada em `docs/DEPLOY_IMAGEM.md`.
 
-**Recomendação**: pro próximo cliente, usar a Opção B primeiro num
-ambiente de teste isolado (não Contabo) pra validar se o overlay resolve
-sem perder as customizações — aí sim vira o padrão. Não decidido ainda,
-fica como próximo passo.
+**Recomendação**: pro próximo cliente, a Opção B já pode virar padrão —
+o mecanismo de merge foi validado, só falta rodar o script ponta a ponta
+(build + up) num ambiente de teste antes de usar em produção pela
+primeira vez, já que o merge do compose em si está confirmado seguro.
 
 ## 4. Quais extensões habilitar (item 5 do roteiro, decidido 2026-08-25)
 
