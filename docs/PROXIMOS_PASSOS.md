@@ -552,10 +552,28 @@ compose atual; não trocar produção sem testar isolado antes. Nenhum
 túnel real foi criado por este item.
 
 **5. Decidir o que fica no "core" vs. vira add-on opcional por cliente**
-github_repo_report e ask-max são genéricos no código, só a config
-injeta o dado do cliente - ok manter no core. Definir se cada cliente
-novo usa as mesmas 2 tools reintroduzidas hoje no sandbox, ou se isso
-também vira decisão por instância.
+✅ Decidido em 2026-08-25, revisando a suposição original acima (ambas
+"ok no core") depois de reler o código dos dois plugins:
+
+- **`ask-max` → core** (habilitar em todo cliente novo por padrão). O
+  `openclaw.plugin.json` já é 100% genérico — `channel`/`to`/`accountId`
+  injetam o operador daquele cliente, nada hardcoded pro Max. É o
+  mecanismo de escalonamento humano que a PARTE A do AGENTS.md (universal,
+  ver `docs/templates/AGENTS_PARTE_B_TEMPLATE.md`) já assume que existe.
+- **`github_repo_report` → add-on, não entra por padrão**. Ao ler o
+  `README.md`/`openclaw.plugin.json` do plugin: mesmo sendo genérico no
+  código, o *caso de uso* é relatório dos repositórios GitHub do próprio
+  Max (`meu-agente`, `Mox---Sistemas`, `arbo`) — zero utilidade pra um
+  cliente típico de PME (academia, clínica) a menos que o cliente em si
+  seja um negócio de software/dev. Só habilitar quando fizer sentido pro
+  cliente específico, não por padrão.
+
+Registrado também em `docs/templates/SETUP_NOVO_CLIENTE.md`.
+
+**Roteiro completo** (itens 1-5) em 2026-08-25. Ressalva: o item 1 ainda
+tem uma pendência de aplicação não confirmada (parágrafo "Falta aplicar"
+logo acima) — vale conferir o `openclaw.json` real do Contabo antes de
+assumir que está 100% fechado.
 
 **Já pronto, sem trabalho adicional:** sandbox de segurança inteiro
 (mode/workspaceAccess/docker limits), padrão de SecretRef,
