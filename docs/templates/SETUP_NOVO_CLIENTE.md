@@ -78,14 +78,22 @@ pro servidor novo. Funciona (é o que roda no Contabo), mas não escala —
 repete o processo manual a cada cliente.
 
 **Opção B — usar o script de setup do próprio upstream**, que já
-automatiza build + detecção de `DOCKER_GID` + config do sandbox. Exemplo
-já refletindo a decisão do item 5 abaixo (`github-repo-report` de fora
-por padrão):
+automatiza build + detecção de `DOCKER_GID` + config do sandbox:
 ```bash
 cd openclaw/
-OPENCLAW_SANDBOX=1 OPENCLAW_EXTENSIONS="ask-max,whatsapp-cloud" \
-  scripts/docker/setup.sh
+OPENCLAW_SANDBOX=1 scripts/docker/setup.sh
 ```
+**Correção importante (validada com build real em 2026-08-25):**
+`OPENCLAW_EXTENSIONS` **não** controla `ask-max`/`whatsapp-cloud`/
+`github-repo-report` — esse build-arg só afeta uma lista fixa de
+clusters oficiais do upstream (`acpx`, `msteams`, `whatsapp` sem o
+"-cloud", etc., ver `scripts/lib/optional-bundled-clusters.mjs`). Testei
+buildando com `OPENCLAW_EXTENSIONS="ask-max,whatsapp-cloud"` (tentando
+excluir o `github-repo-report`) e inspecionei a imagem final: as 3
+extensões customizadas entram sempre, o build-arg não teve efeito nelas.
+Não adianta tentar controlar por aqui — ver seção 4 abaixo pro jeito
+certo (runtime, não build-time).
+
 Ainda builda localmente em cada servidor (não resolve "buildar uma vez só"),
 mas elimina o processo manual de hoje e já lê `DOCKER_GID` sozinho.
 **Atenção**: esse script gera seu próprio `docker-compose.yml` a partir de
@@ -108,17 +116,22 @@ fica como próximo passo.
 
 ## 4. Quais extensões habilitar (item 5 do roteiro, decidido 2026-08-25)
 
-- **`whatsapp-cloud`** — o canal em si, sempre necessário se o cliente
-  usa WhatsApp como interface. Não é uma escolha, é a infra de transporte.
-- **`ask-max`** → **core, habilitar sempre**. `channel`/`to`/`accountId`
-  já injetam o operador daquele cliente (config, não código) — é o
-  mecanismo de escalonamento humano que a PARTE A do AGENTS.md (universal)
-  já pressupõe que existe.
-- **`github-repo-report`** → **add-on, não habilitar por padrão**. É
-  ferramenta de dev-ops do próprio Max (relatório dos repos GitHub dele —
-  `meu-agente`, `Mox---Sistemas`, `arbo`), sem uso pra um cliente típico
-  de PME. Só habilitar se aquele cliente específico for um negócio de
-  software/dev que precise disso.
+O código das 3 extensões vai pra imagem sempre (build não distingue —
+ver correção na seção 3 acima). O ponto real de controle por cliente é
+`openclaw.json` → `plugins.entries.<id>.enabled`, config, não build:
+
+- **`whatsapp-cloud`** — `enabled: true` sempre que o cliente usa
+  WhatsApp como interface. É o canal em si, não é uma escolha.
+- **`ask-max`** → **`enabled: true` sempre (core)**. `channel`/`to`/
+  `accountId` já injetam o operador daquele cliente (config, não
+  código) — é o mecanismo de escalonamento humano que a PARTE A do
+  AGENTS.md (universal) já pressupõe que existe.
+- **`github-repo-report`** → **`enabled: false` por padrão (add-on)**.
+  É ferramenta de dev-ops do próprio Max (relatório dos repos GitHub
+  dele — `meu-agente`, `Mox---Sistemas`, `arbo`), sem uso pra um cliente
+  típico de PME. Só virar `true` se aquele cliente específico for um
+  negócio de software/dev que precise disso — a config já suporta isso
+  sem precisar editar código nem rebuildar a imagem.
 
 ## 5. Depois da infra: config específica do cliente
 
