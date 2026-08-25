@@ -540,12 +540,16 @@ campos entre [COLCHETES] e instruções de preenchimento), pronto pra
 copiar direto pro `~/.openclaw/workspace/AGENTS.md` de um cliente novo.
 
 **4. Padronizar o setup de infraestrutura por cliente/servidor**
-Cada implantação nova precisa de: GID do grupo docker redescoberto
-(varia por host - stat -c '%g' /var/run/docker.sock), túnel Cloudflare
-próprio (UUID + hostname + credentials-file), e uma imagem buildada
-(hoje só existe porque foi feita manualmente no Kali e transferida -
-usar scripts/docker/setup.sh OPENCLAW_SANDBOX=1 do próprio upstream,
-que já automatiza isso, em vez do processo manual que fizemos hoje).
+✅ Runbook criado em 2026-08-25 —
+[docs/templates/SETUP_NOVO_CLIENTE.md](templates/SETUP_NOVO_CLIENTE.md).
+Cobre os 3 pontos (GID do Docker, túnel Cloudflare, imagem do gateway)
+com comandos reais e template de config, baseado na config real do
+Contabo (só lida, não alterada). GID já tem fix aplicado (ver item de
+2026-08-25 em ESTADO_ATUAL.md). Imagem do gateway ainda no processo
+manual — documentado um caminho de automação (`scripts/docker/setup.sh`
+do upstream) mas **não validado** contra as customizações acumuladas do
+compose atual; não trocar produção sem testar isolado antes. Nenhum
+túnel real foi criado por este item.
 
 **5. Decidir o que fica no "core" vs. vira add-on opcional por cliente**
 github_repo_report e ask-max são genéricos no código, só a config
