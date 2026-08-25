@@ -110,15 +110,44 @@ mount extra fake: os 6 mounts customizados existentes (skills, projeto
 e o mount novo entrou junto — é aditivo, não substitutivo. A ressalva
 "não trocar produção sem validar antes" não se aplica mais nesse ponto.
 
+🔴 **Achado real, roda ponta a ponta em 2026-08-25 num ambiente isolado
+(cópia própria em `/tmp`, portas/projeto Docker/config dir diferentes —
+não tocou no gateway real que estava rodando): a Opção B QUEBRA a
+ativação do sandbox quando combinada com o fix do `DOCKER_GID` desta
+sessão.**
+
+O script builda e sobe o gateway normalmente, mas na etapa de sandbox
+gera seu próprio overlay (`docker-compose.sandbox.yml`) com
+`group_add: ["${DOCKER_GID}"]` — que se soma ao `group_add:
+["${DOCKER_GID:-124}"]` que já existe no `docker-compose.yml` base
+(nosso fix). O resultado tem 2 entradas idênticas, e a validação de
+config do OpenClaw rejeita isso (`group_add items at 0 and 1 are
+equal` — schema `uniqueItems`). O script **não trava com erro visível**:
+ele detecta a falha, reverte `agents.defaults.sandbox.mode` pra `off` e
+segue rodando o gateway **sem sandbox**, só com um `WARNING` no log. Ou
+seja: seguir a Opção B como documentada antes ia deixar um cliente novo
+rodando com o sandbox de segurança desligado sem ninguém perceber.
+
+**Como evitar**: pra usar a Opção B com sandbox habilitado, o
+`docker-compose.yml` base usado por ela não pode ter `group_add`
+pré-populado — ou remover a linha antes de rodar o script (deixando ele
+injetar sozinho via `docker-compose.sandbox.yml`), ou rodar o script
+contra um checkout limpo do upstream em vez do nosso compose já
+customizado. Ainda não decidido qual caminho adotar; por enquanto, se
+for usar a Opção B, **conferir o log do script procurando por
+"Sandbox mode rolled back to off"** antes de considerar o setup pronto.
+
 **Opção C, mencionada só pra registro**: publicar a imagem do gateway no
 ghcr.io como foi feito pro orchestrator — resolveria "buildar uma vez
 só" de verdade, mas é escopo maior (decidir extensões antes) e já está
 marcado como pendência separada em `docs/DEPLOY_IMAGEM.md`.
 
-**Recomendação**: pro próximo cliente, a Opção B já pode virar padrão —
-o mecanismo de merge foi validado, só falta rodar o script ponta a ponta
-(build + up) num ambiente de teste antes de usar em produção pela
-primeira vez, já que o merge do compose em si está confirmado seguro.
+**Recomendação atualizada**: o mecanismo de merge de compose (mounts
+extras) está confirmado seguro, mas **a Opção B não pode virar padrão
+ainda** por causa do bug do sandbox acima — resolver isso primeiro
+(provavelmente removendo o `group_add` estático do `docker-compose.yml`
+base e deixando o script de qualquer uma das opções injetar sozinho)
+antes de recomendar pra um cliente novo.
 
 ## 4. Quais extensões habilitar (item 5 do roteiro, decidido 2026-08-25)
 
