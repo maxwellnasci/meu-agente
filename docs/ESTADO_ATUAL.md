@@ -1,5 +1,36 @@
 # Estado Atual do Projeto
 
+## 🚧 EM ANDAMENTO — cutover WhatsApp → orquestrador (2026-08-26)
+
+Testando o `main`/Amigão pedindo análise de segurança, o Max notou que
+ele só *sabia* que podia chamar o cybersec (`subagents.allowAgents`
+configurado), mas não tinha ainda o poder de fato ativo — o sandbox do
+`main` estava com config desatualizada. Corrigido:
+`openclaw sandbox recreate --agent main --force` (o container antigo
+`openclaw-sbx-agent-main-f331f052` foi removido, recria sozinho no
+próximo uso, com a config nova).
+
+**Achado lateral no meio da checagem**: `openclaw-openclaw-cli-1`
+ficou "unhealthy" depois de vários restarts do gateway (conectividade
+real quebrada, `fetch failed` confirmado com teste manual, não só
+cosmético como da vez anterior) — resolvido com `docker restart
+openclaw-openclaw-cli-1` (provável dessincronia de rede depois de tantos
+restarts do gateway em sequência).
+
+**Decisão do Max**: o poder de chamar só o `cybersec` não é suficiente
+— a ideia original do projeto é o assistente pessoal poder chamar
+também o especialista de **n8n** e o de **automação em Python**, que
+hoje só existem dentro do **orquestrador** (LangGraph, `orchestrator/`),
+um serviço completamente separado do gateway OpenClaw. O orquestrador
+nunca foi conectado ao número real do WhatsApp — só recebe `/health`
+checks (confirmado ao vivo, não suposição). Decidido: fazer o cutover
+de verdade (Opção A do leque apresentado) — WhatsApp passa a falar com
+o orquestrador em vez de falar direto com o `main`, e o orquestrador
+decide qual especialista chamar. Trabalho em andamento, não concluído
+ainda nesta entrada — ver próximas atualizações deste arquivo.
+
+---
+
 ## ✅ MARCO — Amigão vira assistente pessoal do Max (2026-08-26)
 
 Testando o próprio produto no WhatsApp, o Max percebeu (e eu confirmei
