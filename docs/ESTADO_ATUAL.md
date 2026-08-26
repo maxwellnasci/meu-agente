@@ -1,5 +1,44 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Amigão vira assistente pessoal do Max (2026-08-26)
+
+Testando o próprio produto no WhatsApp, o Max percebeu (e eu confirmei
+via auditoria real, não achismo) que suas mensagens estavam indo pro
+especialista `cybersec` desde 22/08, não pro `main`/Amigão — regressão
+de roteamento sem ninguém perceber (`agents.list` só tinha `cybersec`
+listado, viraria o "default agent" por ser a única entrada; corrigido
+com `bindings` explícito `whatsapp-cloud → main`, validado via
+`config patch --dry-run` antes de aplicar pra não repetir o crash loop
+da primeira tentativa malsucedida — ver detalhe abaixo).
+
+Decisão do Max depois de ver a persona da Arbo respondendo fora de
+contexto pra ele mesmo: não faz sentido o Amigão simular atendente da
+Arbo enquanto só ele usa o produto. Aplicado:
+- `AGENTS.md` reescrito — Parte A igual, Parte B trocada de "contexto
+  Arbo" pra "assistente pessoal do Max", com regra explícita de
+  **decidir junto antes de agir autonomamente em coisa importante**.
+- `subagents.allowAgents: ["cybersec"]` configurado no agente `main` —
+  agora ele pode de fato chamar o especialista cybersec via
+  `sessions_spawn` quando a tarefa for de segurança.
+- Config Arbo **arquivada, não apagada**: backup real em
+  `AGENTS.md.bak-arbo-20260826-0229` no workspace do Contabo, e cópia
+  de referência em `docs/templates/exemplos/AGENTS_ARBO_2026-08.md`
+  neste repo — pronta pra reativar quando o projeto for usado com um
+  cliente real (ex: clínica).
+- Validado ao vivo: mensagem de teste depois do fix respondida com
+  `agentId: "main"` confirmado no banco de auditoria (não só no log).
+
+**Incidente no meio do caminho**: a primeira tentativa de aplicar o
+`bindings` (edição manual do JSON) causou um **crash loop real de ~1
+minuto** — o schema exige que `bindings[].agentId` aponte pra um
+agente listado explicitamente em `agents.list`, e `main` só existia
+implicitamente. Revertido na hora via backup. A partir daí, toda
+mudança de config passou a ser validada com `openclaw config patch
+--dry-run` antes de aplicar de verdade — sem incidente nas mudanças
+seguintes.
+
+---
+
 ## ✅ Fix do group_add aplicado em produção no Contabo (2026-08-26)
 
 Diferente do resto do trabalho do roteiro (que ficou só em Git/testes
