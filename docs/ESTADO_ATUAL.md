@@ -1,6 +1,50 @@
 # Estado Atual do Projeto
 
-## 🚧 EM ANDAMENTO — cutover WhatsApp → orquestrador (2026-08-26)
+## ✅ MARCO — Amigão agora chama n8n e automação Python via orquestrador (2026-08-26)
+
+Em vez do cutover completo (religar o canal WhatsApp inteiro pro
+orquestrador — trabalho maior, adiado por segurança depois do incidente
+de mais cedo), implementada uma ponte mais contida: novo plugin
+**`orchestrator-bridge`** (`openclaw/extensions/orchestrator-bridge/`,
+mesmo padrão do `ask-max`) expõe uma tool `ask_orchestrator` que faz
+POST direto no `/v1/turn` do orquestrador Python (contrato real de
+`orchestrator/src/orchestrator/schemas/requests.py`:
+`session_key`/`text`/`from` → `reply_text`), rodando no processo do
+gateway (não no sandbox isolado — os dois containers já estão na mesma
+rede Docker `openclaw_default`, conectividade confirmada ao vivo antes
+de escrever qualquer código).
+
+**Processo seguido** (aprendendo com o incidente de mais cedo — nada
+foi direto pra produção sem validar antes):
+1. Build local da imagem com o plugin novo — validado sem erro TS.
+2. Testado num ambiente isolado (mesma técnica de sempre: cópia em
+   `/tmp`, portas/projeto Docker diferentes) — plugin carregou
+   (`openclaw plugins list` confirma `enabled`), sem tocar produção.
+3. Só depois: commit no repo `openclaw` (`07957014018`), sync do código
+   pro Contabo, build local no Kali + `docker save | ssh docker load`
+   (produção nunca teve o Dockerfile completo — sempre foi
+   build-local-e-transfere, achado confirmado ao vivo checando o
+   arquivo lá).
+4. Config de produção habilitada via `config patch --dry-run` antes de
+   aplicar (plugin + `tools.alsoAllow` pro modelo enxergar a tool).
+5. `AGENTS.md` atualizado explicando as duas formas de delegar
+   (`sessions_spawn` pro cybersec, `ask_orchestrator` pro n8n/Python).
+6. `docker compose up -d` (recreate, não só restart) pra pegar a
+   imagem nova — gateway e cli saudáveis depois.
+
+**Ainda pendente**: teste end-to-end real via WhatsApp (uma tarefa que
+force o orquestrador a chamar de fato o especialista n8n ou o de
+código) — feito o deploy, falta a validação pela conversa real.
+
+**Decisão consciente de escopo**: o cutover completo do canal WhatsApp
+pro orquestrador (Opção A do leque original) fica pra uma sessão
+dedicada, com mais tempo pra testar antes de trocar o roteamento
+principal — essa ponte via tool resolve o pedido do Max (poder chamar
+n8n/Python) sem esse risco maior agora.
+
+---
+
+## 🚧 Cutover WhatsApp → orquestrador — decisão registrada, não implementada ainda (2026-08-26)
 
 Testando o `main`/Amigão pedindo análise de segurança, o Max notou que
 ele só *sabia* que podia chamar o cybersec (`subagents.allowAgents`
