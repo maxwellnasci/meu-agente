@@ -21,3 +21,6 @@ node_modules/
 
 # Logs locais
 logs/
+
+# Scripts de experimento / scratch local (nao sao codigo do projeto)
+test_copilot_models.py
