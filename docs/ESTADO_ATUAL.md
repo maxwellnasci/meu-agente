@@ -1,5 +1,66 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Integração gateway ↔ orquestrador 100% ponta a ponta no Kali local (2026-08-27)
+
+Fechado o loop no ambiente **local (Kali)** — o Contabo já tinha o deploy
+(entrada de 26/08), mas o Kial estava desalinhado em 3 pontos:
+
+1. **Container do gateway rodava imagem antiga** (`b057bd4b532f`, 6 dias) —
+   só 11 plugins, **sem `orchestrator-bridge`**. A imagem `openclaw:local`
+   nova (`25078b3e508d`, buildada 25/08 logo após o commit `07957014018`)
+   já continha o plugin compilado em `/app/dist/extensions/orchestrator-bridge`,
+   mas o container nunca foi recriado. Resolvido com `docker compose up -d`
+   em `openclaw/` (recreate) → agora **12 plugins**, `orchestrator-bridge`
+   na lista, sem warning `plugin not found`.
+
+2. **`orchestrator-bridge` não estava no `openclaw.json`** — o plugin lê a
+   URL de `plugins.entries.orchestrator-bridge.config.url` (**não de env
+   var** — o passo 1 do pedido falava em `ORCHESTRATOR_URL` no `.env`, mas
+   o mecanismo real é a config do plugin, mesmo padrão do `ask-max`).
+   Aplicado via `openclaw config patch --stdin` (dry-run OK antes, backup
+   `openclaw.json.backup-pre-orchestrator-bridge-20260827-213834`):
+   - `plugins.entries."orchestrator-bridge"` = `{enabled, config:{url:
+     "http://orchestrator:8000/v1/turn", timeoutSeconds: 180}}`
+   - `tools.alsoAllow` += `"ask_orchestrator"` (senão o modelo não enxerga
+     a tool).
+
+3. **`ORCHESTRATOR_OPENCLAW_GATEWAY_URL` não estava setado** em
+   `orchestrator/.env` → usava o default `http://localhost:18789`, que
+   dentro do container é o próprio orquestrador. O especialista de código
+   (`specialist_openclaw`) falhava **sempre** — reproduzido: `/v1/turn`
+   com tarefa de código → supervisor tentava 4x, abortava por limite de
+   iterações (`sucesso=False` nas 4 rodadas no log). Adicionada a linha
+   `ORCHESTRATOR_OPENCLAW_GATEWAY_URL=http://openclaw-gateway:18789` +
+   `docker compose up -d` em `orchestrator/`. **`.env` é gitignored** —
+   se recriar o `orchestrator/.env` do zero, lembrar dessa linha.
+
+**Rede/tokens (verificado ao vivo, não suposição):** os dois containers já
+estavam na `openclaw_default`; `gateway→orchestrator:8000/health` e
+`orchestrator→openclaw-gateway:18789/healthz` OK nos dois sentidos;
+`OPENCLAW_GATEWAY_TOKEN` (gateway) == `ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN`
+(orquestrador) — sha256 idêntico, **sem `token_mismatch`**.
+
+**Testes ponta a ponta (pós-fix):**
+- **Path A** — `POST /v1/turn` direto, tarefa de código → `supervisor`
+  rodada 1 despacha `openclaw` → `specialist_openclaw sucesso=True` (10.6s)
+  → `synthesize_final` → resposta com o script Python e a saída correta.
+- **Path B** — chain completa: `POST /v1/chat/completions` no gateway
+  (simula WhatsApp) → agente `main` chama a tool `ask_orchestrator` →
+  `/v1/turn` do orquestrador → `supervisor` → `specialist_openclaw`
+  (`sucesso=True`, 6.5s, chamou o gateway de volta) → "soma 1..100 = 5050"
+  volta pela cadeia toda. ~20s total.
+
+Containers: `openclaw-openclaw-gateway-1` e `openclaw-openclaw-cli-1`
+healthy na `openclaw:local` nova; `orchestrator-orchestrator-1` up. Logs
+dos dois sem erro / sem `token_mismatch` / sem `ECONNREFUSED`.
+
+**Pendências não-bloqueantes:** `github-repo-report` carrega mas a tool
+não registra (`no repos configured`) — é escolha de config, não bug de
+build. `orchestrator-bridge` ainda não tem backup no `extensions/`
+top-level (só no repo `openclaw` aninhado, commit `07957014018`).
+
+---
+
 ## ✅ MARCO — Amigão agora chama n8n e automação Python via orquestrador (2026-08-26)
 
 Em vez do cutover completo (religar o canal WhatsApp inteiro pro
