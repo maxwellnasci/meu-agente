@@ -34,6 +34,7 @@ def check_destructive_n8n_action(tool_name: str, instructions: str) -> str | Non
     e a instrucao original da tarefa nao contiver nenhum verbo que autorize
     aquela acao explicitamente; None libera a chamada (tool nao-destrutiva,
     ou instrucao ja contem o verbo esperado)."""
+    # TESTE_CURSOR: validando conexão e edição em tempo real
     cues = _DESTRUCTIVE_TOOL_CUES.get(tool_name)
     if cues is None:
         return None
