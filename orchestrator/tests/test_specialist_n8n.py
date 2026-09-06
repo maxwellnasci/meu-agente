@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage
 
 from orchestrator.clients.n8n_client import N8nClient
 from orchestrator.config import settings
+from orchestrator.graph.n8n_confirmation import NEEDS_CONFIRMATION_KEY
 from orchestrator.graph.nodes import _run_n8n_tool, specialist_n8n_node
 
 requires_n8n_credentials = pytest.mark.skipif(
@@ -36,10 +37,44 @@ async def test_node_returns_early_when_queue_empty():
 
 
 @pytest.mark.asyncio
-async def test_node_executes_tool_then_reports_final_summary():
+async def test_node_reads_are_executed_then_reports_final_summary():
+    """Leitura/listagem continua rodando direto no loop ReAct, sem gate."""
     state = {
         "pending_specialists": [
-            {"specialist": "n8n", "instructions": "cria um workflow chamado teste-x e resume o que foi feito"}
+            {"specialist": "n8n", "instructions": "lista os workflows e resume o que voce viu"}
+        ],
+        "internal_scratchpad": [],
+    }
+    tool_call_response = AIMessage(
+        content="",
+        tool_calls=[{"name": "N8nListWorkflows", "args": {}, "id": "call_1"}],
+    )
+    final_response = AIMessage(content="Vi 3 workflows ativos.")
+
+    with (
+        patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
+        patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
+    ):
+        mock_chat_cls.return_value = _mock_llm([tool_call_response, final_response])
+        mock_client_cls.return_value.list_workflows = AsyncMock(return_value={"data": [1, 2, 3]})
+
+        result = await specialist_n8n_node(state)
+
+    mock_client_cls.return_value.list_workflows.assert_awaited_once()
+    assert result["pending_specialists"] == []
+    assert "last_error" not in result
+    assert "n8n_pending_confirmation" not in result
+    note = result["internal_scratchpad"][0]
+    assert note.startswith("[n8n] Vi 3 workflows ativos.")
+
+
+@pytest.mark.asyncio
+async def test_node_create_does_not_execute_and_becomes_a_pending_confirmation():
+    """Regressao do incidente 2026-09-05: 'cria um workflow' NAO cria nada
+    na hora - vira uma proposta pendente de confirmacao, gravada no estado."""
+    state = {
+        "pending_specialists": [
+            {"specialist": "n8n", "instructions": "cria um workflow chamado teste-x"}
         ],
         "internal_scratchpad": [],
     }
@@ -47,25 +82,130 @@ async def test_node_executes_tool_then_reports_final_summary():
         content="",
         tool_calls=[{"name": "N8nCreateWorkflow", "args": {"name": "teste-x", "nodes": []}, "id": "call_1"}],
     )
-    final_response = AIMessage(content="Criei e ja resumi o workflow teste-x.")
 
     with (
         patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
         patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
     ):
-        mock_chat_cls.return_value = _mock_llm([tool_call_response, final_response])
+        mock_chat_cls.return_value = _mock_llm([tool_call_response])
+        mock_client_cls.return_value.create_workflow = AsyncMock()
+
+        result = await specialist_n8n_node(state)
+
+    mock_client_cls.return_value.create_workflow.assert_not_awaited()
+    pend = result["n8n_pending_confirmation"]
+    assert pend["action"] == "create"
+    assert pend["tool_name"] == "N8nCreateWorkflow"
+    assert pend["args"]["name"] == "teste-x"
+    assert pend["token"]
+    assert "PROPOSTA" in result["internal_scratchpad"][0]
+    assert "last_error" not in result
+
+
+@pytest.mark.asyncio
+async def test_node_executes_confirmed_action_once_via_token():
+    """Turno de confirmacao: o supervisor setou `n8n_confirmed_token` e
+    despachou o n8n - o node executa a acao pendente EXATAMENTE uma vez,
+    sem LLM, e limpa a pendencia (uso unico)."""
+    pend = {
+        "token": "tok-abc",
+        "tool_name": "N8nCreateWorkflow",
+        "action": "create",
+        "workflow_id": None,
+        "workflow_name": "teste-x",
+        "args": {"name": "teste-x", "nodes": []},
+        "expires_at": 9_999_999_999,
+        "summary": "criar um novo workflow 'teste-x'.",
+    }
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "O usuario CONFIRMOU. Execute."}],
+        "internal_scratchpad": [],
+        "n8n_pending_confirmation": pend,
+        "n8n_confirmed_token": "tok-abc",
+    }
+
+    with (
+        patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
+        patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
+    ):
+        mock_chat_cls.return_value = _mock_llm([])
         mock_client_cls.return_value.create_workflow = AsyncMock(return_value={"id": "wf123", "name": "teste-x"})
 
         result = await specialist_n8n_node(state)
 
     mock_client_cls.return_value.create_workflow.assert_awaited_once()
-    assert result["pending_specialists"] == []
-    assert result["current_specialist"] is None
-    assert "last_error" not in result
+    assert result["n8n_pending_confirmation"] == "clear"
     note = result["internal_scratchpad"][0]
-    assert note.startswith("[n8n] Criei e ja resumi o workflow teste-x.")
-    assert "N8nCreateWorkflow" in note
+    assert "executada" in note
     assert "wf123" in note
+
+
+@pytest.mark.asyncio
+async def test_node_rejects_confirmed_token_that_does_not_match_pending():
+    """Token de confirmacao que nao bate com a pendencia (reuso, corrida,
+    adulteracao) -> nada e executado."""
+    pend = {
+        "token": "real-token",
+        "tool_name": "N8nDeleteWorkflow",
+        "action": "delete",
+        "workflow_id": "wf9",
+        "workflow_name": None,
+        "args": {"workflow_id": "wf9"},
+        "expires_at": 9_999_999_999,
+        "summary": "EXCLUIR PERMANENTEMENTE o workflow id wf9.",
+    }
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "confirmado"}],
+        "internal_scratchpad": [],
+        "n8n_pending_confirmation": pend,
+        "n8n_confirmed_token": "outro-token",
+    }
+
+    with (
+        patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
+        patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
+    ):
+        mock_chat_cls.return_value = _mock_llm([])
+        mock_client_cls.return_value.delete_workflow = AsyncMock()
+
+        result = await specialist_n8n_node(state)
+
+    mock_client_cls.return_value.delete_workflow.assert_not_awaited()
+    assert result["n8n_pending_confirmation"] == "clear"
+    assert "expirou" in result["internal_scratchpad"][0] or "nao corresponde" in result["internal_scratchpad"][0]
+
+
+@pytest.mark.asyncio
+async def test_node_rejects_confirmed_token_when_pending_expired():
+    """Pendencia expirada no momento da confirmacao -> nada executado."""
+    pend = {
+        "token": "tok-abc",
+        "tool_name": "N8nActivateWorkflow",
+        "action": "activate",
+        "workflow_id": "wf1",
+        "workflow_name": None,
+        "args": {"workflow_id": "wf1"},
+        "expires_at": 1,  # muito no passado
+        "summary": "ATIVAR o workflow id wf1.",
+    }
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "sim"}],
+        "internal_scratchpad": [],
+        "n8n_pending_confirmation": pend,
+        "n8n_confirmed_token": "tok-abc",
+    }
+
+    with (
+        patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
+        patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
+    ):
+        mock_chat_cls.return_value = _mock_llm([])
+        mock_client_cls.return_value.activate_workflow = AsyncMock()
+
+        result = await specialist_n8n_node(state)
+
+    mock_client_cls.return_value.activate_workflow.assert_not_awaited()
+    assert result["n8n_pending_confirmation"] == "clear"
 
 
 @pytest.mark.asyncio
@@ -93,13 +233,28 @@ async def test_node_reports_error_after_max_steps_without_final_answer():
 @pytest.mark.asyncio
 async def test_run_n8n_tool_translates_http_error_into_error_dict():
     client = MagicMock()
-    request = httpx.Request("DELETE", "http://n8n.local/api/v1/workflows/x")
+    request = httpx.Request("GET", "http://n8n.local/api/v1/workflows/x")
     response = httpx.Response(status_code=404, request=request)
-    client.delete_workflow = AsyncMock(side_effect=httpx.HTTPStatusError("not found", request=request, response=response))
+    client.get_workflow = AsyncMock(side_effect=httpx.HTTPStatusError("not found", request=request, response=response))
 
-    result = await _run_n8n_tool(client, "N8nDeleteWorkflow", {"workflow_id": "x"}, "deleta o workflow x")
+    result = await _run_n8n_tool(client, "N8nGetWorkflow", {"workflow_id": "x"}, "consulta o workflow x")
 
     assert "404" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_run_n8n_tool_executes_write_action_on_bypass_confirmation():
+    """Com bypass_confirmation=True (caminho de acao ja confirmada pelo
+    usuario) a tool de escrita executa de verdade."""
+    client = MagicMock()
+    client.delete_workflow = AsyncMock(return_value={})
+
+    result = await _run_n8n_tool(
+        client, "N8nDeleteWorkflow", {"workflow_id": "x"}, "EXCLUIR o workflow x", bypass_confirmation=True
+    )
+
+    client.delete_workflow.assert_awaited_once_with("x")
+    assert "error" not in result
 
 
 @pytest.mark.asyncio
@@ -110,28 +265,38 @@ async def test_run_n8n_tool_rejects_unknown_tool_name():
 
 
 @pytest.mark.asyncio
-async def test_run_n8n_tool_blocks_delete_without_explicit_authorization():
-    """Regressao: o gate de acao destrutiva (n8n_guard.py) deve recusar
-    N8nDeleteWorkflow quando a instrucao da tarefa nao contem nenhum verbo
-    de autorizacao explicita - mesmo que o LLM do especialista decida
-    chamar a tool por conta propria (ex.: interpretando mal um pedido
-    exploratorio como 'organiza os workflows')."""
+async def test_run_n8n_tool_blocks_write_action_without_confirmation():
+    """Regressao do incidente 2026-09-05: qualquer tool de escrita
+    (create/activate/deactivate/delete) chamada pelo LLM sem confirmacao
+    NAO executa - vira uma pendencia de confirmacao."""
     client = MagicMock()
     client.delete_workflow = AsyncMock()
 
     result = await _run_n8n_tool(client, "N8nDeleteWorkflow", {"workflow_id": "x"}, "organiza os workflows")
 
-    assert "RECUSADO" in result["error"]
+    assert NEEDS_CONFIRMATION_KEY in result
+    assert result[NEEDS_CONFIRMATION_KEY]["action"] == "delete"
     client.delete_workflow.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_node_blocks_llm_initiated_deactivate_without_authorization():
+async def test_run_n8n_tool_preserves_read_operations():
+    """Leitura/listagem nunca passa pelo gate de confirmacao."""
+    client = MagicMock()
+    client.list_workflows = AsyncMock(return_value={"data": []})
+    client.get_workflow = AsyncMock(return_value={"id": "a"})
+
+    assert NEEDS_CONFIRMATION_KEY not in await _run_n8n_tool(client, "N8nListWorkflows", {}, "lista tudo")
+    assert NEEDS_CONFIRMATION_KEY not in await _run_n8n_tool(client, "N8nGetWorkflow", {"workflow_id": "a"}, "consulta a")
+    client.list_workflows.assert_awaited_once()
+    client.get_workflow.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_node_blocks_llm_initiated_deactivate_without_confirmation():
     """Regressao end-to-end: mesmo que o LLM do especialista n8n chame
-    N8nDeactivateWorkflow por conta propria, o node nao deve executar a
-    tool de verdade se a instrucao original nao autorizou isso - o erro do
-    gate vira ToolMessage e o especialista reporta a recusa, sem side
-    effect real na instancia de producao."""
+    N8nDeactivateWorkflow por conta propria, o node nao executa a tool - a
+    acao vira uma proposta pendente de confirmacao, sem side effect real."""
     state = {
         "pending_specialists": [{"specialist": "n8n", "instructions": "lista os workflows ativos"}],
         "internal_scratchpad": [],
@@ -140,19 +305,20 @@ async def test_node_blocks_llm_initiated_deactivate_without_authorization():
         content="",
         tool_calls=[{"name": "N8nDeactivateWorkflow", "args": {"workflow_id": "wf1"}, "id": "call_1"}],
     )
-    final_response = AIMessage(content="Nao consegui desativar: acao nao autorizada pela instrucao.")
 
     with (
         patch("orchestrator.graph.nodes.ChatOpenAI") as mock_chat_cls,
         patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls,
     ):
-        mock_chat_cls.return_value = _mock_llm([tool_call_response, final_response])
+        mock_chat_cls.return_value = _mock_llm([tool_call_response])
         mock_client_cls.return_value.deactivate_workflow = AsyncMock()
 
         result = await specialist_n8n_node(state)
 
     mock_client_cls.return_value.deactivate_workflow.assert_not_awaited()
-    assert "RECUSADO" in result["internal_scratchpad"][0]
+    assert result["n8n_pending_confirmation"]["action"] == "deactivate"
+    assert result["n8n_pending_confirmation"]["workflow_id"] == "wf1"
+    assert "PROPOSTA" in result["internal_scratchpad"][0]
 
 
 @requires_n8n_credentials
