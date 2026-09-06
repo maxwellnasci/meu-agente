@@ -716,3 +716,223 @@ Docs: `ANALISE_ATUAL.md`, `RELATORIO_N8N_CRIACAO_FLUXOS_2026-09-05.md`, `docs/ES
 |---|---|---|---|---|---|
 | `pEVM1SI5Pxavc0JM` | Fluxo Básico de Teste | 2026-09-05 23:18:47 UTC | não | `webhook` → `set` | — |
 | `Z4NOaIGb6558Dmz3` | Notificação de Desligamento/Reinicialização | 2026-09-05 23:22:38 UTC | **sim** | `webhook`(shutdown-event) → `set` → `emailSend` | **0** |
+
+---
+
+## Revisão independente
+
+> Data: 2026-09-06. Modo estritamente somente-leitura: revalidei o relatório
+> contra o código local (master), o histórico git e spot-checks read-only no
+> Contabo (logs do orquestrador/gateway, `SELECT` no Postgres do n8n,
+> decodificação read-only do `checkpoints.sqlite`). Nada foi alterado.
+
+### R1. Método e o que foi re-verificado (e com que resultado)
+
+| Afirmação do relatório | Verificação | Resultado |
+|---|---|---|
+| `extract_task_description` retorna só a última `HumanMessage` (`nodes.py:205-218`) | li o código | ✅ confirmado |
+| `fresh_turn_input` zera tudo menos `messages` (`state.py:80-110`) | li o código | ✅ confirmado |
+| `supervisor_node`/`synthesize_final_node` montam o prompt só com última frase + scratchpad (que acabou de ser zerado) (`nodes.py:252-260`, `559-567`) | li o código | ✅ confirmado |
+| Especialistas recebem só `job["instructions"]` (texto do supervisor, sem histórico) | `nodes.py:337`, `490`, `511` | ✅ confirmado |
+| `n8n_guard` só intercepta `N8nDeleteWorkflow`/`N8nDeactivateWorkflow`; recebe `job["instructions"]`, não o texto do usuário | `n8n_guard.py:19-44`, `nodes.py:511` | ✅ confirmado |
+| `create`/`update`/`activate`/`trigger_webhook` sem guard nenhum | `n8n_guard.py:38-40`, `_run_n8n_tool` | ✅ confirmado |
+| Prompt do supervisor: "pergunta indireta é pedido de ação" (`nodes.py:153-163`) | li o código | ✅ confirmado (texto literal bate) |
+| REGRA DE CAUTELA libera criar sem ressalva (`nodes.py:67-72`) | li o código | ✅ confirmado |
+| Timeouts: cliente 95 s (`orchestrator-client.ts:14`), grafo 150 s (`config.py:58`), n8n 30 s, OpenClaw 120 s, `max_supervisor_iterations=4`, `_N8N_MAX_STEPS=6` | li o código | ✅ confirmado; o comentário "default 90s" no cliente é mesmo desatualizado (o valor real é 150) |
+| `/v1/turn` sem autenticação; falha vira HTTP 200 com fallback (`main.py:82-109`) | li o código | ✅ confirmado (não há dependency de auth nem middleware) |
+| Handoff direto WhatsApp→orquestrador no `inbound.ts`, sem passar pelo agente `main` | `inbound.ts:103-118` | ✅ confirmado |
+| Código em produção == master no que importa: único diff pós-26/08 no `orchestrator/src` é o commit `8ab3802` (1 linha de comentário); extensão `whatsapp-cloud` inalterada desde 26/08 | `git log`/`git show` | ✅ confirmado |
+| Linhas de log do n8n (`POST /workflows 200` etc.) vêm mesmo dos logs do orquestrador | `docker logs` no Contabo | ✅ confirmado — são linhas `INFO httpx: HTTP Request: ...` (httpx loga em INFO com o `logging.basicConfig` do `main.py`); timestamps batem exatamente com os do relatório |
+| Estado dos workflows no n8n (IDs, nomes, `active`, `createdAt`, 0 execuções) | `SELECT` no Postgres do n8n | ✅ confirmado, valores idênticos aos do relatório |
+| 133 checkpoints na thread real | decode read-only do `checkpoints.sqlite` | ✅ confirmado (133) |
+| Gateway teve exatamente 1 linha de log em 05/09 (a do "Orchestrator turn failed") | `docker logs` do gateway | ✅ confirmado |
+| Cutover em produção: primeira mensagem real da thread | decode read-only do checkpoint | **✅ confirmado e agora com data exata: 2026-08-26 01:21 UTC** (ver R2.1) |
+| `# TESTE_CURSOR` só no master, ausente na imagem de produção | `git log -S` (introduzido em `8ab3802`, 31/08) | ✅ confirmado (produção é anterior) |
+
+As referências de linha do relatório estão corretas em todas as que confirmei.
+
+### R2. Correções de interpretação
+
+**R2.1 — Cutover: "desde ~26/08" pode ser afirmado com data exata.** O
+primeiro checkpoint da thread `agent:main:direct:554184445755` é de
+**2026-08-26 01:21:04 UTC**. Ou seja: o handoff direto já estava vivo na
+madrugada do dia 26/08 — *antes* do build da imagem atual (01:48), o que mostra
+que o gateway já rodava o handoff com imagem anterior e o volume de dados
+sobreviveu aos recreates. A correção do relatório sobre os docs
+(`ANALISE_ATUAL.md`/`ESTADO_ATUAL.md` dizendo "decidido, não implementado")
+está **certa**; só convém registrar que a checagem "ao vivo" registrada nos
+docs em 26/08 ou estava errada ou descreve um momento anterior à ativação.
+
+**R2.2 — "Inofensivo (webhook ocioso)" está incorreto.** Um workflow **ativo**
+com trigger `webhook` expõe uma **URL pública e não autenticada**
+(`https://n8n.mxos.com.br/webhook/shutdown-event`) que qualquer pessoa que
+conheça/descubra o path pode disparar quantas vezes quiser (hoje executa
+`set`→`emailSend`; como o SMTP do n8n aparentemente não está configurado, o
+impacto é baixo — mas a superfície é remota, anônima e em produção). Isso
+muda a Etapa 0.1: **desativar o `Z4NOaIGb6558Dmz3` não é "avaliar", é fazer
+agora** (ação humana no n8n, 1 clique). E tem consequência sistêmica: cada
+"criar + ativar" do especialista com um node `webhook` cria uma **nova
+superfície pública** em produção — a confirmação da Etapa 2 deve exibir o
+path público ao usuário, e "nunca ativar no turn da criação" (2.2) ganha
+peso também por isso.
+
+**R2.3 — Corrida de timeout: mesma segunda, não "1 s antes".** O cliente
+abortou às `23:23:57.246` e o `synthesize_final` logou "concluido" às
+`23:23:57` (logs com granularidade de 1 s). É uma corrida no mesmo segundo;
+o mecanismo descrito no relatório está correto, mas a diferença exata é
+indeterminável com essa granularidade.
+
+**R2.4 — RC7 fica como pergunta aberta.** O relatório registra o fato
+("pode apagar esse fluxo" → `rota general`, sem despachar) mas não explica
+**por que** o supervisor não despachou — "apaga esse fluxo que vc acabou de
+criar" descreve algo concreto, e pelo próprio `_SUPERVISOR_SYSTEM_PROMPT`
+deveria despachar. A assimetria é instrutiva e reforça o relatório: a
+direção perigosa (criar, 23:22) **despachou** e a benigna (apagar, 23:21)
+**não** — ou seja, confiar na classificação do supervisor como controle de
+segurança é insuficiente nos dois sentidos; o handshake da Etapa 2 é o
+controle que de fato fecha o risco.
+
+**R2.5 — "Apagar ≡ desligar" é hipótese, não fato (enquadramento).** A §6.4
+marca corretamente como hipótese a instrução exata gerada pelo supervisor no
+turn das 23:22 (não logada), mas a §1 (executiva) e a §6.2 a apresentam de
+forma assertiva. A hipótese é plausível (o nome do workflow criado a
+corrobora), mas a cadeia causal RC2/RC3 só vira fato com o trace do
+LangSmith. **Recomendo ler o LangSmith (projeto `orchestrator-portfolio`,
+traces de 05/09 23:18–23:35 UTC) antes de implementar as Etapas 1–3** — custo
+quase zero, e converte duas causas-raiz de "mais provável" em "comprovado",
+alinhado à disciplina do projeto (sem evidência, sem fix).
+
+**R2.6 — "Qualquer processo no host/LAN" (§9.2) é impreciso sobre o raio do
+sem-auth.** A porta do orquestrador está em `127.0.0.1:8000` no host — não é
+alcançável da internet aberta. O alcance real é: processos do host + containers
+na rede docker compartilhada (o gateway comprovou com o caller `172.22.0.2`).
+O risco de auth é mesmo P1, mas o argumento correto é escalada lateral
+(container comprometido → CRUD de workflows de produção), não "LAN".
+
+### R3. Lacunas de segurança não cobertas (ou subestimadas) no plano
+
+**R3.1 — `/v1/turn` aceita `session_key` arbitrário.** Além da ausência de
+auth, o endpoint aceita qualquer `thread_id`: um chamador sem credencial pode
+**ler/escrever a thread de outro usuário** (injetar mensagens na memória
+alheia — relevante quando a Etapa 1 passar a ler histórico nas decisões!) e
+**disparar o grafo com as credenciais n8n/OpenRouter do orquestrador**. A
+Etapa 6.1 deve incluir: auth em `/v1/turn` **e** `/tasks/stream` + vínculo do
+`session_key` a uma identidade autenticada + rate limit. Também vale
+identificar quais containers compartilham a rede do orquestrador (o relatório
+só confirmou o gateway) — define o raio real da exposição.
+
+**R3.2 — PII para o LangSmith (terceiro externo).** O tracing ativo envia o
+conteúdo das mensagens (e das instruções do supervisor) para a LangSmith. O
+plano trata PII só no armazenamento local (6.4). Decidir redação de conteúdo
+ou desativação do tracing junto com o item LGPD — inclusive porque o relatório
+usa o próprio LangSmith como fonte de evidência.
+
+**R3.3 — R10 ficou fora do plano.** O `ANALISE_ATUAL.md` lista como risco
+médio "token do gateway vazou; `.env` no histórico git do Contabo" (R10). O
+plano de higiene (Etapa 6) não o inclui. Adicionar à 6.x.
+
+**R3.4 — Ação fantasma server-side (variante não descrita).** Se o grafo
+estoura os 150 s, o `asyncio.wait_for` **cancela a tarefa**: efeitos já
+aplicados permanecem (ex.: create feito, activate não), o checkpoint pode não
+ser gravado e o turn seguinte começa de estado mais velho. É a mesma classe da
+ação fantasma do incidente, mas pelo lado do servidor. A reconciliação (5.2)
+cobre o sintoma; registrar a variante explicitamente na implementação.
+
+### R4. Recomendações: efetividade e risco de regressão
+
+**Etapa 0 — correta, com dois ajustes.**
+- 0.1: desativar **já** (ver R2.2 — superfície pública, não lixo inerte).
+- 0.2: **não usar a alternativa "baixar `turn_timeout_sec` para ~85 s"** — ela
+  *aumenta* o risco de ação fantasma (cancela o grafo no meio do loop ReAct,
+  entre `create` e `activate`, sem checkpoint). Subir o cliente para ≥160 s é
+  a direção certa (o bridge `orchestrator-bridge` já usa 160 s por padrão,
+  `config.ts:11` — alinhar os dois). Com o 5.2, qualquer corrida residual vira
+  reconciliação explícita em vez de erro mudo.
+
+**Etapa 1 (memória) — ataca a causa certa, é a de maior impacto. Três cuidados:**
+- **Latência/custo:** injetar N=10–20 mensagens em *toda* chamada do supervisor
+  e da síntese num orçamento de 95–150 s que o incidente já mostrou estourar é
+  a receita para transformar mais turns em erro fantasma. Fazer 0.2 **antes**
+  de 1.1, e considerar um resumo rolante (rolling summary) além da janela de
+  mensagens; medir p95 do turn após o deploy.
+- **Armadilha do `fresh_turn_input`:** o "registro de ações" (1.3) e o "ação
+  pendente de confirmação" (2.1) são campos novos do `GraphState` — se entrarem
+  no reset do `fresh_turn_input` (como todos os campos não-`messages`), nascem
+  mortos. Precisam ser **excluídos do reset e usar um reducer próprio**. Sem
+  isso, o fix repete o bug de 24/08 às avessas (campo sempre vazio em vez de
+  sempre acumulado).
+- **Chave de thread dividida:** o bridge `ask_orchestrator` usa
+  `orchestrator-bridge:<sender>` como `session_key` (`ask-orchestrator-tool.ts:67`),
+  thread **diferente** da do WhatsApp (`agent:main:direct:<fone>`). A memória
+  continuará cindida por porta de entrada se a Etapa 1 não decidir uma chave
+  canônica por usuário (ou, conscientemente, manter separadas — mas precisa
+  ser decisão, não acidente). O plano não menciona.
+
+**Etapa 2 (confirmação) — a defesa mais forte do plano.** Cuidados de design:
+uma pendência por thread por vez, o pedido de confirmação deve ecoar nome +
+path público do workflow, pendência com expiração, e o "sim" da resposta não
+pode ser capturado pela regra "pergunta indireta = comando" como um novo
+pedido de criação. 2.2 é mitigação parcial (evita ativação indevida, não
+criação indevida) — o relatório sabe disso; correta como interim.
+
+**Etapa 3 — 3.1/3.2/3.4 sólidas e baratas. 3.3 tem alto risco de falso
+positivo.** O guard proposto ("radical de remoção na mensagem + tentativa de
+`N8nCreateWorkflow` → bloquear") dispara em pedidos legítimos como *"cria um
+fluxo que apaga emails velhos todo dia"* — a mensagem contém "apag", o
+especialista cria, e o guard bloqueia um pedido correto. Como está escrito,
+gera regressão de UX e um loop com o supervisor. Alternativa: não bloquear
+por léxico — transformar em **pedido de confirmação** (casa com a Etapa 2:
+mostrar "entendi que você quer criar X; confirma?") ou registrar a exceção
+para o supervisor reavaliar com a pergunta explícita "o usuário pediu criar
+ou remover?". O handshake da Etapa 2 já pega esse caso sem heurística.
+
+**Etapa 5 — 5.1/5.3/5.4 boas. 5.2 precisa do mecanismo de detecção.** O
+orquestrador **não sabe** que o cliente abortou: para ele o turn terminou
+(200 numa conexão que depois caiu). Quem tem o sinal é o `inbound.ts` — o
+próximo turn precisa enviar algo como `previous_aborted: true`, e o orquestrador
+cruzar com o registro de ações (1.3). Sem esse sinal client→server, a fila de
+"turns órfãos" não é detectável server-side.
+
+**Etapa 6 — ajustes pontuais:** 6.1 cobrir `/tasks/stream` + binding de
+session_key (R3.1); incluir R10 (R3.3) e o item LangSmith-PII (R3.2). 6.2:
+o endpoint `/health` **já existe** (`main.py:77`) — falta só o `HEALTHCHECK`
+no compose, como o relatório diz. 6.4 (hash do telefone): os 133 checkpoints
+existentes ficarão órfãos — precisa migração de chave ou aceitar reset de
+memória; decidir antes.
+
+**Ordem sugerida:** a do relatório (0 → 1 → 2 → 3 → 5 → 4 → 6) é razoável,
+com três ajustes: (a) leitura do LangSmith antes da Etapa 3 (R2.5); (b) 2.2
+junto da Etapa 0 (uma linha, mitiga já a ativação indevida); (c) Etapa 2
+antes de detalhar a 3.3 — o handshake torna o guard léxico em grande parte
+desnecessário.
+
+### R5. Veredito
+
+O relatório é **fiel ao código e à implantação** (todas as afirmações centrais
+conferidas — ver R1), distingue corretamente fato de hipótese nas seções 6.1/
+6.4 (com a ressalva de enquadramento da R2.5), e o plano de correção **reduz
+de fato** os dois riscos-alvo: perda de contexto (Etapa 1 + 5.2) e criar/apagar
+workflows errados (Etapa 2 + 4 + 3.1/3.2/3.4). As quatro causas estruturais
+(stateless por mensagem, pergunta-indireta, create sem guard, corrida de
+timeout) estão comprovadas no código e nos logs, não são conjectura.
+
+**Correções a incorporar antes da implementação:** desativar o
+`Z4NOaIGb6558Dmz3` imediatamente (superfície pública, R2.2); não baixar o
+`turn_timeout_sec` (R4/0.2); reformular a 3.3 como confirmação e não bloqueio
+léxico (R4/Etapa 3); definir o mecanismo client-side do 5.2; excluir os novos
+campos persistentes do reset do `fresh_turn_input`; cobrir `/tasks/stream` +
+binding de session_key na 6.1; incluir R10 e LangSmith-PII na higiene; e ler
+o LangSmith antes da Etapa 3.
+
+### R6. Prioridades consolidadas (revisadas)
+
+| Prioridade | Ação |
+|---|---|
+| **P0 — hoje** | Desativar (e depois deletar) `Z4NOaIGb6558Dmz3` pela UI do n8n (humano). Subir `ORCHESTRATOR_TURN_TIMEOUT_MS` do cliente para ≥160 s (não mexer nos 150 s do grafo). |
+| **P0 — evidência** | Ler LangSmith (05/09 23:18–23:35 UTC): instrução exata do supervisor no turn 23:22 → fecha RC2/RC3. |
+| **P1** | 2.2 "nunca ativar no turn da criação" (1 linha) → depois 2.1 handshake completo. |
+| **P1** | Etapa 1 (histórico no supervisor/síntese + registro de ações com reducer, fora do `fresh_turn_input`), com 0.2 antes e medição de latência. |
+| **P1** | 6.1: auth em `/v1/turn` **e** `/tasks/stream` + binding session_key↔identidade + rate limit. |
+| **P2** | 5.x auditoria/reconciliação (com sinal client-side do abort); 3.1/3.2/3.4; Etapa 4 (resolução de "esse fluxo"). |
+| **P2** | 6.4 hash do telefone + migração dos checkpoints; item LangSmith-PII; R10 (rotação de token, limpeza de `.env` no git do Contabo). |
+| **P3** | 6.3 poda/Postgres; 6.6 portas 3978/5678 em 127.0.0.1; 6.5 reconciliar docs; 6.7 remover `# TESTE_CURSOR` do master. |
