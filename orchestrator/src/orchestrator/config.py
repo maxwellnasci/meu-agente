@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     n8n_api_key: str | None = None
     n8n_request_timeout_sec: int = 30
 
+    # Janela de validade (segundos) de uma proposta de acao n8n que muda
+    # producao (create/activate/deactivate/delete) enquanto espera o usuario
+    # confirmar. Passado o prazo, a pendencia e descartada e o usuario precisa
+    # refazer o pedido - ver graph/n8n_confirmation.py. 15 min cobre uma
+    # conversa de WhatsApp com idas e vindas sem deixar uma acao "armada"
+    # indefinidamente.
+    n8n_confirmation_ttl_sec: int = 900
+
     # Roteador do Cerebro (no `reason`) - via OpenRouter (padrao OpenAI,
     # base_url apontando pro OpenRouter). A chave fica em
     # ORCHESTRATOR_OPENROUTER_API_KEY.

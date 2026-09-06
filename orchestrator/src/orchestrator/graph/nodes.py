@@ -3,13 +3,25 @@ import logging
 import time
 
 import httpx
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import (
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_openai import ChatOpenAI
 
 from orchestrator.clients.n8n_client import N8nClient
 from orchestrator.clients.openclaw_client import OpenClawClient
 from orchestrator.config import settings
 from orchestrator.graph.cybersec_guard import check_production_infra_block
+from orchestrator.graph.n8n_confirmation import (
+    NEEDS_CONFIRMATION_KEY,
+    build_pending_confirmation,
+    classify_confirmation_reply,
+    get_valid_pending_confirmation,
+    is_write_action,
+)
 from orchestrator.graph.n8n_guard import check_destructive_n8n_action
 from orchestrator.graph.state import GraphState, PendingSpecialist
 from orchestrator.schemas.n8n_tools import (
@@ -70,6 +82,15 @@ _N8N_SYSTEM_PROMPT = (
     "especifico. Para pedidos exploratorios ou ambiguos ('o que tem ali', "
     "'organiza isso'), prefira listar/consultar e descrever o que "
     "encontrou em vez de alterar algo que ja esta rodando.\n\n"
+    "REGRA DE CONFIRMACAO (nao-negociavel): criar, ativar, desativar e "
+    "deletar workflow sao acoes que MUDAM producao e passam por uma etapa "
+    "de confirmacao do usuario FORA do seu controle - ao chamar uma dessas "
+    "tools, a acao NAO e executada na hora: vira uma proposta que o usuario "
+    "precisa confirmar num proximo turno. Por isso: (a) proponha UMA acao de "
+    "escrita por vez; (b) nunca chame ativar logo apos criar - a criacao ja "
+    "deixa o workflow inativo e a ativacao e um passo separado, com a sua "
+    "propria confirmacao; (c) nao repita a mesma tool esperando que 'passe' "
+    "na segunda - descreva o que vai fazer e pare.\n\n"
     "REGRA DE TRIGGER (tecnica, causa comum de falha): o n8n so ativa um "
     "workflow se o primeiro node for um TRIGGER de verdade, nao uma acao "
     "comum. Muitos nodes tem uma versao 'action' (le/busca sob demanda) E "
@@ -252,9 +273,66 @@ async def supervisor_node(state: GraphState) -> dict:
     task_description = extract_task_description(state["messages"])
     scratchpad_text = _format_scratchpad(state.get("internal_scratchpad") or [])
 
+    # --- Resolucao de acao n8n pendente de confirmacao --------------------
+    # Roda so na primeira rodada do turno (a proposta que o n8n_node cria
+    # volta pra ca como iteration 2 - nao e uma confirmacao). Deterministico,
+    # antes do LLM: um falso "sim" aqui executa algo em producao.
+    raw_pending = state.get("n8n_pending_confirmation")
+    stored = get_valid_pending_confirmation(raw_pending)
+    if iteration_count == 1 and raw_pending is not None and stored is None:
+        # Pendencia existe mas expirou (ou esta malformada): descarta.
+        _logger.info("supervisor_node: acao n8n pendente expirada, descartada")
+        return {
+            "iteration_count": iteration_count,
+            "pending_specialists": [],
+            "route": RouteDestination.GENERAL.value,
+            "n8n_pending_confirmation": "clear",
+            "internal_scratchpad": (state.get("internal_scratchpad") or [])
+            + ["[n8n] A confirmacao pendente expirou sem resposta - a acao foi descartada e nada foi executado."],
+        }
+    if iteration_count == 1 and stored is not None:
+        verdict = classify_confirmation_reply(task_description)
+        if verdict == "affirm":
+            _logger.info("supervisor_node: usuario confirmou acao n8n pendente '%s'", stored["action"])
+            return {
+                "iteration_count": iteration_count,
+                "pending_specialists": [
+                    {
+                        "specialist": SpecialistName.N8N.value,
+                        "instructions": f"O usuario CONFIRMOU a acao pendente: {stored['summary']} Execute-a agora.",
+                    }
+                ],
+                "route": RouteDestination.SPECIALIST.value,
+                "n8n_confirmed_token": stored["token"],
+                "last_error": None,
+            }
+        if verdict == "deny":
+            _logger.info("supervisor_node: usuario recusou acao n8n pendente '%s'", stored["action"])
+            return {
+                "iteration_count": iteration_count,
+                "pending_specialists": [],
+                "route": RouteDestination.GENERAL.value,
+                "n8n_pending_confirmation": "clear",
+                "internal_scratchpad": (state.get("internal_scratchpad") or [])
+                + [
+                    (
+                        f"[n8n] O usuario RECUSOU a acao pendente ({stored['summary']}). "
+                        "Ela foi cancelada e NADA foi executado. Confirme o cancelamento ao usuario."
+                    )
+                ],
+            }
+        # "unclear": segue o fluxo normal, mas avisa o LLM da pendencia.
+
     prompt = task_description
     if scratchpad_text:
         prompt += f"\n\nProgresso ja registrado pelos especialistas nesta tarefa:\n{scratchpad_text}"
+    if stored is not None:
+        prompt += (
+            f"\n\nATENCAO: existe uma acao n8n PENDENTE DE CONFIRMACAO ({stored['summary']}). "
+            "A mensagem do usuario nao foi um 'sim'/'nao' claro. NAO trate como confirmada. "
+            "Se ele estiver ajustando o pedido, voce pode despachar o especialista n8n de novo "
+            "para propor a acao corrigida (ela vai pedir nova confirmacao)."
+        )
     last_error = state.get("last_error")
     if last_error:
         prompt += f"\n\nUltimo erro reportado por um especialista: {last_error}"
@@ -407,19 +485,42 @@ async def specialist_cybersec_node(state: GraphState) -> dict:
     return update
 
 
-async def _run_n8n_tool(client: N8nClient, name: str, args: dict, instructions: str) -> dict:
+async def _run_n8n_tool(
+    client: N8nClient,
+    name: str,
+    args: dict,
+    instructions: str,
+    *,
+    bypass_confirmation: bool = False,
+) -> dict:
     """Executa uma chamada de tool do especialista n8n contra o N8nClient de
     verdade, traduzindo qualquer erro HTTP/rede num dict `{"error": ...}` -
     o loop do especialista devolve isso como ToolMessage pro LLM decidir o
     proximo passo (ex.: tentar de novo, desistir e reportar), em vez de
     deixar a excecao estourar o no inteiro.
 
-    Antes de executar, aplica `check_destructive_n8n_action` (defesa em
-    profundidade em Python puro, ver n8n_guard.py): tools destrutivas
-    (delete/deactivate) sao recusadas incondicionalmente se a instrucao da
-    tarefa nao autorizar aquela acao explicitamente, mesmo que o LLM do
-    especialista decida chama-las por conta propria.
+    Duas camadas de defesa em Python puro rodam ANTES da execucao:
+
+    1. `check_destructive_n8n_action` (n8n_guard.py): delete/deactivate sao
+       recusados se a instrucao nao trouxer o verbo explicito.
+    2. Gate de confirmacao (n8n_confirmation.py): create/activate/deactivate/
+       delete NAO sao executados sem uma confirmacao do usuario. Em vez de
+       executar, devolve `{NEEDS_CONFIRMATION_KEY: <pendencia>}` para o node
+       gravar a pendencia e pedir o "sim" num proximo turno.
+
+    `bypass_confirmation=True` e usado APENAS pelo caminho em que o
+    `supervisor` ja validou a resposta afirmativa do usuario contra o token
+    da pendencia persistida (ver `specialist_n8n_node`).
     """
+    if is_write_action(name) and not bypass_confirmation:
+        pendencia = build_pending_confirmation(name, args, settings.n8n_confirmation_ttl_sec)
+        return {NEEDS_CONFIRMATION_KEY: pendencia}
+
+    # Guard de verbo (n8n_guard.py) continua rodando como camada extra. No
+    # caminho `bypass_confirmation` a instrucao passada e o resumo da acao
+    # confirmada ("EXCLUIR...", "DESATIVAR...") - sempre traz o verbo, entao
+    # nunca bloqueia uma confirmacao legitima; so pegaria um delete/deactivate
+    # que chegasse aqui por algum caminho futuro sem passar pelo gate.
     refusal = check_destructive_n8n_action(name, instructions)
     if refusal:
         return {"error": refusal}
@@ -466,6 +567,14 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     e devolve o resultado como ToolMessage, repete; se ele responder sem
     pedir tool, aquele texto e o resumo final. `_N8N_MAX_STEPS` evita loop
     infinito caso o LLM nunca pare de chamar tools.
+
+    Gate de confirmacao (ver n8n_confirmation.py): create/activate/deactivate/
+    delete NAO sao executados no loop - `_run_n8n_tool` devolve uma pendencia,
+    que este node grava em `n8n_pending_confirmation` e transforma num pedido
+    de "sim/nao" ao usuario. Quando o `supervisor` detecta a resposta
+    afirmativa num turno seguinte, ele despacha este node com
+    `n8n_confirmed_token` setado - ai a acao pendente e executada uma unica
+    vez, sem passar pelo LLM.
     """
     pending = list(state.get("pending_specialists") or [])
     if not pending:
@@ -478,6 +587,48 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     }
 
     client = N8nClient()
+
+    # --- Caminho de execucao confirmada -------------------------------------
+    # O supervisor so seta `n8n_confirmed_token` depois de bater a resposta
+    # afirmativa do usuario contra uma pendencia valida. Aqui revalidamos o
+    # token contra a pendencia persistida (defesa em profundidade) e
+    # executamos exatamente a acao/args gravados - nada de LLM.
+    confirmed_token = state.get("n8n_confirmed_token")
+    if confirmed_token:
+        stored = get_valid_pending_confirmation(state.get("n8n_pending_confirmation"))
+        update["n8n_pending_confirmation"] = "clear"
+        if not stored or stored.get("token") != confirmed_token:
+            _logger.info("specialist_n8n_node: token de confirmacao invalido/expirado, nada executado")
+            update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+                (
+                    "[n8n] A confirmacao expirou ou nao corresponde a nenhuma acao pendente. "
+                    "Nada foi executado - refaca o pedido se ainda quiser."
+                )
+            ]
+            return update
+
+        result = await _run_n8n_tool(
+            client, stored["tool_name"], stored["args"], stored.get("summary", ""), bypass_confirmation=True
+        )
+        ok = "error" not in result
+        _logger.info(
+            "specialist_n8n_node: acao confirmada '%s' executada, sucesso=%s", stored["action"], ok
+        )
+        if ok:
+            update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+                (
+                    f"[n8n] Acao confirmada pelo usuario e executada: {stored['summary']} "
+                    f"Resultado do n8n: {json.dumps(result, ensure_ascii=False, default=str)}"
+                )
+            ]
+        else:
+            update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+                f"[n8n] ERRO ao executar a acao confirmada ({stored['summary']}): {result['error']}"
+            ]
+            update["last_error"] = result["error"]
+        return update
+
+    # --- Loop ReAct normal (propoe acoes, nunca executa escrita direto) -----
     llm = ChatOpenAI(
         model=settings.router_model,
         temperature=0,
@@ -492,6 +643,7 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     actions_log: list[str] = []
     final_text = ""
     error: str | None = None
+    proposal: dict | None = None
     started_at = time.monotonic()
 
     for _ in range(_N8N_MAX_STEPS):
@@ -509,10 +661,20 @@ async def specialist_n8n_node(state: GraphState) -> dict:
 
         for call in response.tool_calls:
             result = await _run_n8n_tool(client, call["name"], call["args"], job["instructions"])
+            if isinstance(result, dict) and NEEDS_CONFIRMATION_KEY in result:
+                # Acao que muda producao: nao executa. Guarda a primeira
+                # proposta do turno, encerra o loop e devolve o pedido de
+                # confirmacao. "Primeira" garante que criar nao arrasta um
+                # activate no mesmo turno.
+                proposal = result[NEEDS_CONFIRMATION_KEY]
+                actions_log.append(f"{call['name']}({call['args']}) -> PROPOSTA (aguardando confirmacao)")
+                break
             actions_log.append(f"{call['name']}({call['args']}) -> {result}")
             conversation.append(
                 ToolMessage(content=json.dumps(result, ensure_ascii=False, default=str), tool_call_id=call["id"])
             )
+        if proposal is not None:
+            break
     else:
         error = "especialista n8n atingiu o limite de passos de tool-calling sem concluir"
 
@@ -527,6 +689,19 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     if error:
         update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [f"[n8n] ERRO: {error}. Acoes realizadas: {actions_log}"]
         update["last_error"] = error
+        return update
+
+    if proposal is not None:
+        update["n8n_pending_confirmation"] = proposal
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+            (
+                "[n8n] PROPOSTA DE ACAO - NADA FOI EXECUTADO. Para prosseguir eu preciso "
+                f"que o usuario confirme explicitamente. A acao seria: {proposal['summary']} "
+                "Encerre este turno perguntando ao usuario, de forma direta, se ele confirma "
+                "(sim/nao) - NAO redespache o especialista n8n."
+            )
+        ]
+        _logger.info("specialist_n8n_node: acao '%s' proposta, aguardando confirmacao do usuario", proposal["action"])
         return update
 
     note = final_text or "Especialista n8n concluiu sem resumo textual."

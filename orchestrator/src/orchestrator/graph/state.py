@@ -12,92 +12,84 @@ class PendingSpecialist(TypedDict):
     instructions: str
 
 
+def merge_pending_confirmation(old: dict | None, new: dict | None | str) -> dict | None:
+    """Reducer do campo `n8n_pending_confirmation`.
+
+    Este campo e a UNICA excecao (junto com `messages`) a regra do
+    `fresh_turn_input` de zerar todo o estado "por tarefa" a cada mensagem:
+    uma proposta de acao n8n e feita num turno e so pode ser confirmada num
+    turno POSTERIOR, entao ela precisa sobreviver entre chamadas de `/v1/turn`
+    (persistida pelo checkpointer, igual `messages`).
+
+    Protocolo do update:
+      - `None`  -> "nao mexe" (mantem o valor atual). E o que `fresh_turn_input`
+        passa a cada turno, justamente para NAO resetar a pendencia.
+      - `"clear"` -> apaga a pendencia (acao confirmada e executada, recusada,
+        ou expirada - uso unico).
+      - `dict`  -> grava/substitui a pendencia (nova proposta de acao).
+    """
+    if new == "clear":
+        return None
+    if new is not None:
+        return new
+    return old
+
+
 class GraphState(TypedDict):
     """Contrato do estado que trafega entre os nos do grafo (padrao
     Supervisor/Enxame de Especialistas).
 
-    Cada no so pode ler/escrever os campos declarados aqui - e a fronteira
-    de contrato rigido descrita em docs/ARQUITETURA_ORQUESTRADOR.md.
-
-    Trade-off TypedDict vs BaseModel (Pydantic) aqui: o LangGraph exige que
-    o estado seja um TypedDict (ou dataclass) porque ele faz merge parcial
-    de dicts a cada transicao de no (reducers como `add_messages` operam
-    sobre update dicts, nao sobre instancias validadas). Isso significa que
-    NAO ha validacao em runtime deste estado - um no que devolva um valor de
-    tipo errado num campo so quebra quando outro no tentar usa-lo, nao no
-    momento da escrita. Mitigamos isso mantendo os nos finos (essencialmente
-    I/O) e delegando toda validacao de verdade para as fronteiras que sao
-    BaseModel de fato: entrada da API (schemas/requests.py) e a chamada ao
-    Especialista (SpecialistCallRequest/SpecialistCallResult) - o estado do
-    grafo em si e o unico lugar do sistema sem esse cinto de seguranca.
+    Todo campo abaixo tem escopo "por tarefa" e e zerado pelo
+    `fresh_turn_input` a cada mensagem - EXCETO `messages` (memoria de
+    conversa, reducer `add_messages`) e `n8n_pending_confirmation` (proposta
+    de acao n8n aguardando confirmacao do usuario num turno futuro, reducer
+    `merge_pending_confirmation`).
     """
 
     messages: Annotated[list, add_messages]
-
-    # Decisao gravada pelo `supervisor` (RouteDestination.value) - metadado
-    # de observabilidade/streaming (ver event_mapper.py), nao controla mais
-    # o roteamento em si (isso e feito por `pending_specialists`).
     route: str | None
-
     final_result: str | None
-
-    # Notas acumuladas de cada especialista que rodou nesta TAREFA (ex.:
-    # "[openclaw] <resultado>"). Sem reducer (LastValue, como os demais
-    # campos de escopo "por tarefa" abaixo): cada no de especialista le o
-    # valor atual e devolve `existente + [nota nova]` (ver nodes.py) - o
-    # efeito e o mesmo de um accumulator (`operator.add`) DENTRO de uma
-    # execucao, mas sem o problema de um reducer aditivo: o
-    # `fresh_turn_input` (abaixo) precisa poder RESETAR este campo pra
-    # lista vazia a cada nova chamada de nivel superior ao grafo, e
-    # `operator.add` nao permite reset via input (so soma) - ver
-    # `fresh_turn_input` para o motivo disso importar. Lido pelo
-    # `synthesize_final` para montar a resposta final ao usuario.
     internal_scratchpad: list[str]
-
-    # Fila de despachos decididos pelo `supervisor` (via bind_tools) e ainda
-    # nao executados. O `supervisor` pode enfileirar mais de um especialista
-    # numa unica rodada (tool calls paralelas do LLM); cada no de
-    # especialista consome o primeiro item e devolve a fila sem ele - por
-    # isso este campo e sobrescrito a cada no, sem reducer.
     pending_specialists: list[PendingSpecialist]
-
-    # Especialista em execucao no momento (populado pelo no de especialista
-    # ao consumir o topo de `pending_specialists`, limpo ao terminar) - usado
-    # para observabilidade/streaming, nao para controle de fluxo.
     current_specialist: str | None
-
-    # Quantas vezes o `supervisor` ja rodou nesta execucao - trava de loop
-    # infinito: `route_after_supervisor`/`synthesize_final` abortam com
-    # seguranca se isto passar de settings.max_supervisor_iterations.
     iteration_count: int
-
-    # Ultimo erro reportado por um especialista (ou pelo proprio supervisor
-    # ao estourar o limite de iteracoes) - lido pelo `synthesize_final` para
-    # informar a falha na resposta final, quando aplicavel.
     last_error: str | None
+
+    # Proposta de acao n8n que MUDA producao (create/activate/deactivate/
+    # delete) descrita num turno e aguardando o usuario responder "sim" no
+    # turno seguinte. Sobrevive ao `fresh_turn_input` (ver
+    # `merge_pending_confirmation`). Formato: ver
+    # `graph/n8n_confirmation.build_pending_confirmation`.
+    n8n_pending_confirmation: Annotated[dict | None, merge_pending_confirmation]
+
+    # Escopo POR TURNO (zerado pelo `fresh_turn_input`): quando o `supervisor`
+    # detecta que a mensagem atual do usuario e uma confirmacao ("sim", "pode")
+    # de uma `n8n_pending_confirmation` valida, grava aqui o token dela e
+    # despacha o especialista n8n. O `specialist_n8n_node` so executa a acao
+    # pendente se este token bater com o da pendencia persistida (vinculo
+    # acao<->confirmacao, uso unico).
+    n8n_confirmed_token: str | None
 
 
 def fresh_turn_input(text: str) -> dict:
     """Estado inicial para uma NOVA chamada de nivel superior ao grafo (um
-    request em `/v1/turn` ou `/tasks/stream`), usado como `input` de
-    `graph.ainvoke`/`astream_events` em vez de so `{"messages": [...]}`.
+    request em `/v1/turn` ou `/tasks/stream`).
 
-    Motivo de existir - bug real observado em producao (2026-08-24): como o
-    checkpointer persiste o estado INTEIRO por `thread_id`, e o `thread_id`
-    e estavel por conversa (numero de telefone do WhatsApp, nao por
-    mensagem), todo campo do `GraphState` sem reset explicito vaza/acumula
-    entre mensagens SEPARADAS da MESMA conversa - nao so dentro de uma
-    unica tarefa. Isso e catastrofico especificamente para
-    `iteration_count`: sem reset, ele nunca volta a 0, entao depois de
-    poucas mensagens NO TOTAL (nao por tarefa) a trava de seguranca do
-    supervisor dispara e o orquestrador passa a abortar TODA mensagem
-    futura daquela conversa, permanentemente - confirmado ao vivo: 4
-    mensagens triviais ("responda ola") bastaram para a 5a em diante
-    virar sempre a mensagem de abort.
+    Motivo de existir - bug real de producao (2026-08-24): o checkpointer
+    persiste o `GraphState` INTEIRO por `thread_id` (estavel por conversa),
+    entao todo campo sem reset explicito vaza/acumula entre mensagens
+    SEPARADAS da mesma conversa (catastrofico para `iteration_count`, que
+    travava a conversa num abort permanente depois de poucas mensagens).
 
-    So `messages` deve mesmo persistir entre chamadas (e o que da memoria
-    de conversa de verdade, via o reducer `add_messages`) - todo o resto
-    aqui e escopo "por tarefa" e precisa comecar do zero a cada chamada."""
+    So `messages` e `n8n_pending_confirmation` devem persistir entre chamadas
+    (ver GraphState). Todo o resto e escopo "por tarefa" e comeca do zero -
+    incluindo `n8n_confirmed_token`, que so vale para o turno em que o
+    supervisor detectou a confirmacao.
+
+    `n8n_pending_confirmation` recebe `None` de proposito: o reducer
+    `merge_pending_confirmation` trata `None` como "nao mexe", entao a
+    pendencia sobrevive a este reset.
+    """
     return {
         "messages": [{"role": "user", "content": text}],
         "route": None,
@@ -107,4 +99,7 @@ def fresh_turn_input(text: str) -> dict:
         "current_specialist": None,
         "iteration_count": 0,
         "last_error": None,
+        # NAO reseta - o reducer trata None como no-op (a pendencia persiste).
+        "n8n_pending_confirmation": None,
+        "n8n_confirmed_token": None,
     }
