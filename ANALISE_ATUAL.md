@@ -400,3 +400,45 @@ cliente real rodando**. Ressalva: no instante em que houver cliente com dados de
 terceiros, os três itens mínimos de LGPD (item 11) sobem para "Agora" — retenção
 definida, rota de exclusão de titular e PII fora de texto claro não são
 negociáveis para produção no Brasil.
+
+---
+
+## 7. Checkpoint — Manutenção n8n (pendente)
+
+> Checkpoint: 2026-09-10. Registro sanitizado — sem senhas, tokens, IPs, URLs
+> privadas, caminhos de servidor ou conteúdo de `.env`.
+
+**Estado atual:** n8n ainda em `2.9.4`, rodando a partir da imagem
+`n8nio/n8n:latest` (tag flutuante, não fixada por versão).
+
+**Preparado, não aplicado:** atualização para a imagem fixa
+`n8nio/n8n:2.38.4`. A troca ainda não foi executada no servidor.
+
+**Backups já criados e verificados no servidor** (pré-requisito cumprido para
+seguir com a atualização):
+- Dump lógico do PostgreSQL (banco usado pelo n8n).
+- Dados do n8n (diretório de dados / volume).
+- Compose/configuração em uso.
+- Chave de criptografia do n8n (encryption key).
+- Checksums dos artefatos de backup, para validação de integridade.
+- Procedimento de rollback documentado.
+
+**Escopo:** PostgreSQL está saudável; demais serviços do host estão fora do
+escopo desta manutenção.
+
+**Inventário de workflows no momento do checkpoint:** 6 workflows ativos, 19
+workflows no total.
+
+**Próximos passos exatos:**
+1. `pull` da imagem fixa `n8nio/n8n:2.38.4` (sem usar `latest`).
+2. Recriar **somente** o serviço `n8n` — **sem** `docker compose down` (evitar
+   derrubar os demais serviços do compose).
+3. Acompanhar as migrações de banco do n8n durante a subida do novo container.
+4. Validar após a subida: interface web, credenciais, workflows, agendamentos
+   (schedules/triggers), webhooks e logs do container.
+
+**Rollback:** em caso de necessidade, priorizar a restauração a partir do dump
+lógico do PostgreSQL (fonte de verdade dos dados do n8n).
+
+**Fora do escopo desta manutenção:** rotação da senha do PostgreSQL — permanece
+pendente para uma ação separada.
