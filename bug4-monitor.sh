@@ -2,7 +2,7 @@
 CONTAINER="bug4repro-openclaw-gateway-1"
 # We want the node process, not the tini wrapper
 PID=$(docker top $CONTAINER | grep 'node dist/index.js gateway' | grep -v 'tini' | awk '{print $2}')
-LOGFILE="/home/max/Documentos/Kali Linux/meu-agente/bug4-monitor.log"
+LOGFILE="$(dirname "$0")/logs/bug4-monitor.log"
 
 echo "Starting monitor on host PID $PID" > "$LOGFILE"
 while true; do
