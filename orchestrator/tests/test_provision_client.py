@@ -98,6 +98,66 @@ def test_provision_rejects_unsafe_name():
     assert not (ROOT / "fora-do-deployments").exists()
 
 
+def test_provision_operator_name_with_ampersand(cleanup):
+    """Valores com '&' devem ser interpolados literalmente (sem semantica do sed)."""
+    name = _unique_name("Ampersand")
+    cleanup.append(name)
+    operator = "Max & Parceiros"
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", operator,
+        "--operator-to", "5541999999999",
+        "--channel", "whatsapp-cloud",
+        "--port", "8013",
+    )
+    assert proc.returncode == 0, proc.stderr
+
+    agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    assert operator in agents
+    assert "[OPERADOR_NOME]" not in agents
+    assert "[NOME_DA_CLINICA]" not in agents
+    # Se o '&' fosse interpretado pelo sed, o placeholder seria re-inserido
+    # (ex: "Max [OPERADOR_NOME] Parceiros"); garante que isso nao ocorreu.
+    assert agents.count(operator) >= 1
+
+    env = (DEPLOYMENTS / name / ".env").read_text(encoding="utf-8")
+    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME={operator}" in env
+
+
+def test_provision_channel_with_slash(cleanup):
+    """Canais com '/' nao podem quebrar o delimitador nem corromper a saida."""
+    name = _unique_name("Channel")
+    cleanup.append(name)
+    channel = "custom/channel"
+    operator = "Silva & Filhos"
+    proc = run_provision(
+        "--name", name,
+        "--niche", "suporte-ti-pme",
+        "--operator-name", operator,
+        "--operator-to", "5541888888888",
+        "--channel", channel,
+        "--port", "8014",
+    )
+    assert proc.returncode == 0, proc.stderr
+
+    agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    assert channel in agents
+    assert operator in agents
+    for placeholder in (
+        "[NOME_DA_EMPRESA]",
+        "[NOME_DA_CLINICA]",
+        "[OPERADOR_NOME]",
+        "[OPERADOR_NUMERO]",
+        "[CANAL]",
+    ):
+        assert placeholder not in agents
+
+    env = (DEPLOYMENTS / name / ".env").read_text(encoding="utf-8")
+    assert f"ORCHESTRATOR_ATTENDANT_CHANNEL={channel}" in env
+    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME={operator}" in env
+
+
 def test_provision_refuses_overwrite_without_force(cleanup):
     name = _unique_name("Duplo")
     cleanup.append(name)
