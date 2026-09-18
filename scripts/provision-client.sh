@@ -74,12 +74,21 @@ rm -rf "$DEST"
 mkdir -p "$DEST/workflows"
 
 # 1) AGENTS.md customizado a partir do template do nicho.
-sed -e "s/\[NOME_DA_CLINICA\]/$NAME/g" \
-    -e "s/\[NOME_DA_EMPRESA\]/$NAME/g" \
-    -e "s/\[OPERADOR_NOME\]/$OPERATOR_NAME/g" \
-    -e "s/\[OPERADOR_NUMERO\]/$OPERATOR_TO/g" \
-    -e "s/\[CANAL\]/$CHANNEL/g" \
-    "$TEMPLATES_DIR/$NICHE/AGENTS.md" > "$DEST/AGENTS.md"
+# Substituicao literal via python3 (str.replace): segura contra '&', '/',
+# barras invertidas, aspas e acentos que quebrariam o 'sed'.
+python3 -c '
+import sys
+src, dst, name, op_name, op_to, channel = sys.argv[1:7]
+with open(src, encoding="utf-8") as f:
+    text = f.read()
+text = text.replace("[NOME_DA_CLINICA]", name)
+text = text.replace("[NOME_DA_EMPRESA]", name)
+text = text.replace("[OPERADOR_NOME]", op_name)
+text = text.replace("[OPERADOR_NUMERO]", op_to)
+text = text.replace("[CANAL]", channel)
+with open(dst, "w", encoding="utf-8") as f:
+    f.write(text)
+' "$TEMPLATES_DIR/$NICHE/AGENTS.md" "$DEST/AGENTS.md" "$NAME" "$OPERATOR_NAME" "$OPERATOR_TO" "$CHANNEL"
 
 # 2) Workflow(s) n8n de exemplo do nicho.
 cp "$TEMPLATES_DIR/$NICHE"/workflow-*.json "$DEST/workflows/" 2>/dev/null || true
