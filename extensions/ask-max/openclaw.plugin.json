@@ -27,6 +27,14 @@
       "accountId": {
         "type": "string",
         "description": "Optional channel account id, when the channel has more than one configured account."
+      },
+      "operatorName": {
+        "type": "string",
+        "description": "Operator display name used in escalation/answer messages (e.g. \"Max\"). Defaults to \"Max\"."
+      },
+      "assistantName": {
+        "type": "string",
+        "description": "Assistant brand name used in the escalation header (e.g. \"Amigão\"). Defaults to \"Amigão\"."
       }
     },
     "required": ["channel", "to"],

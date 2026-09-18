@@ -10,7 +10,7 @@
 // means the plugin loaded, not that its tool reached the model.
 import { Type } from "typebox";
 import type { AnyAgentTool, OpenClawPluginApi, OpenClawPluginToolContext } from "../api.js";
-import { resolveAskMaxTarget } from "./config.js";
+import { resolveAskMaxDisplay, resolveAskMaxTarget } from "./config.js";
 import { sendAskMaxMessage } from "./proactive-send.js";
 import { consumePendingAskMax, tryCreatePendingAskMax, type PendingAskMaxTarget } from "./store.js";
 
@@ -30,8 +30,13 @@ const AskMaxSchema = Type.Object(
   { additionalProperties: false },
 );
 
-function buildEscalationText(params: { question: string; context?: string }): string {
-  const lines = ["🙋 O Amigão tem uma dúvida:", "", params.question];
+export function buildEscalationText(params: {
+  question: string;
+  context?: string;
+  operatorName: string;
+  assistantName: string;
+}): string {
+  const lines = [`🙋 O ${params.assistantName} tem uma dúvida, ${params.operatorName}:`, "", params.question];
   if (params.context) {
     lines.push("", `Contexto: ${params.context}`);
   }
@@ -96,10 +101,11 @@ export function createAskMaxTool(
           };
         }
 
+        const display = resolveAskMaxDisplay(api);
         const result = await sendAskMaxMessage({
           api,
           target,
-          text: buildEscalationText(args),
+          text: buildEscalationText({ ...args, ...display }),
         });
         if (!result.ok) {
           // The pending record must not survive a failed send — otherwise it

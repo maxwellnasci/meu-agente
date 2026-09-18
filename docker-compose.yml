@@ -1,0 +1,49 @@
+# Base canonica dockerizada do projeto meu-agente (multi-tenant).
+#
+# Sobe o orquestrador (cerebro LangGraph em orchestrator/) na rede interna
+# compartilhada `meu-agente-net`, pela qual ele fala com o gateway OpenClaw
+# pelo nome do container (sem depender de porta exposta no host).
+#
+# Uso:
+#   cp .env.example .env   # nunca commite o .env real (gitignored)
+#   docker compose up -d --build
+#   curl http://localhost:8000/health
+#
+# O gateway OpenClaw (codigo de terceiros em openclaw/, gitignored) sobe
+# separado, no proprio compose dele, anexado a MESMA rede externa
+# `meu-agente-net` (ver detalhe em networks abaixo). O compose auxiliar
+# docker-compose.n8n.yml sobe um n8n local de testes na mesma rede.
+
+services:
+  orchestrator:
+    build: ./orchestrator
+    image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
+    env_file:
+      - path: ./orchestrator/.env
+        required: false
+    environment:
+      # Dentro do compose canonico o gateway se resolve pelo nome do
+      # container na rede compartilhada; o default abaixo cobre o caso de
+      # alguem subir so este compose sem .env (aponta pro gateway local).
+      ORCHESTRATOR_OPENCLAW_GATEWAY_URL: ${ORCHESTRATOR_OPENCLAW_GATEWAY_URL:-http://openclaw-gateway:18789}
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8000}:8000"
+    networks:
+      - meu-agente-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+networks:
+  # Rede interna compartilhada: o gateway OpenClaw precisa estar anexado a
+  # ela (no compose proprio dele, como rede externa `meu-agente-net`) para
+  # o orquestrador resolve-lo como `http://openclaw-gateway:18789`.
+  meu-agente-net:
+    name: meu-agente-net
+    driver: bridge

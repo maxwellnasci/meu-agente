@@ -16,6 +16,22 @@ export function resolveAskMaxTarget(api: OpenClawPluginApi): PendingAskMaxTarget
   return accountId ? { channel, to, accountId } : { channel, to };
 }
 
+export type AskMaxDisplay = {
+  operatorName: string;
+  assistantName: string;
+};
+
+export const DEFAULT_OPERATOR_NAME = "Max";
+export const DEFAULT_ASSISTANT_NAME = "Amigão";
+
+export function resolveAskMaxDisplay(api: OpenClawPluginApi): AskMaxDisplay {
+  const raw = api.pluginConfig;
+  return {
+    operatorName: readNonEmptyString(raw?.operatorName) ?? DEFAULT_OPERATOR_NAME,
+    assistantName: readNonEmptyString(raw?.assistantName) ?? DEFAULT_ASSISTANT_NAME,
+  };
+}
+
 function readNonEmptyString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;

@@ -65,6 +65,24 @@ class Settings(BaseSettings):
     # Margem de 30s cobre o roteador + overhead do grafo em volta da chamada.
     turn_timeout_sec: int = 150
 
+    # Modo Atendente (resposta conversacional + transbordo humano).
+    # `attendant_mode` e o perfil padrao do orquestrador: "atendente" usa as
+    # tools de transbordo (schemas/human_tools.py, entrega via plugin
+    # ask-max no gateway); "executor" usa as tools de automacao n8n
+    # (schemas/n8n_tools.py + guardrails em graph/n8n_guard.py). E so um
+    # rotulo de perfil/padrao - nao desliga nada sozinho.
+    attendant_mode: str = "atendente"
+
+    # Operador humano de destino do transbordo. 100% configuracao, nunca
+    # valor fixo no codigo: `to` e o contato no canal (ex.: WhatsApp so com
+    # digitos), `name` e o nome de exibicao usado na mensagem de
+    # escalonamento, `channel`/`account_id` identificam o canal no gateway.
+    # Espelham ASKMAX_* no .env.example da raiz.
+    attendant_operator_name: str = "Max"
+    attendant_operator_to: str | None = None
+    attendant_channel: str = "whatsapp-cloud"
+    attendant_account_id: str | None = None
+
     # Checkpointing
     checkpointer_sqlite_path: str = "./data/checkpoints.sqlite"
 

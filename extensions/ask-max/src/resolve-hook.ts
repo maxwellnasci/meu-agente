@@ -28,7 +28,7 @@
 // stop the LLM from trying to process the operator's answer as a fresh
 // request.
 import type { OpenClawPluginApi } from "../api.js";
-import { resolveAskMaxTarget } from "./config.js";
+import { resolveAskMaxDisplay, resolveAskMaxTarget } from "./config.js";
 import { sendAskMaxMessage } from "./proactive-send.js";
 import { consumePendingAskMax, type PendingAskMaxTarget } from "./store.js";
 
@@ -79,11 +79,12 @@ async function deliverAnswerAndAck(params: {
   operatorTarget: PendingAskMaxTarget;
 }): Promise<void> {
   const { api, question, answerText, origin, operatorTarget } = params;
+  const { operatorName } = resolveAskMaxDisplay(api);
 
   const answerResult = await sendAskMaxMessage({
     api,
     target: origin,
-    text: `O Max respondeu sua dúvida:\n\n"${question}"\n\nResposta: ${answerText}`,
+    text: `O ${operatorName} respondeu sua dúvida:\n\n"${question}"\n\nResposta: ${answerText}`,
   });
   if (!answerResult.ok) {
     api.logger.warn(

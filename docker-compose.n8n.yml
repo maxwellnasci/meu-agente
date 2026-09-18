@@ -1,0 +1,38 @@
+# Compose AUXILIAR e OPCIONAL: n8n local para testes e demonstracoes rapidas
+# para PMEs. Nao faz parte da base canonica de producao (la o orquestrador
+# fala com uma instancia de n8n externa via ORCHESTRATOR_N8N_URL/API_KEY).
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.n8n.yml up -d --build
+#   # n8n local em http://localhost:5678 (mesma rede do orquestrador,
+#   # alcancavel de dentro como http://n8n:5678)
+#
+# Para apontar o orquestrador ao n8n local, defina no .env:
+#   ORCHESTRATOR_N8N_URL=http://n8n:5678
+#   ORCHESTRATOR_N8N_API_KEY=<api-key gerada na UI do n8n local>
+
+services:
+  n8n:
+    image: n8nio/n8n:${N8N_VERSION:-latest}
+    ports:
+      - "127.0.0.1:${N8N_HOST_PORT:-5678}:5678"
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      GENERIC_TIMEZONE: ${N8N_TIMEZONE:-America/Sao_Paulo}
+      TZ: ${N8N_TIMEZONE:-America/Sao_Paulo}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - meu-agente-net
+    restart: unless-stopped
+
+volumes:
+  n8n-data:
+
+networks:
+  meu-agente-net:
+    name: meu-agente-net
+    driver: bridge

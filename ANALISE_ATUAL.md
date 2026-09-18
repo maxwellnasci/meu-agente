@@ -85,7 +85,7 @@ Avaliação: padrão consistente, dependências mínimas (`typebox`, `zod`, `tar
 
 ### 4.2 `n8n_guard.py` + `n8n_confirmation.py` — gates do especialista n8n
 
-- `n8n_guard.py`: só as 2 tools irreversíveis/pre-existente-destrutivas (`N8nDeleteWorkflow`, `N8nDeactivateWorkflow`) são gateadas; `Create/Update/Activate` ficam de fora (reversíveis). Radicais PT/EN (`delet/apag/exclu/remov`; `desativ/pause/pausa`), `lower()`, default-deny: sem verbo explícito na instrução da tarefa → `RECUSADO` com template citando verbos esperados. (Observado: comentário `TESTE_CURSOR` inline — resíduo de debug, remover.)
+- `n8n_guard.py`: só as 2 tools irreversíveis/pre-existente-destrutivas (`N8nDeleteWorkflow`, `N8nDeactivateWorkflow`) são gateadas; `Create/Update/Activate` ficam de fora (reversíveis). Radicais PT/EN (`delet/apag/exclu/remov`; `desativ/pause/pausa`), `lower()`, default-deny: sem verbo explícito na instrução da tarefa → `RECUSADO` com template citando verbos esperados. (Resíduo de debug `TESTE_CURSOR` removido em 2026-09-18; `bug4-monitor.log` movido para `logs/` gitignored.)
 - `n8n_confirmation.py` (171 linhas): pendência WRITE com TTL 900s, uso único, nasce inativa; vereditos `affirm/deny/unclear`. Cobre `create/activate/deactivate/delete` enquanto aguarda o usuário (janela de WhatsApp sem ação "armada" indefinida).
 
 ### 4.3 Cobertura de testes de segurança (`orchestrator/tests/`)
@@ -93,6 +93,13 @@ Avaliação: padrão consistente, dependências mínimas (`typebox`, `zod`, `tar
 10 arquivos: `test_cybersec_guard_self_echo_loop.py`, `test_cybersec_guard_unmatched_echo_loop.py`, `test_graph_e2e_cybersec_guard.py`, `test_graph_multiturn_state_reset.py`, `test_graph_n8n_confirmation_flow.py`, `test_n8n_confirmation.py`, `test_n8n_guard.py` (6 casos: never-block não-destrutivas, delete/deactivate bloqueados sem verbo, liberados com verbo, case-insensitive), `test_specialist_cybersec.py`, `test_specialist_n8n.py`, `test_langsmith_tracing_config.py`.
 
 Avaliação: boa cobertura do comportamento crítico (eco, confirmação, e2e do guard, reset multiturn). Gaps: `n8n_guard` só testa delete/deactivate (correto por escopo, mas sem teste negativo para `Create/Update` com verbo destrutivo — garantir que nunca bloqueiem); `cybersec_guard` depende de lista estática de keywords — sem teste de variante não-enumerada (ex.: IP do Contabo, hostname, "evolution" sozinho) nem de bypass por obfuscação; sem teste de SSRF/allowlist do lado Python (a checagem SSRF citada está no inbound TS — confirmar cobertura lá).
+
+### 4.4 Pendências históricas de segurança — backlog explícito (atualizado 2026-09-18)
+
+Itens herdados de análises/sessões anteriores, ainda **PENDENTES** — registrados aqui para acompanhamento até a baixa:
+
+- **SEC-1 — Rotação pendente do `OPENCLAW_GATEWAY_TOKEN`.** O token do gateway foi exposto anteriormente em logs/output de sessão (histórico documentado em `docs/SESSAO_2026-08-04_checkpoint-etapa8.md` — "rotação de chaves não feita" — e `docs/ESTADO_ATUAL.md`). A migração para SecretRef em arquivo (modo 600) reduziu a superfície, mas o valor vazado **nunca foi rotacionado**: quem teve acesso ao log/output antigo ainda detém uma credencial válida. Ação: gerar um token novo, atualizar `ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN` no orquestrador + `gateway-token.json`/SecretRef no Contabo, recriar os containers e invalidar o token antigo. Ver também R15.
+- **SEC-2 — Limpeza de histórico git pendente na VPS Contabo (`/root/openclaw`).** O `.env` do gateway foi/é rastreado no repo git local de `/root/openclaw` (sem remote — achado lateral em `docs/ESTADO_ATUAL.md`, 2026-08-26: "`.env` já era rastreado nesse repo desde antes desta sessão — pendência de limpeza de histórico"). Caso análogo já ocorreu e foi corrigido no repo do orquestrador no Contabo (`.env` versionado desde o commit inicial `d7a053e`, corrigido com `git rm --cached .env` + commit). Ação: no `/root/openclaw` do Contabo, `git rm --cached .env` + commit e, como o segredo consta em commits antigos, reescrever/expurgar o histórico (ex.: `git filter-repo` ou BFG) ou — mais simples e suficiente dado que o repo não tem remote — recriar o repo local só com o estado atual. Combinar com SEC-1 (o `.env` histórico contém o token a rotacionar). Ver também R16.
 
 ---
 
@@ -135,6 +142,8 @@ Avaliação: boa cobertura do comportamento crítico (eco, confirmação, e2e do
 | R12 | `response-audit` pós-envio apenas, 2 testes | `response-audit/src` | Alucinação/falsa ação só detectada depois do envio; heurística PT frágil |
 | R13 | `openclaw/` aninhado (26 dirs) + `orchestrator-bridge` fora de `extensions/` | raiz, `ESTADO_ATUAL.md` | Duplicidade de fonte, backup frágil (`sync-extensions-backup.sh` manual) |
 | R14 | LangSmith desligado por padrão | `config.py`, `main.py`, `test_langsmith_tracing_config.py` | Sem tracing em prod, debug de cadeia multi-hop é log-grep |
+| R15 | **PENDENTE — `OPENCLAW_GATEWAY_TOKEN` vazado nunca rotacionado** | `docs/SESSAO_2026-08-04_checkpoint-etapa8.md`, `docs/ESTADO_ATUAL.md`, §4.4 SEC-1 | Credencial válida em poder de quem viu logs/output antigos; acesso indevido ao gateway |
+| R16 | **PENDENTE — `.env` no histórico git de `/root/openclaw` (Contabo)** | `docs/ESTADO_ATUAL.md` (2026-08-26), §4.4 SEC-2 | Segredo persistido em commits antigos do repo local; combinado com R15 enquanto não expurgado |
 
 Concorrência/infra: SQLite + `mayPair=false` + dedup 10min + fila/sender no WhatsApp + rate 30/min sugerem contenção já observada (bug4). Confirmar com `bug4-monitor.log` / `CASE_BUG4_INVESTIGACAO_COMPLETA.md` antes de escalar tráfego.
 
@@ -144,8 +153,10 @@ Concorrência/infra: SQLite + `mayPair=false` + dedup 10min + fila/sender no Wha
 
 ### P0 — Segurança e integridade (esta semana)
 
-- [ ] **P0-1** Remover `TESTE_CURSOR` de `n8n_guard.py` e `debug-timing.ts`/`bug4-monitor.log` da raiz (ou mover para `logs/` gitignored).
-- [ ] **P0-2** Versionar `.env.example` com todas as chaves `ORCHESTRATOR_*` + `openclaw.json` mínimo; documentar que URL do bridge vem da config do plugin, não de env.
+- [x] **P0-1** Remover `TESTE_CURSOR` de `n8n_guard.py` e `debug-timing.ts`/`bug4-monitor.log` da raiz (ou mover para `logs/` gitignored). Parcial em 2026-09-18: `TESTE_CURSOR` removido, `bug4-monitor.log` movido para `logs/` (untracked, gitignored) e `bug4-monitor.sh` apontado para `logs/`; `/*.log` adicionado ao `.gitignore`. `debug-timing.ts` + gates `GITHUB_REPORT_DEBUG_STOP_AFTER` mantidos (hooks de debug intencionais cobertos por testes, não resíduo).
+- [x] **P0-2** Versionar `.env.example` com todas as chaves `ORCHESTRATOR_*` + `openclaw.json` mínimo; documentar que URL do bridge vem da config do plugin, não de env. Feito em 2026-09-18: `orchestrator/.env.example` (Seções 1–3: orquestrador Python, compose e gateway Node/TS; só placeholders, nenhum segredo real).
+- [ ] **P0-5 (SEC-1)** Rotacionar o `OPENCLAW_GATEWAY_TOKEN` vazado: gerar token novo, atualizar `ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN` + SecretRef/`gateway-token.json` no Contabo, recriar containers, invalidar o antigo.
+- [ ] **P0-6 (SEC-2)** Expurgar o `.env` do histórico git de `/root/openclaw` no Contabo (`git rm --cached .env` + reescrita do histórico ou recriação do repo local sem remote), em conjunto com P0-5.
 - [ ] **P0-3** Estender `cybersec_guard`: incluir hostnames/IPs da prod (não só nomes), teste de bypass (IP, sem acento, caixa alta, obfuscação simples); decidir `Update` esvaziando workflow como destrutivo (ou gate de diff-size).
 - [ ] **P0-4** Separar testes `.live` (rede) dos unitários; CI deve rodar unit sempre, live só manual.
 
