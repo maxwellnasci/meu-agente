@@ -327,3 +327,114 @@ def test_provision_success_leaves_no_tmp_and_secure_env_perms(cleanup):
     import stat
     env_stat = os.stat(DEPLOYMENTS / name / ".env")
     assert stat.S_IMODE(env_stat.st_mode) == 0o600
+
+
+def test_provision_force_preserves_data_and_env(cleanup):
+    """--force regenera infra/template mas preserva ./data e .env com segredos."""
+    name = _unique_name("Preserva")
+    cleanup.append(name)
+    first = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-to", "5541999999999",
+        "--port", "8021",
+    )
+    assert first.returncode == 0, first.stderr
+    dest = DEPLOYMENTS / name
+
+    (dest / "data").mkdir(exist_ok=True)
+    (dest / "data" / "checkpoints.sqlite").write_text("memoria-cliente", encoding="utf-8")
+    env = (dest / ".env").read_text(encoding="utf-8")
+    assert "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=''" in env
+    (dest / ".env").write_text(
+        env.replace(
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=''",
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'",
+        ),
+        encoding="utf-8",
+    )
+
+    second = run_provision(
+        "--name", name,
+        "--niche", "suporte-ti-pme",
+        "--port", "8022",
+        "--force",
+    )
+    assert second.returncode == 0, second.stderr
+
+    # Estado e segredos preservados, nao destruidos pelo --force.
+    assert (dest / "data" / "checkpoints.sqlite").read_text(encoding="utf-8") == "memoria-cliente"
+    env2 = (dest / ".env").read_text(encoding="utf-8")
+    assert "tok-real-123" in env2
+    assert "ORCHESTRATOR_HOST_PORT='8021'" in env2
+
+    # Infra/template regenerados a partir dos novos argumentos.
+    agents = (dest / "AGENTS.md").read_text(encoding="utf-8")
+    assert "suporte" in agents.lower()
+    compose = yaml.safe_load((dest / "docker-compose.yml").read_text(encoding="utf-8"))
+    service = next(iter(compose["services"].values()))
+    assert service["ports"] == ["127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8022}:8000"]
+    assert list((dest / "workflows").glob("workflow-*.json"))
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_refuses_port_in_use():
+    """Porta ocupada no host aborta com erro informativo, sem criar nada."""
+    import socket
+
+    srv = socket.socket()
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    try:
+        port = str(srv.getsockname()[1])
+        name = _unique_name("PortBusy")
+        proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
+        assert proc.returncode != 0
+        assert "em uso" in proc.stderr
+        assert not (DEPLOYMENTS / name).exists()
+        _assert_no_tmp_leftovers()
+    finally:
+        srv.close()
+
+
+def test_provision_webhook_paths_namespaced_with_slug(cleanup):
+    """Webhooks n8n ganham o slug do cliente para nao colidir na infra compartilhada."""
+    name = "TCliente_HookNS"
+    cleanup.append(name)
+    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", "8023")
+    assert proc.returncode == 0, proc.stderr
+
+    slug = "tcliente-hookns"
+    workflows = list((DEPLOYMENTS / name / "workflows").glob("workflow-*.json"))
+    assert workflows
+    for wf in workflows:
+        payload = json.loads(wf.read_text(encoding="utf-8"))
+        hook_paths = [
+            node.get("parameters", {}).get("path")
+            for node in payload["nodes"]
+            if node.get("type") == "n8n-nodes-base.webhook"
+        ]
+        assert hook_paths, "workflow sem webhook"
+        for path in hook_paths:
+            assert path == f"clinica-atendimento-{slug}", path
+
+
+@pytest.mark.parametrize(("niche", "slots"), [
+    ("clinica-saude", ["ESPECIALIDADES", "CONVENIOS", "ENDERECO_TELEFONE"]),
+    ("suporte-ti-pme", ["SISTEMAS", "PLAYBOOKS"]),
+])
+def test_provision_marks_unfilled_placeholders(cleanup, niche, slots):
+    """Slots sem argumento viram [A PREENCHER: ...] com aviso no stderr."""
+    name = _unique_name("Mark" + niche.split("-")[0].capitalize())
+    cleanup.append(name)
+    proc = run_provision("--name", name, "--niche", niche, "--port", "8024")
+    assert proc.returncode == 0, proc.stderr
+
+    agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    for slot in slots:
+        assert f"[A PREENCHER: {slot}]" in agents
+        assert f"[{slot}]" not in agents.replace(f"[A PREENCHER: {slot}]", "")
+    assert "aviso" in proc.stderr
+    assert "[A PREENCHER" in proc.stderr
+    _assert_no_tmp_leftovers()

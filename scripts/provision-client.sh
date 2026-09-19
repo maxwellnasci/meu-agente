@@ -11,7 +11,11 @@
 #   AGENTS.md ......... manual do atendente, a partir do template do nicho
 #   docker-compose.yml  compose do cliente (orquestrador dedicado na rede
 #                       compartilhada meu-agente-net)
-#   workflows/ ........ copia do workflow n8n de exemplo do nicho
+#   workflows/ ........ copia do workflow n8n de exemplo do nicho, com
+#                       webhooks namespaced pelo slug do cliente
+#   data/ ............. estado local (banco checkpoints.sqlite, memorias)
+# --force regenera apenas infra/template (AGENTS.md, compose, workflows/)
+# e preserva ./data e .env existentes; aborta se a porta estiver em uso.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -102,6 +106,35 @@ if [ -e "$DEST" ] && [ "$FORCE" -ne 1 ]; then
   echo "erro: $DEST ja existe (use --force para recriar)" >&2; exit 1
 fi
 
+# Checagem preventiva de colisao de porta no host: aborta com erro
+# informativo em vez de falhar silenciosamente no `docker compose up`.
+port_in_use() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -tln 2>/dev/null | grep -Eq "[:.]${port}([[:space:]]|$)"
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1
+  else
+    python3 -c 'import socket,sys; sys.exit(0 if socket.socket().connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$port"
+  fi
+}
+if port_in_use "$PORT"; then
+  echo "erro: porta $PORT ja esta em uso no host (confira com 'ss -tulpn | grep :$PORT'); use --port <porta-livre> ou libere a porta" >&2
+  exit 1
+fi
+
+# Alerta (sem abortar) se outro deployment ja declara a mesma porta.
+for _other_env in "$DEPLOYMENTS_DIR"/*/.env; do
+  [ -f "$_other_env" ] || continue
+  if [ "$(dirname "$_other_env")" = "$DEST" ]; then
+    continue # re-provisionamento do proprio cliente com --force
+  fi
+  _other_port="$(grep -E "^ORCHESTRATOR_HOST_PORT=" "$_other_env" | head -n 1 | sed -E "s/^[^=]*='?([^']*)'?.*/\1/")"
+  if [ -n "${_other_port:-}" ] && [ "$_other_port" = "$PORT" ]; then
+    echo "aviso: porta $PORT tambem declarada por $(dirname "$_other_env") (considere --port dedicado por cliente)" >&2
+  fi
+done
+
 mkdir -p "$DEPLOYMENTS_DIR"
 TMP_DEST="$(mktemp -d "$DEPLOYMENTS_DIR/.${NAME}.tmp.XXXXXX")"
 BACKUP_DEST=""
@@ -147,12 +180,51 @@ pattern = re.compile(
 )
 result = pattern.sub(lambda m: mapping[m.group(1)], text)
 
+# Placeholders de configuracao sem argumento na CLI: marcacao explicita
+# para o operador saber o que falta preencher (lista fechada dos slots de
+# configuracao dos templates; texto de exemplo como "[ID]" nao e tocado,
+# e valores inseridos via argumento nunca sao reprocessados aqui).
+PENDENTES = ("ESPECIALIDADES", "CONVENIOS", "ENDERECO_TELEFONE", "SISTEMAS", "PLAYBOOKS")
+marcados = []
+for slot in PENDENTES:
+    token = "[" + slot + "]"
+    if token in result:
+        result = result.replace(token, "[A PREENCHER: " + slot + "]")
+        marcados.append(slot)
+if marcados:
+    print("aviso: AGENTS.md tem campo(s) a preencher pelo operador: "
+          + ", ".join("[A PREENCHER: " + s + "]" for s in marcados),
+          file=sys.stderr)
+
 with open(dst, "w", encoding="utf-8") as f:
   f.write(result)
 ' "$TEMPLATES_DIR/$NICHE/AGENTS.md" "$TMP_DEST/AGENTS.md" "$NAME" "$OPERATOR_NAME" "$OPERATOR_TO" "$CHANNEL"
 
-# 2) Workflow(s) n8n de exemplo do nicho.
+# Slug do cliente (mesmo usado no compose): identifica o deployment.
+SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
+
+# 2) Workflow(s) n8n de exemplo do nicho, com namespace do cliente.
+# O path de cada webhook ganha o sufixo "-<slug>" para nao colidir quando
+# varios clientes compartilham a mesma infraestrutura de automacao.
 cp "$TEMPLATES_DIR/$NICHE"/workflow-*.json "$TMP_DEST/workflows/" 2>/dev/null || true
+python3 -c '
+import glob, json, os, sys
+
+slug, wf_dir = sys.argv[1:3]
+for path in sorted(glob.glob(os.path.join(wf_dir, "workflow-*.json"))):
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    for node in data.get("nodes", []):
+        if node.get("type") == "n8n-nodes-base.webhook":
+            params = node.setdefault("parameters", {})
+            p = params.get("path", "")
+            if p and not p.endswith("-" + slug):
+                params["path"] = p + "-" + slug
+            print("info: webhook '{}' com namespace do cliente".format(params.get("path", "")))
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+' "$SLUG" "$TMP_DEST/workflows"
 
 # 3) .env proprio do cliente (segredo local - gitignored via **/.env).
 # Valores entre aspas simples: literais no Compose e no shell.
@@ -176,7 +248,7 @@ EOF
 chmod 600 "$TMP_DEST/.env"
 
 # 4) docker-compose.yml do cliente (orquestrador dedicado, mesma base canonica).
-SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
+# (SLUG calculado no passo 2 e reutilizado aqui.)
 cat > "$TMP_DEST/docker-compose.yml" <<EOF
 # Ambiente do cliente $NAME (nicho: $NICHE). Gerado por scripts/provision-client.sh.
 # Sobe um orquestrador dedicado ao cliente na rede compartilhada meu-agente-net.
@@ -202,6 +274,23 @@ networks:
     name: meu-agente-net
     external: true
 EOF
+
+# Blindagem do --force: re-provisionar regenera apenas infra e template
+# (AGENTS.md, docker-compose.yml, workflows/) e NUNCA apaga estado nem
+# segredos — ./data (banco checkpoints.sqlite, memorias) e .env existente
+# sao copiados para o novo diretorio antes da troca atomica.
+if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
+  if [ -d "$DEST/data" ]; then
+    mkdir -p "$TMP_DEST/data"
+    cp -a "$DEST/data/." "$TMP_DEST/data/"
+    echo "aviso: preservando $DEST/data existente (--force nao apaga memorias/banco)" >&2
+  fi
+  if [ -f "$DEST/.env" ]; then
+    cp -a "$DEST/.env" "$TMP_DEST/.env"
+    chmod 600 "$TMP_DEST/.env"
+    echo "aviso: preservando $DEST/.env existente (--force nao sobrescreve segredos; ajuste --port/--operator-* manualmente se mudaram)" >&2
+  fi
+fi
 
 if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
   # Substituicao atomica: DEST vai para um backup temporario antes do mv
