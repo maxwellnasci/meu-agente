@@ -1,0 +1,23 @@
+# Ambiente do cliente TDebugBS (nicho: clinica-saude). Gerado por scripts/provision-client.sh.
+# Sobe um orquestrador dedicado ao cliente na rede compartilhada meu-agente-net.
+# Uso (a partir desta pasta): docker compose up -d --build
+services:
+  orchestrator-tdebugbs:
+    build: ../../orchestrator
+    image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
+    container_name: orchestrator-tdebugbs
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8000}:8000"
+    networks:
+      - meu-agente-net
+    restart: unless-stopped
+
+networks:
+  meu-agente-net:
+    name: meu-agente-net
+    external: true
