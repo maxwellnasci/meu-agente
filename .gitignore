@@ -33,3 +33,7 @@ scratch_*.py
 # Orquestra — arquivos de segurança (nunca enviar ao Git)
 .orquestra_vault
 .orquestra_salt
+
+# Deployments locais de clientes (evita commit acidental de PII, telefones e configs de clientes)
+deployments/*
+!deployments/.gitkeep
