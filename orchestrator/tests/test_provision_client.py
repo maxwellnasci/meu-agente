@@ -377,8 +377,10 @@ def test_provision_force_preserves_data_and_env(cleanup):
     # Estado e segredos preservados, nao destruidos pelo --force.
     assert (dest / "data" / "checkpoints.sqlite").read_text(encoding="utf-8") == "memoria-cliente"
     env2 = (dest / ".env").read_text(encoding="utf-8")
-    assert "tok-real-123" in env2
-    assert f"ORCHESTRATOR_HOST_PORT='{port1}'" in env2
+    assert "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'" in env2
+    # Porta sincronizada com a CLI (--port port2), em paridade com o compose.
+    assert f"ORCHESTRATOR_HOST_PORT='{port2}'" in env2
+    assert f"ORCHESTRATOR_HOST_PORT='{port1}'" not in env2
 
     # Infra/template regenerados a partir dos novos argumentos.
     agents = (dest / "AGENTS.md").read_text(encoding="utf-8")
@@ -388,6 +390,114 @@ def test_provision_force_preserves_data_and_env(cleanup):
     assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port2}}}:8000"]
     assert list((dest / "workflows").glob("workflow-*.json"))
     _assert_no_tmp_leftovers()
+
+
+def test_provision_force_updates_operator_in_env(cleanup):
+    """--force com --operator-to/--operator-name atualiza .env e AGENTS.md sem resetar segredos."""
+    import os
+    import stat
+
+    name = _unique_name("Operador")
+    cleanup.append(name)
+    port1 = _get_free_port()
+    first = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", "Dra. Ana",
+        "--operator-to", "5541999999999",
+        "--port", port1,
+    )
+    assert first.returncode == 0, first.stderr
+    dest = DEPLOYMENTS / name
+
+    env = (dest / ".env").read_text(encoding="utf-8")
+    (dest / ".env").write_text(
+        env.replace(
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=''",
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'",
+        ),
+        encoding="utf-8",
+    )
+
+    port2 = _get_free_port()
+    second = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", "Dr. Beto",
+        "--operator-to", "5541888888888",
+        "--port", port2,
+        "--force",
+    )
+    assert second.returncode == 0, second.stderr
+
+    env2 = (dest / ".env").read_text(encoding="utf-8")
+    assert "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'" in env2
+    assert f"ORCHESTRATOR_HOST_PORT='{port2}'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_TO='5541888888888'" in env2
+    assert "ASKMAX_OPERATOR_TO='5541888888888'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='Dr. Beto'" in env2
+    assert "ASKMAX_OPERATOR_NAME='Dr. Beto'" in env2
+    assert "5541999999999" not in env2
+    assert "Dra. Ana" not in env2
+
+    agents = (dest / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Dr. Beto" in agents
+    assert "5541888888888" in agents
+
+    env_stat = os.stat(dest / ".env")
+    assert stat.S_IMODE(env_stat.st_mode) == 0o600
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_force_refuses_if_container_running(cleanup, tmp_path, monkeypatch):
+    """--force aborta com mensagem explicativa se orchestrator-<slug> estiver no ar."""
+    import os
+
+    name = _unique_name("Container")
+    cleanup.append(name)
+    port = _get_free_port()
+    first = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
+    assert first.returncode == 0, first.stderr
+    slug = name.lower()
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    (bindir / "docker").write_text(
+        "#!/usr/bin/env bash\n"
+        'if [ "$1" = "ps" ]; then\n'
+        f'  echo "orchestrator-{slug}"\n'
+        "fi\n",
+        encoding="utf-8",
+    )
+    os.chmod(bindir / "docker", 0o755)
+    monkeypatch.setenv("PATH", str(bindir) + os.pathsep + os.environ["PATH"])
+
+    refused = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--port", _get_free_port(),
+        "--force",
+    )
+    assert refused.returncode != 0
+    assert f"orchestrator-{slug}" in refused.stderr
+    assert "docker compose down" in refused.stderr
+    # Destino preservado: nada foi destruido pela tentativa recusada.
+    assert (DEPLOYMENTS / name / ".env").is_file()
+    assert (DEPLOYMENTS / name / "AGENTS.md").is_file()
+    _assert_no_tmp_leftovers()
+
+    # Daemon inacessivel (docker ps falha) nao bloqueia o --force.
+    (bindir / "docker").write_text(
+        "#!/usr/bin/env bash\necho 'Cannot connect to the Docker daemon' >&2\nexit 1\n",
+        encoding="utf-8",
+    )
+    retry = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--port", port,
+        "--force",
+    )
+    assert retry.returncode == 0, retry.stderr
 
 
 def test_provision_refuses_port_in_use():
