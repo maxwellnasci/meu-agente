@@ -316,14 +316,18 @@ cd /root/meu-agente-clientes/deployments/<slug>
 set +x  # garante que nada do trecho seja ecoado no histórico de deploy
 # Cola a chave uma única vez via leitura silenciosa (sem echo, sem -v):
 read -rs OPENROUTER_KEY < /dev/tty && printf '\n'
+export OPENROUTER_KEY
 python3 - "$PWD/.env" <<'EOF'
+import os
+import re
 import sys
 path = sys.argv[1]
-key = input("cole a chave OpenRouter e tecle Enter (nao aparece na tela):\n").strip()
+key = (os.environ.get("OPENROUTER_KEY") or "").strip()
+if not key:
+    raise SystemExit("OPENROUTER_KEY vazia; aborte sem alterar o .env")
 text = open(path, encoding="utf-8").read()
 line = "ORCHESTRATOR_OPENROUTER_API_KEY='%s'" % key.replace("'", "")
 if "ORCHESTRATOR_OPENROUTER_API_KEY=" in text:
-    import re
     text = re.sub(r"^ORCHESTRATOR_OPENROUTER_API_KEY=.*$",
                   lambda _: line, text, flags=re.M)
 else:

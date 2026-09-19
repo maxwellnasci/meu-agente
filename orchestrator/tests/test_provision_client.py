@@ -87,7 +87,7 @@ def test_provision_clinica_end_to_end(cleanup):
     assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port}}}:8000"]
     assert net in service["networks"]
     healthcheck = service.get("healthcheck", {})
-    assert healthcheck.get("test") == ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"]
+    assert healthcheck.get("test") == ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
     assert healthcheck.get("interval") == "30s"
     assert healthcheck.get("timeout") == "5s"
     assert healthcheck.get("retries") == 3
