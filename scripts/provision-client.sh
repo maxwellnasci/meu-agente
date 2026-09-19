@@ -312,10 +312,9 @@ chmod 600 "$TMP_DEST/.env"
 cat > "$TMP_DEST/docker-compose.yml" <<EOF
 # Ambiente do cliente $NAME (nicho: $NICHE). Gerado por scripts/provision-client.sh.
 # Sobe um orquestrador dedicado ao cliente na rede bridge dedicada cliente-$SLUG-net.
-# Uso (a partir desta pasta): docker compose up -d --build
+# Uso (a partir desta pasta): docker compose up -d
 services:
   orchestrator-$SLUG:
-    build: ../../orchestrator
     image: \${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
     container_name: orchestrator-$SLUG
     env_file:

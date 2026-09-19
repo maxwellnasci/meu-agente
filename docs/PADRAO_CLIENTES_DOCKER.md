@@ -300,7 +300,7 @@ chave OpenRouter sem vazar o segredo e como provar o isolamento.
   `deployments/<Nome>/` para `/root/meu-agente-clientes/deployments/<slug>/`
   no host (ex. `scp -r`), e operar a partir de lá:
   `cd /root/meu-agente-clientes/deployments/<slug> &&
-  docker compose up -d --build`.
+  docker compose up -d`.
 - Nunca republicar essa pasta de volta ao repo nem commitar `.env`/`data/`
   (gitignore já cobre `**/.env` e `**/data/`).
 
@@ -327,7 +327,7 @@ if not key:
     raise SystemExit("OPENROUTER_KEY vazia; aborte sem alterar o .env")
 text = open(path, encoding="utf-8").read()
 line = "ORCHESTRATOR_OPENROUTER_API_KEY='%s'" % key.replace("'", "")
-if "ORCHESTRATOR_OPENROUTER_API_KEY=" in text:
+if re.search(r"^ORCHESTRATOR_OPENROUTER_API_KEY=", text, re.M):
     text = re.sub(r"^ORCHESTRATOR_OPENROUTER_API_KEY=.*$",
                   lambda _: line, text, flags=re.M)
 else:
@@ -336,13 +336,23 @@ open(path, "w", encoding="utf-8").write(text)
 EOF
 unset OPENROUTER_KEY
 chmod 600 .env
-# Conferência sem exibir o valor: mostra só que a chave existe e o tamanho.
-python3 -c "import re; t=open('.env').read(); m=re.search(r\"^ORCHESTRATOR_OPENROUTER_API_KEY='(.+)'$\", t, re.M); print('chave presente, tamanho:', len(m.group(1)) if m and m.group(1) else 0)"
+# Conferência sem exibir o valor: presença ancorada no início da linha
+# (^ com re.M ignora linhas comentadas como `# ORCHESTRATOR_...`) + tamanho.
+python3 -c "import re; t=open('.env').read(); assert re.search(r\"^ORCHESTRATOR_OPENROUTER_API_KEY=\", t, re.M), 'chave ausente no .env'; m=re.search(r\"^ORCHESTRATOR_OPENROUTER_API_KEY='(.+)'$\", t, re.M); print('chave presente, tamanho:', len(m.group(1)) if m and m.group(1) else 0)"
 ```
 
 Regras: nunca `echo $KEY`, nunca `docker compose config` com a chave em
 tela compartilhada, nunca `set -x` ativo durante o trecho; conferir
 permissão `600` ao final (`stat -c %a .env` → `600`).
+
+Após injetar a chave no `.env`, **recriar o container é mandatório**:
+o `restart` simples NÃO relê o `.env` — só `up -d` recria o container
+com as novas variáveis de ambiente:
+
+```bash
+# Recria o container aplicando a nova chave (restart simples NÃO relê o .env):
+docker compose up -d
+```
 
 ### 6.3 Checklist de validação de isolamento
 

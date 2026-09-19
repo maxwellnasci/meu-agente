@@ -83,9 +83,12 @@ def test_provision_clinica_end_to_end(cleanup):
     net = f"cliente-{slug}-net"
     assert net in compose["networks"]
     assert compose["networks"][net].get("external") is not True
+    assert compose["networks"][net].get("driver") == "bridge"
     service = next(iter(compose["services"].values()))
     assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port}}}:8000"]
-    assert net in service["networks"]
+    assert list(service["networks"]) == [net]
+    assert "build" not in service
+    assert service["image"] == "${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}"
     healthcheck = service.get("healthcheck", {})
     assert healthcheck.get("test") == ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
     assert healthcheck.get("interval") == "30s"
