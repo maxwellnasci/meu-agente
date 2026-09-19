@@ -5,6 +5,14 @@
 O agente está vivo (`deepseek/deepseek-chat`, v2026.6.9) mas rodando **sem sandbox**.
 Antes de qualquer nova feature, religar o isolamento é o passo zero.
 
+### Marco 19/09/2026 — Provisionador multi-tenant homologado
+
+- [x] **Provisionador Multi-tenant do Orquestrador homologado:** `scripts/provision-client.sh` gerando diretórios autocontidos em `deployments/<slug>/`, isolamento de rede bridge dedicada `cliente-<slug>-net`, `docker-compose.yml` sem `build:` relativo, healthcheck nativo com `urllib.request` e suíte de 48 testes unitários/e2e passando (100%). Detalhes: [SESSAO_2026-09-19.md](SESSAO_2026-09-19.md).
+
+### Próxima prioridade imediata (retorno)
+
+- [ ] **Arquitetura e provisionamento do Gateway OpenClaw por tenant:** incluir container do gateway no compose do cliente sob a mesma rede isolada `cliente-<slug>-net`, com `openclaw.json` gerado, `AGENTS.md:ro` montado e `orchestrator-bridge` conectado.
+
 ### Prioridade 🔴 URGENTE
 
 - [x] **Configurar docker.sock no compose:** (Feito)
@@ -63,7 +71,7 @@ Aplicar esse aprendizado e arcabouço tecnológico sólido no projeto **MXOS**, 
 
 ---
 
-*Atualizado em 2026-07-05. O passo de segurança é a porta de entrada para tudo que vem depois.*
+*Atualizado em 2026-09-19. O passo de segurança é a porta de entrada para tudo que vem depois.*
 
 ## Pendência: nginx-app-1 não sobe automaticamente após reboot
 
