@@ -449,6 +449,115 @@ def test_provision_force_updates_operator_in_env(cleanup):
     _assert_no_tmp_leftovers()
 
 
+def test_provision_force_without_flags_preserves_env_values_in_agents(cleanup):
+    """--force sem flags herda porta/operador/canal do .env (mesma paridade)."""
+    name = _unique_name("SemFlags")
+    cleanup.append(name)
+    port1 = _get_free_port()
+    first = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", "Dra. Ana",
+        "--operator-to", "5541999999999",
+        "--channel", "telegram",
+        "--port", port1,
+    )
+    assert first.returncode == 0, first.stderr
+    dest = DEPLOYMENTS / name
+
+    # Ocupa a porta default 8000 no host: o re-provisionamento sem --port
+    # deve herdar port1 do .env e nao ser afetado por 8000.
+    srv = None
+    try:
+        srv = socket.socket()
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            srv.bind(("127.0.0.1", 8000))
+            srv.listen(1)
+        except OSError:
+            srv.close()
+            srv = None
+        second = run_provision(
+            "--name", name,
+            "--niche", "clinica-saude",
+            "--force",
+        )
+        assert second.returncode == 0, second.stderr
+    finally:
+        if srv is not None:
+            srv.close()
+
+    env2 = (dest / ".env").read_text(encoding="utf-8")
+    assert f"ORCHESTRATOR_HOST_PORT='{port1}'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='Dra. Ana'" in env2
+    assert "ASKMAX_OPERATOR_NAME='Dra. Ana'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_TO='5541999999999'" in env2
+    assert "ASKMAX_OPERATOR_TO='5541999999999'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_CHANNEL='telegram'" in env2
+    assert "ASKMAX_CHANNEL='telegram'" in env2
+
+    agents = (dest / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Dra. Ana" in agents
+    assert "5541999999999" in agents
+    assert "telegram" in agents
+
+    compose = yaml.safe_load((dest / "docker-compose.yml").read_text(encoding="utf-8"))
+    service = next(iter(compose["services"].values()))
+    assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port1}}}:8000"]
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_force_channel_sync_updates_env_and_preserves_secrets(cleanup):
+    """--force com --channel atualiza as chaves de canal sem resetar segredos."""
+    import os
+    import stat
+
+    name = _unique_name("Canal")
+    cleanup.append(name)
+    port1 = _get_free_port()
+    first = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", "Dra. Ana",
+        "--operator-to", "5541999999999",
+        "--channel", "telegram",
+        "--port", port1,
+    )
+    assert first.returncode == 0, first.stderr
+    dest = DEPLOYMENTS / name
+
+    env = (dest / ".env").read_text(encoding="utf-8")
+    (dest / ".env").write_text(
+        env.replace(
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=''",
+            "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'",
+        ),
+        encoding="utf-8",
+    )
+
+    second = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--channel", "outro-canal",
+        "--force",
+    )
+    assert second.returncode == 0, second.stderr
+
+    env2 = (dest / ".env").read_text(encoding="utf-8")
+    assert "ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN='tok-real-123'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_CHANNEL='outro-canal'" in env2
+    assert "ASKMAX_CHANNEL='outro-canal'" in env2
+    assert "telegram" not in env2
+    # Porta e operador preservados do .env (nao passados na CLI).
+    assert f"ORCHESTRATOR_HOST_PORT='{port1}'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='Dra. Ana'" in env2
+    assert "ORCHESTRATOR_ATTENDANT_OPERATOR_TO='5541999999999'" in env2
+
+    env_stat = os.stat(dest / ".env")
+    assert stat.S_IMODE(env_stat.st_mode) == 0o600
+    _assert_no_tmp_leftovers()
+
+
 def test_provision_force_refuses_if_container_running(cleanup, tmp_path, monkeypatch):
     """--force aborta com mensagem explicativa se orchestrator-<slug> estiver no ar."""
     import os
@@ -462,10 +571,14 @@ def test_provision_force_refuses_if_container_running(cleanup, tmp_path, monkeyp
 
     bindir = tmp_path / "bin"
     bindir.mkdir()
+    # Mock com grande volume apos a linha-alvo: com o pipeline antigo
+    # (docker ps | grep -q), o grep sairia cedo e o docker receberia
+    # SIGPIPE; a captura direta em variavel deve absorver tudo e detectar.
     (bindir / "docker").write_text(
         "#!/usr/bin/env bash\n"
         'if [ "$1" = "ps" ]; then\n'
         f'  echo "orchestrator-{slug}"\n'
+        "  for i in $(seq 1 5000); do echo \"dummy-container-$i\"; done\n"
         "fi\n",
         encoding="utf-8",
     )
