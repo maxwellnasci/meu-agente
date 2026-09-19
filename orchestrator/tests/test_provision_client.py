@@ -8,6 +8,7 @@ diretorio ao final de cada teste para nao poluir o checkout.
 
 import json
 import shutil
+import socket
 import subprocess
 from pathlib import Path
 
@@ -34,6 +35,12 @@ def _unique_name(tag: str) -> str:
     return f"TCliente{tag}"
 
 
+def _get_free_port() -> str:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        return str(s.getsockname()[1])
+
+
 @pytest.fixture
 def cleanup():
     created: list[str] = []
@@ -45,12 +52,13 @@ def cleanup():
 def test_provision_clinica_end_to_end(cleanup):
     name = _unique_name("Clinica")
     cleanup.append(name)
+    port = _get_free_port()
     proc = run_provision(
         "--name", name,
         "--niche", "clinica-saude",
         "--operator-name", "Dra. Ana",
         "--operator-to", "5541999999999",
-        "--port", "8011",
+        "--port", port,
     )
     assert proc.returncode == 0, proc.stderr
 
@@ -73,13 +81,13 @@ def test_provision_clinica_end_to_end(cleanup):
     compose = yaml.safe_load((dest / "docker-compose.yml").read_text(encoding="utf-8"))
     assert "meu-agente-net" in compose["networks"]
     service = next(iter(compose["services"].values()))
-    assert service["ports"] == ["127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8011}:8000"]
+    assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port}}}:8000"]
 
 
 def test_provision_suporte_ti_niche(cleanup):
     name = _unique_name("Suporte")
     cleanup.append(name)
-    proc = run_provision("--name", name, "--niche", "suporte-ti-pme", "--port", "8012")
+    proc = run_provision("--name", name, "--niche", "suporte-ti-pme", "--port", _get_free_port())
     assert proc.returncode == 0, proc.stderr
     agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
     assert name in agents
@@ -109,7 +117,7 @@ def test_provision_operator_name_with_ampersand(cleanup):
         "--operator-name", operator,
         "--operator-to", "5541999999999",
         "--channel", "whatsapp-cloud",
-        "--port", "8013",
+        "--port", _get_free_port(),
     )
     assert proc.returncode == 0, proc.stderr
 
@@ -137,7 +145,7 @@ def test_provision_channel_with_slash(cleanup):
         "--operator-name", operator,
         "--operator-to", "5541888888888",
         "--channel", channel,
-        "--port", "8014",
+        "--port", _get_free_port(),
     )
     assert proc.returncode == 0, proc.stderr
 
@@ -161,11 +169,12 @@ def test_provision_channel_with_slash(cleanup):
 def test_provision_refuses_overwrite_without_force(cleanup):
     name = _unique_name("Duplo")
     cleanup.append(name)
-    first = run_provision("--name", name, "--niche", "clinica-saude")
+    port = _get_free_port()
+    first = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
     assert first.returncode == 0, first.stderr
-    second = run_provision("--name", name, "--niche", "clinica-saude")
+    second = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
     assert second.returncode != 0
-    third = run_provision("--name", name, "--niche", "suporte-ti-pme", "--force")
+    third = run_provision("--name", name, "--niche", "suporte-ti-pme", "--port", port, "--force")
     assert third.returncode == 0, third.stderr
     agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
     assert "suporte" in agents.lower()
@@ -259,7 +268,7 @@ def test_provision_operator_to_accepts_empty_and_international(cleanup):
     for tag, phone in (("FoneVazio", ""), ("FonePlus", "+5541999999999")):
         name = _unique_name(tag)
         cleanup.append(name)
-        args = ["--name", name, "--niche", "clinica-saude"]
+        args = ["--name", name, "--niche", "clinica-saude", "--port", _get_free_port()]
         if phone:
             args += ["--operator-to", phone]
         proc = run_provision(*args)
@@ -281,7 +290,7 @@ def test_provision_single_pass_substitution(cleanup):
         "--operator-name", operator,
         "--operator-to", "5541999999999",
         "--channel", channel,
-        "--port", "8015",
+        "--port", _get_free_port(),
     )
     assert proc.returncode == 0, proc.stderr
     agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
@@ -306,10 +315,11 @@ def test_provision_atomic_no_leftovers_on_error(cleanup):
     _assert_no_tmp_leftovers()
 
     # Overwrite recusado tambem nao deixa tmp orfao e preserva o destino.
-    first = run_provision("--name", name, "--niche", "clinica-saude")
+    port = _get_free_port()
+    first = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
     assert first.returncode == 0, first.stderr
     before = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
-    second = run_provision("--name", name, "--niche", "clinica-saude")
+    second = run_provision("--name", name, "--niche", "clinica-saude", "--port", port)
     assert second.returncode != 0
     after = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
     assert before == after
@@ -320,7 +330,7 @@ def test_provision_success_leaves_no_tmp_and_secure_env_perms(cleanup):
     """Sucesso move tudo de uma vez: sem tmp orfao, .env 600."""
     name = _unique_name("Perms")
     cleanup.append(name)
-    proc = run_provision("--name", name, "--niche", "clinica-saude")
+    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", _get_free_port())
     assert proc.returncode == 0, proc.stderr
     _assert_no_tmp_leftovers()
     import os
@@ -333,11 +343,12 @@ def test_provision_force_preserves_data_and_env(cleanup):
     """--force regenera infra/template mas preserva ./data e .env com segredos."""
     name = _unique_name("Preserva")
     cleanup.append(name)
+    port1 = _get_free_port()
     first = run_provision(
         "--name", name,
         "--niche", "clinica-saude",
         "--operator-to", "5541999999999",
-        "--port", "8021",
+        "--port", port1,
     )
     assert first.returncode == 0, first.stderr
     dest = DEPLOYMENTS / name
@@ -354,10 +365,11 @@ def test_provision_force_preserves_data_and_env(cleanup):
         encoding="utf-8",
     )
 
+    port2 = _get_free_port()
     second = run_provision(
         "--name", name,
         "--niche", "suporte-ti-pme",
-        "--port", "8022",
+        "--port", port2,
         "--force",
     )
     assert second.returncode == 0, second.stderr
@@ -366,14 +378,14 @@ def test_provision_force_preserves_data_and_env(cleanup):
     assert (dest / "data" / "checkpoints.sqlite").read_text(encoding="utf-8") == "memoria-cliente"
     env2 = (dest / ".env").read_text(encoding="utf-8")
     assert "tok-real-123" in env2
-    assert "ORCHESTRATOR_HOST_PORT='8021'" in env2
+    assert f"ORCHESTRATOR_HOST_PORT='{port1}'" in env2
 
     # Infra/template regenerados a partir dos novos argumentos.
     agents = (dest / "AGENTS.md").read_text(encoding="utf-8")
     assert "suporte" in agents.lower()
     compose = yaml.safe_load((dest / "docker-compose.yml").read_text(encoding="utf-8"))
     service = next(iter(compose["services"].values()))
-    assert service["ports"] == ["127.0.0.1:${ORCHESTRATOR_HOST_PORT:-8022}:8000"]
+    assert service["ports"] == [f"127.0.0.1:${{ORCHESTRATOR_HOST_PORT:-{port2}}}:8000"]
     assert list((dest / "workflows").glob("workflow-*.json"))
     _assert_no_tmp_leftovers()
 
@@ -402,7 +414,7 @@ def test_provision_webhook_paths_namespaced_with_slug(cleanup):
     """Webhooks n8n ganham o slug do cliente para nao colidir na infra compartilhada."""
     name = "TCliente_HookNS"
     cleanup.append(name)
-    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", "8023")
+    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", _get_free_port())
     assert proc.returncode == 0, proc.stderr
 
     slug = "tcliente-hookns"
@@ -428,7 +440,7 @@ def test_provision_marks_unfilled_placeholders(cleanup, niche, slots):
     """Slots sem argumento viram [A PREENCHER: ...] com aviso no stderr."""
     name = _unique_name("Mark" + niche.split("-")[0].capitalize())
     cleanup.append(name)
-    proc = run_provision("--name", name, "--niche", niche, "--port", "8024")
+    proc = run_provision("--name", name, "--niche", niche, "--port", _get_free_port())
     assert proc.returncode == 0, proc.stderr
 
     agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
@@ -449,7 +461,7 @@ def test_provision_survives_other_env_without_host_port(cleanup):
 
     name = _unique_name("DepoisSemPorta")
     cleanup.append(name)
-    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", "8025")
+    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", _get_free_port())
     assert proc.returncode == 0, proc.stderr
     assert (DEPLOYMENTS / name / ".env").is_file()
     _assert_no_tmp_leftovers()
