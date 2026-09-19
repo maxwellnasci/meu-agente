@@ -29,6 +29,9 @@ OPERATOR_TO=""
 CHANNEL="whatsapp-cloud"
 PORT="8000"
 FORCE=0
+PORT_SET=0
+OPERATOR_NAME_SET=0
+OPERATOR_TO_SET=0
 
 usage() {
   echo "Uso: $0 --name <NomeCliente> --niche <nicho> [opcoes]"
@@ -40,10 +43,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --name) NAME="${2:-}"; shift 2 ;;
     --niche) NICHE="${2:-}"; shift 2 ;;
-    --operator-name) OPERATOR_NAME="${2:-}"; shift 2 ;;
-    --operator-to) OPERATOR_TO="${2:-}"; shift 2 ;;
+    --operator-name) OPERATOR_NAME="${2:-}"; OPERATOR_NAME_SET=1; shift 2 ;;
+    --operator-to) OPERATOR_TO="${2:-}"; OPERATOR_TO_SET=1; shift 2 ;;
     --channel) CHANNEL="${2:-}"; shift 2 ;;
-    --port) PORT="${2:-}"; shift 2 ;;
+    --port) PORT="${2:-}"; PORT_SET=1; shift 2 ;;
     --force) FORCE=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "erro: argumento desconhecido: $1" >&2; usage >&2; exit 1 ;;
@@ -104,6 +107,19 @@ reject_unsafe_free_field "--channel" "$CHANNEL"
 DEST="$DEPLOYMENTS_DIR/$NAME"
 if [ -e "$DEST" ] && [ "$FORCE" -ne 1 ]; then
   echo "erro: $DEST ja existe (use --force para recriar)" >&2; exit 1
+fi
+
+# Trava de container ativo: re-provisionar com --force com o servico no ar
+# destruiria o ambiente em execucao. SLUG calculado aqui pois o calculo
+# canonico ocorre apenas mais abaixo no fluxo normal.
+if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
+  _FORCE_SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
+  if command -v docker >/dev/null 2>&1; then
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "orchestrator-$_FORCE_SLUG"; then
+      echo "erro: container 'orchestrator-$_FORCE_SLUG' esta em execucao; pare o servico com 'docker compose down' antes de re-provisionar com --force" >&2
+      exit 1
+    fi
+  fi
 fi
 
 # Checagem preventiva de colisao de porta no host: aborta com erro
@@ -287,8 +303,86 @@ if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
   fi
   if [ -f "$DEST/.env" ]; then
     cp -a "$DEST/.env" "$TMP_DEST/.env"
+    # Sincronizacao seletiva: segredos preservados, mas chaves de
+    # infraestrutura/operador passadas explicitamente na CLI sao atualizadas
+    # para manter paridade com docker-compose.yml e AGENTS.md.
+    if [ "$PORT_SET" = "1" ]; then
+      PORT="$PORT" ENV_FILE="$TMP_DEST/.env" python3 -c '
+import os
+path = os.environ["ENV_FILE"]
+port = os.environ["PORT"]
+with open(path, encoding="utf-8") as f:
+    lines = f.readlines()
+out = []
+replaced = False
+for line in lines:
+    if line.startswith("ORCHESTRATOR_HOST_PORT="):
+        out.append("ORCHESTRATOR_HOST_PORT='"'"'%s'"'"'\n" % port)
+        replaced = True
+    else:
+        out.append(line)
+if not replaced:
+    out.append("ORCHESTRATOR_HOST_PORT='"'"'%s'"'"'\n" % port)
+with open(path, "w", encoding="utf-8") as f:
+    f.writelines(out)
+'
+    fi
+    if [ "$OPERATOR_TO_SET" = "1" ]; then
+      OPERATOR_TO="$OPERATOR_TO" ENV_FILE="$TMP_DEST/.env" python3 -c '
+import os
+path = os.environ["ENV_FILE"]
+val = os.environ["OPERATOR_TO"]
+targets = (
+    "ORCHESTRATOR_ATTENDANT_OPERATOR_TO",
+    "ASKMAX_OPERATOR_TO",
+    "ORCHESTRATOR_OPERATOR_PHONE_TO",
+)
+with open(path, encoding="utf-8") as f:
+    lines = f.readlines()
+out = []
+seen = set()
+for line in lines:
+    done = False
+    for key in targets:
+        if line.startswith(key + "="):
+            out.append("%s='"'"'%s'"'"'\n" % (key, val))
+            seen.add(key)
+            done = True
+            break
+    if not done:
+        out.append(line)
+with open(path, "w", encoding="utf-8") as f:
+    f.writelines(out)
+'
+    fi
+    if [ "$OPERATOR_NAME_SET" = "1" ]; then
+      OPERATOR_NAME="$OPERATOR_NAME" ENV_FILE="$TMP_DEST/.env" python3 -c '
+import os
+path = os.environ["ENV_FILE"]
+val = os.environ["OPERATOR_NAME"]
+targets = (
+    "ORCHESTRATOR_ATTENDANT_OPERATOR_NAME",
+    "ASKMAX_OPERATOR_NAME",
+    "ORCHESTRATOR_OPERATOR_NAME",
+)
+with open(path, encoding="utf-8") as f:
+    lines = f.readlines()
+out = []
+for line in lines:
+    done = False
+    for key in targets:
+        if line.startswith(key + "="):
+            out.append("%s='"'"'%s'"'"'\n" % (key, val))
+            done = True
+            break
+    if not done:
+        out.append(line)
+with open(path, "w", encoding="utf-8") as f:
+    f.writelines(out)
+'
+    fi
     chmod 600 "$TMP_DEST/.env"
-    echo "aviso: preservando $DEST/.env existente (--force nao sobrescreve segredos; ajuste --port/--operator-* manualmente se mudaram)" >&2
+    echo "aviso: preservando $DEST/.env existente (--force nao sobrescreve segredos; chaves --port/--operator-* passadas na CLI foram sincronizadas)" >&2
   fi
 fi
 
