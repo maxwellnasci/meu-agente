@@ -129,7 +129,7 @@ for _other_env in "$DEPLOYMENTS_DIR"/*/.env; do
   if [ "$(dirname "$_other_env")" = "$DEST" ]; then
     continue # re-provisionamento do proprio cliente com --force
   fi
-  _other_port="$(grep -E "^ORCHESTRATOR_HOST_PORT=" "$_other_env" | head -n 1 | sed -E "s/^[^=]*='?([^']*)'?.*/\1/")"
+  _other_port="$(grep -E "^ORCHESTRATOR_HOST_PORT=" "$_other_env" | head -n 1 | sed -E "s/^[^=]*='?([^']*)'?.*/\1/" || true)"
   if [ -n "${_other_port:-}" ] && [ "$_other_port" = "$PORT" ]; then
     echo "aviso: porta $PORT tambem declarada por $(dirname "$_other_env") (considere --port dedicado por cliente)" >&2
   fi

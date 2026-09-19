@@ -438,3 +438,18 @@ def test_provision_marks_unfilled_placeholders(cleanup, niche, slots):
     assert "aviso" in proc.stderr
     assert "[A PREENCHER" in proc.stderr
     _assert_no_tmp_leftovers()
+
+
+def test_provision_survives_other_env_without_host_port(cleanup):
+    """Deployment vizinho sem ORCHESTRATOR_HOST_PORT nao mata o script (pipefail)."""
+    other = _unique_name("SemPorta")
+    cleanup.append(other)
+    (DEPLOYMENTS / other).mkdir(parents=True, exist_ok=True)
+    (DEPLOYMENTS / other / ".env").write_text("OUTRA_VAR=1\n", encoding="utf-8")
+
+    name = _unique_name("DepoisSemPorta")
+    cleanup.append(name)
+    proc = run_provision("--name", name, "--niche", "clinica-saude", "--port", "8025")
+    assert proc.returncode == 0, proc.stderr
+    assert (DEPLOYMENTS / name / ".env").is_file()
+    _assert_no_tmp_leftovers()
