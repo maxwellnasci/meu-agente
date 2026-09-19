@@ -1,12 +1,14 @@
 # Padrão multi-cliente Docker — especificação da base replicável
 
-Status: especificação consolidada (etapa 2). Incorpora as blindagens já
-implementadas no `scripts/provision-client.sh` (preservação de `data/`+`.env`
-no `--force`, checagem de porta, namespace de webhook por slug,
-`[A PREENCHER: ...]`) e as correções do Cão de Guarda/Revisor desta etapa
-(rede bridge por DNS, sem `docker.sock`, consumidor do `AGENTS.md`,
-isolamento de `deployments/`). Onde o script ainda diverge do alvo
-(rede compartilhada, `GATEWAY_URL` fixo), o alvo normativo é o descrito aqui.
+Status: especificação consolidada (etapa 2 + aprendizados do teste de fogo
+na Contabo). Incorpora as blindagens já implementadas no
+`scripts/provision-client.sh` (preservação de `data/`+`.env` no `--force`,
+checagem de porta, namespace de webhook por slug, `[A PREENCHER: ...]`,
+rede bridge dedicada `cliente-<slug>-net` por cliente, `healthcheck` nativo
+no orquestrador) e as correções do Cão de Guarda/Revisor desta etapa (rede
+bridge por DNS, sem `docker.sock`, consumidor do `AGENTS.md`, isolamento de
+`deployments/`). Onde o script ainda diverge do alvo (`GATEWAY_URL` fixo,
+sem mount `AGENTS.md:ro`), o alvo normativo é o descrito aqui.
 
 Objetivo: cada cliente = 1 pasta `deployments/<cliente>/` autocontida,
 subível com `docker compose up -d --build` a partir da própria pasta,
@@ -209,12 +211,13 @@ deployments/<Cliente>/AGENTS.md = templates/base/AGENTS_PARTE_A.md
 Comportamento implementado (ver `scripts/provision-client.sh`): gera `AGENTS.md`
 (single-pass, 5 placeholders + `[A PREENCHER: ...]`), `workflows/` com webhook
 sufixado `-<slug>`, `.env` (600, preservado no `--force`), `docker-compose.yml`
-(só orquestrador; `--force` preserva `data/`+`.env` com troca atômica e recusa
-porta em escuta no host). Divergências ainda abertas contra o alvo do §2 (rede
-compartilhada `meu-agente-net` em vez da dedicada, `GATEWAY_URL` fixo,
-sem healthcheck/mount `AGENTS.md:ro`): migrar quando o compose do gateway por
-cliente for provisionado. Novos parâmetros/arquivos para `docker compose up -d`
-funcionar por cliente:
+(só orquestrador, na rede bridge dedicada `cliente-<slug>-net` com
+`healthcheck` nativo em `/health`; `--force` preserva `data/`+`.env` com troca
+atômica e recusa porta em escuta no host). Divergências ainda abertas contra
+o alvo do §2 (`GATEWAY_URL` fixo em vez de `http://gateway-<slug>:18789`,
+sem mount `AGENTS.md:ro`): migrar quando o compose do gateway por cliente for
+provisionado. Novos parâmetros/arquivos para `docker compose up -d` funcionar
+por cliente:
 
 Novos flags (todos opcionais exceto `--port`, que passa a ser obrigatório
 para forçar alocação consciente):
@@ -264,3 +267,113 @@ http://localhost:N/health` retorna 200 sem tocar em outro cliente.
   TLS/segredos Meta — o compose do §2 sobe só o orquestrador isolado; os
   demais serviços entram nas etapas seguintes sobre a mesma rede
   `cliente-<slug>`.
+
+## 6. Roteiro Validado em Produção (Contabo)
+
+Procedimento canônico de subida de uma instância de cliente num host de
+produção, conforme validado no teste de fogo na Contabo. O compose gerado
+(`scripts/provision-client.sh`) já cria a rede bridge dedicada
+`cliente-<slug>-net` e o `healthcheck` em `/health`; este roteiro cobre o
+que o gerador não faz: onde colocar a instância no host, como injetar a
+chave OpenRouter sem vazar o segredo e como provar o isolamento.
+
+### 6.1 Localização operacional segura da instância
+
+- Subir instâncias de clientes **fora do diretório de deploy do
+  orquestrador** (o diretório sincronizado via `rsync --delete` a partir do
+  Kali). Motivo validado na Contabo: qualquer pasta de cliente dentro da
+  árvore sincronizada é apagada no próximo deploy (`--delete` espelha a
+  origem e remove o que não existe nela).
+- Local recomendado no host de produção:
+
+```text
+/root/meu-agente-clientes/deployments/<slug>/
+  .env                # 600, com ORCHESTRATOR_OPENROUTER_API_KEY preenchida
+  AGENTS.md
+  docker-compose.yml  # rede cliente-<slug>-net + healthcheck (gerado)
+  workflows/
+  data/               # estado local (sqlite, memórias)
+```
+
+- Fluxo: gerar localmente com `scripts/provision-client.sh --name <Nome>
+  --niche <nicho> --port <porta>`, copiar a pasta
+  `deployments/<Nome>/` para `/root/meu-agente-clientes/deployments/<slug>/`
+  no host (ex. `scp -r`), e operar a partir de lá:
+  `cd /root/meu-agente-clientes/deployments/<slug> &&
+  docker compose up -d --build`.
+- Nunca republicar essa pasta de volta ao repo nem commitar `.env`/`data/`
+  (gitignore já cobre `**/.env` e `**/data/`).
+
+### 6.2 Cópia silenciosa e segura da chave OpenRouter
+
+A chave do roteador/cérebro (`ORCHESTRATOR_OPENROUTER_API_KEY`, ver
+`orchestrator/src/orchestrator/config.py`) é injetada **no host de
+produção, direto no `.env` do cliente** — nunca transita pelo repo, pelo
+chat ou por log com eco.
+
+```bash
+cd /root/meu-agente-clientes/deployments/<slug>
+set +x  # garante que nada do trecho seja ecoado no histórico de deploy
+# Cola a chave uma única vez via leitura silenciosa (sem echo, sem -v):
+read -rs OPENROUTER_KEY < /dev/tty && printf '\n'
+python3 - "$PWD/.env" <<'EOF'
+import sys
+path = sys.argv[1]
+key = input("cole a chave OpenRouter e tecle Enter (nao aparece na tela):\n").strip()
+text = open(path, encoding="utf-8").read()
+line = "ORCHESTRATOR_OPENROUTER_API_KEY='%s'" % key.replace("'", "")
+if "ORCHESTRATOR_OPENROUTER_API_KEY=" in text:
+    import re
+    text = re.sub(r"^ORCHESTRATOR_OPENROUTER_API_KEY=.*$",
+                  lambda _: line, text, flags=re.M)
+else:
+    text = text.rstrip("\n") + "\n" + line + "\n"
+open(path, "w", encoding="utf-8").write(text)
+EOF
+unset OPENROUTER_KEY
+chmod 600 .env
+# Conferência sem exibir o valor: mostra só que a chave existe e o tamanho.
+python3 -c "import re; t=open('.env').read(); m=re.search(r\"^ORCHESTRATOR_OPENROUTER_API_KEY='(.+)'$\", t, re.M); print('chave presente, tamanho:', len(m.group(1)) if m and m.group(1) else 0)"
+```
+
+Regras: nunca `echo $KEY`, nunca `docker compose config` com a chave em
+tela compartilhada, nunca `set -x` ativo durante o trecho; conferir
+permissão `600` ao final (`stat -c %a .env` → `600`).
+
+### 6.3 Checklist de validação de isolamento
+
+Executar do próprio host de produção, por cliente (trocar `<porta>` pela
+`ORCHESTRATOR_HOST_PORT` do cliente):
+
+1. **Compose íntegro:** `docker compose config | grep -E
+   'cliente-.*-net|healthcheck'`
+   — a rede dedicada e o bloco `healthcheck` devem aparecer; nenhuma
+   referência a `meu-agente-net` ou `external: true`.
+2. **Rede estanque:** `docker network inspect cliente-<slug>-net -f
+   '{{ .Name }} {{ .Driver }}'` → `cliente-<slug>-net bridge`, e
+   `docker network ls | grep cliente-` deve listar **uma rede por cliente**,
+   sem containers de outro tenant anexados (`docker network inspect
+   cliente-<slug>-net -f '{{ range $k,$v := .Containers }}{{ $v.Name }} {{ end }}'`).
+3. **Saúde (liveness):** `curl -sf http://127.0.0.1:<porta>/health`
+   → HTTP 200. Repetir após `docker compose up -d --build` e após reboot
+   (`restart: unless-stopped` deve trazer o container de volta; `docker ps
+   --filter name=orchestrator-<slug>` mostra `healthy` após o
+   `start_period`).
+4. **Turno isolado (`POST /v1/turn`, schema
+   `session_key`/`text`/`from`):**
+
+```bash
+curl -sf http://127.0.0.1:<porta>/v1/turn \
+  -H 'Content-Type: application/json' \
+  -d '{"session_key": "smoke-<slug>-1", "text": "olá, teste de isolamento", "from": "5541999999999"}'
+# Esperado: HTTP 200 com {"reply_text": "..."} (conteúdo varia por modelo/nicho).
+```
+
+5. **Ausência de vazamento cruzado:** repetir o passo 4 com `session_key`
+   de outro cliente/sessão e confirmar que o `thread_id` do checkpointer
+   não mistura históricos (respostas não citam dados da outra sessão);
+   `GET /health` do cliente A continua 200 enquanto o cliente B é
+   reiniciado (`docker compose restart` no B não derruba o A).
+6. **Porta publicada só em loopback:** `ss -ltnp | grep <porta>` deve
+   mostrar bind em `127.0.0.1:<porta>` (nunca `0.0.0.0`), confirmando que o
+   orquestrador só é alcançável a partir do host/proxy local.

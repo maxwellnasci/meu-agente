@@ -10,7 +10,7 @@
 #   .env .............. variaveis proprias do cliente (nao commitar - gitignored)
 #   AGENTS.md ......... manual do atendente, a partir do template do nicho
 #   docker-compose.yml  compose do cliente (orquestrador dedicado na rede
-#                       compartilhada meu-agente-net)
+#                       bridge dedicada cliente-<slug>-net)
 #   workflows/ ........ copia do workflow n8n de exemplo do nicho, com
 #                       webhooks namespaced pelo slug do cliente
 #   data/ ............. estado local (banco checkpoints.sqlite, memorias)
@@ -311,7 +311,7 @@ chmod 600 "$TMP_DEST/.env"
 # (SLUG calculado acima, logo apos as validacoes de formato.)
 cat > "$TMP_DEST/docker-compose.yml" <<EOF
 # Ambiente do cliente $NAME (nicho: $NICHE). Gerado por scripts/provision-client.sh.
-# Sobe um orquestrador dedicado ao cliente na rede compartilhada meu-agente-net.
+# Sobe um orquestrador dedicado ao cliente na rede bridge dedicada cliente-$SLUG-net.
 # Uso (a partir desta pasta): docker compose up -d --build
 services:
   orchestrator-$SLUG:
@@ -326,13 +326,19 @@ services:
     ports:
       - "127.0.0.1:\${ORCHESTRATOR_HOST_PORT:-$PORT}:8000"
     networks:
-      - meu-agente-net
+      - cliente-$SLUG-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
-  meu-agente-net:
-    name: meu-agente-net
-    external: true
+  cliente-$SLUG-net:
+    name: cliente-$SLUG-net
+    driver: bridge
 EOF
 
 # Blindagem do --force: re-provisionar regenera apenas infra e template
