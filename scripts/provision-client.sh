@@ -88,7 +88,7 @@ reject_unsafe_free_field() {
     exit 1
   fi
   case "$val" in
-    *'$'*|*"'"*|*'"'*|*'\\'*|*'`'*|*'#'*)
+    *'$'*|*"'"*|*'"'*|*\\*|*'`'*|*'#'*)
       echo "erro: $opt contem caractere invalido (\$, ', \", \\, \` ou #)" >&2
       exit 1
       ;;
@@ -104,8 +104,20 @@ fi
 
 mkdir -p "$DEPLOYMENTS_DIR"
 TMP_DEST="$(mktemp -d "$DEPLOYMENTS_DIR/.${NAME}.tmp.XXXXXX")"
+BACKUP_DEST=""
 chmod 755 "$TMP_DEST"
-cleanup() { [ -n "$TMP_DEST" ] && rm -rf -- "$TMP_DEST"; }
+cleanup() {
+  if [ -n "$TMP_DEST" ]; then
+    rm -rf -- "$TMP_DEST"
+  fi
+  if [ -n "$BACKUP_DEST" ] && [ -e "$BACKUP_DEST" ]; then
+    if [ ! -e "$DEST" ]; then
+      mv -T "$BACKUP_DEST" "$DEST" 2>/dev/null || rm -rf -- "$BACKUP_DEST"
+    else
+      rm -rf -- "$BACKUP_DEST"
+    fi
+  fi
+}
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -192,10 +204,26 @@ networks:
 EOF
 
 if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
-  rm -rf "$DEST"
+  # Substituicao atomica: DEST vai para um backup temporario antes do mv
+  # final; o backup so e removido apos o sucesso da movimentacao. Se o mv
+  # final falhar, o backup e restaurado para nao perder o destino original.
+  BACKUP_DEST="$(mktemp -d "$DEPLOYMENTS_DIR/.${NAME}.tmp.backup.XXXXXX")"
+  rmdir "$BACKUP_DEST"
+  mv -T "$DEST" "$BACKUP_DEST"
+  if mv -T "$TMP_DEST" "$DEST"; then
+    TMP_DEST=""
+    rm -rf -- "$BACKUP_DEST"
+    BACKUP_DEST=""
+  else
+    status=$?
+    mv -T "$BACKUP_DEST" "$DEST"
+    echo "erro: falha ao substituir $DEST" >&2
+    exit "$status"
+  fi
+else
+  mv -T "$TMP_DEST" "$DEST"
+  TMP_DEST=""
 fi
-mv -T "$TMP_DEST" "$DEST"
-TMP_DEST=""
 
 echo "ok: cliente '$NAME' provisionado em deployments/$NAME/ (nicho: $NICHE)"
 ls -R "$DEST"
