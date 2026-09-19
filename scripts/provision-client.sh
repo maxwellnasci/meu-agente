@@ -50,8 +50,14 @@ done
 [ -n "$NICHE" ] || { echo "erro: --niche e obrigatorio" >&2; usage >&2; exit 1; }
 
 # Nome seguro: so letras, numeros, traco e underline (sem path traversal).
-if ! printf '%s' "$NAME" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+if [[ ! "$NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
   echo "erro: --name deve conter so letras, numeros, '-' e '_' (recebido: $NAME)" >&2
+  exit 1
+fi
+
+# Nicho: formato seguro antes de checar existencia.
+if [[ ! "$NICHE" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  echo "erro: --niche deve conter so letras, numeros, '-' e '_' (recebido: $NICHE)" >&2
   exit 1
 fi
 
@@ -62,61 +68,104 @@ fi
 [ -f "$TEMPLATES_DIR/$NICHE/AGENTS.md" ] || { echo "erro: template sem AGENTS.md: $NICHE" >&2; exit 1; }
 
 # Porta numerica valida.
-if ! printf '%s' "$PORT" | grep -Eq '^[0-9]+$' || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+if [[ ! "$PORT" =~ ^[0-9]+$ ]] || ! [ "$PORT" -ge 1 ] || ! [ "$PORT" -le 65535 ]; then
   echo "erro: --port invalida: $PORT" >&2; exit 1
 fi
+
+# Telefone do operador: vazio ou formato internacional (+ opcional, 8-15 digitos).
+if [[ ! -z "$OPERATOR_TO" && ! "$OPERATOR_TO" =~ ^\+?[0-9]{8,15}$ ]]; then
+  echo "erro: --operator-to invalido (use formato internacional com 8-15 digitos): $OPERATOR_TO" >&2
+  exit 1
+fi
+
+# Campos livres: rejeitar caracteres de controle e caracteres que quebram
+# o parsing no Compose e no shell ($, ', ", \, `, #).
+reject_unsafe_free_field() {
+  local opt="$1"
+  local val="$2"
+  if [[ "$val" =~ [[:cntrl:]] ]]; then
+    echo "erro: $opt contem caracteres de controle" >&2
+    exit 1
+  fi
+  case "$val" in
+    *'$'*|*"'"*|*'"'*|*'\\'*|*'`'*|*'#'*)
+      echo "erro: $opt contem caractere invalido (\$, ', \", \\, \` ou #)" >&2
+      exit 1
+      ;;
+  esac
+}
+reject_unsafe_free_field "--operator-name" "$OPERATOR_NAME"
+reject_unsafe_free_field "--channel" "$CHANNEL"
 
 DEST="$DEPLOYMENTS_DIR/$NAME"
 if [ -e "$DEST" ] && [ "$FORCE" -ne 1 ]; then
   echo "erro: $DEST ja existe (use --force para recriar)" >&2; exit 1
 fi
-rm -rf "$DEST"
-mkdir -p "$DEST/workflows"
+
+mkdir -p "$DEPLOYMENTS_DIR"
+TMP_DEST="$(mktemp -d "$DEPLOYMENTS_DIR/.${NAME}.tmp.XXXXXX")"
+chmod 755 "$TMP_DEST"
+cleanup() { [ -n "$TMP_DEST" ] && rm -rf -- "$TMP_DEST"; }
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+mkdir -p "$TMP_DEST/workflows"
+mkdir -p "$TMP_DEST/data"
 
 # 1) AGENTS.md customizado a partir do template do nicho.
-# Substituicao literal via python3 (str.replace): segura contra '&', '/',
-# barras invertidas, aspas e acentos que quebrariam o 'sed'.
+# Substituicao em passada unica via re.sub com dicionario: evita que um valor
+# inserido (ex: OPERATOR_NAME contendo "[CANAL]") seja re-substituido.
 python3 -c '
-import sys
+import re, sys
+
 src, dst, name, op_name, op_to, channel = sys.argv[1:7]
 with open(src, encoding="utf-8") as f:
-    text = f.read()
-text = text.replace("[NOME_DA_CLINICA]", name)
-text = text.replace("[NOME_DA_EMPRESA]", name)
-text = text.replace("[OPERADOR_NOME]", op_name)
-text = text.replace("[OPERADOR_NUMERO]", op_to)
-text = text.replace("[CANAL]", channel)
+  text = f.read()
+
+mapping = {
+    "NOME_DA_CLINICA": name,
+    "NOME_DA_EMPRESA": name,
+    "OPERADOR_NOME": op_name,
+    "OPERADOR_NUMERO": op_to,
+    "CANAL": channel,
+}
+pattern = re.compile(
+    r"\[(NOME_DA_CLINICA|NOME_DA_EMPRESA|OPERADOR_NOME|OPERADOR_NUMERO|CANAL)\]"
+)
+result = pattern.sub(lambda m: mapping[m.group(1)], text)
+
 with open(dst, "w", encoding="utf-8") as f:
-    f.write(text)
-' "$TEMPLATES_DIR/$NICHE/AGENTS.md" "$DEST/AGENTS.md" "$NAME" "$OPERATOR_NAME" "$OPERATOR_TO" "$CHANNEL"
+  f.write(result)
+' "$TEMPLATES_DIR/$NICHE/AGENTS.md" "$TMP_DEST/AGENTS.md" "$NAME" "$OPERATOR_NAME" "$OPERATOR_TO" "$CHANNEL"
 
 # 2) Workflow(s) n8n de exemplo do nicho.
-cp "$TEMPLATES_DIR/$NICHE"/workflow-*.json "$DEST/workflows/" 2>/dev/null || true
+cp "$TEMPLATES_DIR/$NICHE"/workflow-*.json "$TMP_DEST/workflows/" 2>/dev/null || true
 
 # 3) .env proprio do cliente (segredo local - gitignored via **/.env).
-cat > "$DEST/.env" <<EOF
-# Ambiente do cliente $NAME (nicho: $NICHE). Gerado por scripts/provision-client.sh.
-# Nao commitar - arquivo local com segredos.
-CLIENT_NAME=$NAME
-CLIENT_NICHE=$NICHE
+# Valores entre aspas simples: literais no Compose e no shell.
+cat > "$TMP_DEST/.env" <<EOF
+CLIENT_NAME='$NAME'
+CLIENT_NICHE='$NICHE'
 ORCHESTRATOR_IMAGE=\${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
-ORCHESTRATOR_HOST_PORT=$PORT
-ORCHESTRATOR_OPENCLAW_GATEWAY_URL=http://openclaw-gateway:18789
-ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=
-ORCHESTRATOR_N8N_URL=
-ORCHESTRATOR_N8N_API_KEY=
-ORCHESTRATOR_ATTENDANT_MODE=atendente
-ORCHESTRATOR_ATTENDANT_OPERATOR_NAME=$OPERATOR_NAME
-ORCHESTRATOR_ATTENDANT_OPERATOR_TO=$OPERATOR_TO
-ORCHESTRATOR_ATTENDANT_CHANNEL=$CHANNEL
-ASKMAX_OPERATOR_NAME=$OPERATOR_NAME
-ASKMAX_OPERATOR_TO=$OPERATOR_TO
-ASKMAX_CHANNEL=$CHANNEL
+ORCHESTRATOR_HOST_PORT='$PORT'
+ORCHESTRATOR_OPENCLAW_GATEWAY_URL='http://openclaw-gateway:18789'
+ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=''
+ORCHESTRATOR_N8N_URL=''
+ORCHESTRATOR_N8N_API_KEY=''
+ORCHESTRATOR_ATTENDANT_MODE='atendente'
+ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='$OPERATOR_NAME'
+ORCHESTRATOR_ATTENDANT_OPERATOR_TO='$OPERATOR_TO'
+ORCHESTRATOR_ATTENDANT_CHANNEL='$CHANNEL'
+ASKMAX_OPERATOR_NAME='$OPERATOR_NAME'
+ASKMAX_OPERATOR_TO='$OPERATOR_TO'
+ASKMAX_CHANNEL='$CHANNEL'
 EOF
+chmod 600 "$TMP_DEST/.env"
 
 # 4) docker-compose.yml do cliente (orquestrador dedicado, mesma base canonica).
 SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
-cat > "$DEST/docker-compose.yml" <<EOF
+cat > "$TMP_DEST/docker-compose.yml" <<EOF
 # Ambiente do cliente $NAME (nicho: $NICHE). Gerado por scripts/provision-client.sh.
 # Sobe um orquestrador dedicado ao cliente na rede compartilhada meu-agente-net.
 # Uso (a partir desta pasta): docker compose up -d --build
@@ -141,7 +190,12 @@ networks:
     name: meu-agente-net
     external: true
 EOF
-mkdir -p "$DEST/data"
+
+if [ "$FORCE" = "1" ] && [ -e "$DEST" ]; then
+  rm -rf "$DEST"
+fi
+mv -T "$TMP_DEST" "$DEST"
+TMP_DEST=""
 
 echo "ok: cliente '$NAME' provisionado em deployments/$NAME/ (nicho: $NICHE)"
 ls -R "$DEST"

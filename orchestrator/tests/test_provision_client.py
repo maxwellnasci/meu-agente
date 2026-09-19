@@ -122,7 +122,7 @@ def test_provision_operator_name_with_ampersand(cleanup):
     assert agents.count(operator) >= 1
 
     env = (DEPLOYMENTS / name / ".env").read_text(encoding="utf-8")
-    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME={operator}" in env
+    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='{operator}'" in env
 
 
 def test_provision_channel_with_slash(cleanup):
@@ -154,8 +154,8 @@ def test_provision_channel_with_slash(cleanup):
         assert placeholder not in agents
 
     env = (DEPLOYMENTS / name / ".env").read_text(encoding="utf-8")
-    assert f"ORCHESTRATOR_ATTENDANT_CHANNEL={channel}" in env
-    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME={operator}" in env
+    assert f"ORCHESTRATOR_ATTENDANT_CHANNEL='{channel}'" in env
+    assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_NAME='{operator}'" in env
 
 
 def test_provision_refuses_overwrite_without_force(cleanup):
@@ -169,3 +169,161 @@ def test_provision_refuses_overwrite_without_force(cleanup):
     assert third.returncode == 0, third.stderr
     agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
     assert "suporte" in agents.lower()
+
+
+def _assert_no_tmp_leftovers():
+    leftovers = [p for p in DEPLOYMENTS.glob(".*.tmp.*")]
+    assert leftovers == [], f"diretorios temporarios orfaos: {leftovers}"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("--name", "Bad\nName"),
+    ("--niche", "clinica\nsaude"),
+    ("--port", "8011\n"),
+    ("--operator-name", "Dra.\nAna"),
+])
+def test_provision_rejects_newline_in_fields(field, value):
+    """Quebra de linha em --name/--niche/--port/--operator-name deve falhar."""
+    name = _unique_name("Newline")
+    args = ["--name", name, "--niche", "clinica-saude"]
+    if field == "--name":
+        args = ["--name", value, "--niche", "clinica-saude"]
+    elif field == "--niche":
+        args = ["--name", name, "--niche", value]
+    elif field == "--port":
+        args = ["--name", name, "--niche", "clinica-saude", "--port", value]
+    elif field == "--operator-name":
+        args = ["--name", name, "--niche", "clinica-saude",
+                "--operator-name", value]
+    proc = run_provision(*args)
+    assert proc.returncode != 0
+    assert not (DEPLOYMENTS / name).exists()
+    assert not (DEPLOYMENTS / value).exists()
+    _assert_no_tmp_leftovers()
+
+
+@pytest.mark.parametrize("field", ["--operator-name", "--channel"])
+@pytest.mark.parametrize("bad", ["Evil$VAR", "Bad\x01Name", "tab\there"])
+def test_provision_rejects_dollar_and_control_chars(field, bad):
+    """'$' e caracteres de controle em --operator-name/--channel devem falhar."""
+    name = _unique_name("Unsafe")
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        field, bad,
+    )
+    assert proc.returncode != 0
+    assert not (DEPLOYMENTS / name).exists()
+    _assert_no_tmp_leftovers()
+
+
+@pytest.mark.parametrize("field", ["--operator-name", "--channel"])
+@pytest.mark.parametrize("bad", ["it's", 'say "hi"', "back\\slash", "a`b", "a#b"])
+def test_provision_rejects_shell_breaking_chars(field, bad):
+    """Aspas, barra invertida, crase e '#' devem falhar (quebra Compose/shell)."""
+    name = _unique_name("Unsafe")
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        field, bad,
+    )
+    assert proc.returncode != 0
+    assert not (DEPLOYMENTS / name).exists()
+    _assert_no_tmp_leftovers()
+
+
+@pytest.mark.parametrize("bad_phone", [
+    "abc123",
+    "5541999abc",
+    "123",
+    "1234567",
+    "+1234567890123456",
+    "55-11-99999",
+    "55 11 99999",
+])
+def test_provision_rejects_invalid_operator_to(bad_phone):
+    """--operator-to fora do padrao internacional deve falhar."""
+    name = _unique_name("Fone")
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-to", bad_phone,
+    )
+    assert proc.returncode != 0
+    assert not (DEPLOYMENTS / name).exists()
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_operator_to_accepts_empty_and_international(cleanup):
+    """--operator-to vazio ou internacional valido deve passar."""
+    for tag, phone in (("FoneVazio", ""), ("FonePlus", "+5541999999999")):
+        name = _unique_name(tag)
+        cleanup.append(name)
+        args = ["--name", name, "--niche", "clinica-saude"]
+        if phone:
+            args += ["--operator-to", phone]
+        proc = run_provision(*args)
+        assert proc.returncode == 0, proc.stderr
+        env = (DEPLOYMENTS / name / ".env").read_text(encoding="utf-8")
+        assert f"ORCHESTRATOR_ATTENDANT_OPERATOR_TO='{phone}'" in env
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_single_pass_substitution(cleanup):
+    """OPERATOR_NAME contendo '[CANAL]' nao deve ser re-substituido (passada unica)."""
+    name = _unique_name("SinglePass")
+    cleanup.append(name)
+    operator = "[CANAL]"
+    channel = "whatsapp-cloud"
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-name", operator,
+        "--operator-to", "5541999999999",
+        "--channel", channel,
+        "--port", "8015",
+    )
+    assert proc.returncode == 0, proc.stderr
+    agents = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    # O valor literal do operador sobrevive; o placeholder real vira o canal.
+    assert operator in agents
+    assert channel in agents
+    assert "[OPERADOR_NOME]" not in agents
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_atomic_no_leftovers_on_error(cleanup):
+    """Erro no meio do provisionamento nao deixa tmp orfao nem pasta inconsistente."""
+    name = _unique_name("Atomico")
+    cleanup.append(name)
+    proc = run_provision(
+        "--name", name,
+        "--niche", "clinica-saude",
+        "--operator-to", "telefone-invalido",
+    )
+    assert proc.returncode != 0
+    assert not (DEPLOYMENTS / name).exists()
+    _assert_no_tmp_leftovers()
+
+    # Overwrite recusado tambem nao deixa tmp orfao e preserva o destino.
+    first = run_provision("--name", name, "--niche", "clinica-saude")
+    assert first.returncode == 0, first.stderr
+    before = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    second = run_provision("--name", name, "--niche", "clinica-saude")
+    assert second.returncode != 0
+    after = (DEPLOYMENTS / name / "AGENTS.md").read_text(encoding="utf-8")
+    assert before == after
+    _assert_no_tmp_leftovers()
+
+
+def test_provision_success_leaves_no_tmp_and_secure_env_perms(cleanup):
+    """Sucesso move tudo de uma vez: sem tmp orfao, .env 600."""
+    name = _unique_name("Perms")
+    cleanup.append(name)
+    proc = run_provision("--name", name, "--niche", "clinica-saude")
+    assert proc.returncode == 0, proc.stderr
+    _assert_no_tmp_leftovers()
+    import os
+    import stat
+    env_stat = os.stat(DEPLOYMENTS / name / ".env")
+    assert stat.S_IMODE(env_stat.st_mode) == 0o600
