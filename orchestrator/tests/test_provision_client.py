@@ -82,6 +82,7 @@ def test_provision_clinica_end_to_end(cleanup):
     slug = name.lower()
     net = f"cliente-{slug}-net"
     assert net in compose["networks"]
+    assert len(compose["networks"]) == 1
     assert compose["networks"][net].get("external") is not True
     assert compose["networks"][net].get("driver") == "bridge"
     service = next(iter(compose["services"].values()))
