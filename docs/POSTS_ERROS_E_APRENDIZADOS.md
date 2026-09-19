@@ -1,9 +1,9 @@
 # Erros Reais, Causas Raiz e Aprendizados — `meu-agente`
 
-> Este documento consolida três incidentes reais já investigados e corrigidos no
+> Este documento consolida quatro casos reais já investigados e corrigidos no
 > projeto `meu-agente`, na forma de (1) um dossiê técnico profundo de cada um,
 > (2) um template oficial de post-mortem para uso em futuros incidentes, e
-> (3) três rascunhos completos de posts para LinkedIn, prontos para revisão e
+> (3) quatro rascunhos completos de posts para LinkedIn, prontos para revisão e
 > publicação.
 >
 > Fontes primárias: `docs/RESOLUCAO_BUG_COMA_ETERNO.md`,
@@ -404,6 +404,129 @@ espírito de "o caminho feliz funciona, o caminho de borda trava":
 
 ---
 
+### Caso 4 — A ilusão da porta estática e do bypass secreto em testes de infraestrutura multi-tenant
+
+**Sistema afetado:** `scripts/provision-client.sh` (provisionador de
+deployments por cliente) e sua suíte
+`orchestrator/tests/test_provision_client.py`.
+**Data:** setembro/2026, descoberto ao rodar a suíte no host de desenvolvimento.
+
+#### Sintoma
+
+Testes unitários do provisionador falharam na máquina de desenvolvimento. O
+motivo: o host já rodava o próprio orquestrador
+na porta 8000, e a checagem preventiva de colisão de porta do script
+(`port_in_use`, que aborta com "porta já está em uso" em vez de deixar o
+`docker compose up` falhar tarde e sem contexto) fazia exatamente o que foi
+desenhada para fazer — recusar uma porta ocupada.
+
+Ou seja: o script de produção estava certo. O que estava errado era o
+acoplamento entre a suíte de testes e o estado volátil do host.
+
+#### Diagnóstico
+
+O erro reportado pelo script era inequívoco e apontava direto para a causa
+(`ss -tln` mostrava o listener em `127.0.0.1:8000`). Não houve investigação
+longa; o risco real estava na **escolha da correção**, não na descoberta do
+problema. Duas correções erradas foram tentadas antes da certa.
+
+#### Causa raiz real
+
+Os testes assumiam que certas portas do host estariam livres. O caso feliz de
+cada teste dependia de uma suposição sobre uma máquina que o teste não
+controla (quais processos estão ouvindo em quais portas naquele instante).
+Qualquer coisa que subisse na porta escolhida — o orquestrador local, outro
+deployment, outro teste em paralelo — quebrava a suíte, e a checagem legítima
+do script virava o "culpado".
+
+#### As armadilhas da primeira solução (Erros)
+
+1. **Bypass por variável de ambiente não documentada
+   (`PROVISION_SKIP_PORT_CHECK`).** Uma variável que desliga a checagem de
+   colisão dentro do próprio script de produção, só para os testes passarem.
+   Três problemas: (a) é um interruptor escondido que qualquer processo com
+   acesso ao ambiente pode acionar, desligando em produção uma proteção que
+   existe justamente para evitar deploy em porta ocupada; (b) não estava
+   documentada, então ninguém saberia que existia nem quando remover; (c) os
+   testes acabaram deixando de depender dela, e ela virou código morto —
+   superfície de ataque e de confusão sem nenhum uso legítimo.
+2. **Portas fixas arbitrárias (8026–8029).** Trocar 8011 por 8026 não resolve
+   nada: só muda *qual* porta o teste assume livre. A suíte continua acoplada
+   ao estado do host, e a falha volta na primeira vez que algo escolher essa
+   porta. Pior: mascara o problema — o teste passa hoje por sorte de
+   numeração, não por design.
+
+Nenhuma das duas tentativas chegou ao histórico do git (busca por
+`PROVISION_SKIP_PORT_CHECK` e pelas portas 8026–8029 em todos os commits não
+retorna nada); foram corrigidas ainda no working tree, antes de virarem
+commit.
+
+#### Correção (Acertos)
+
+1. **Fail-fast estrito no script de produção.** A checagem voltou ao formato
+   limpo, sem nenhuma porta dos fundos:
+
+   ```bash
+   if port_in_use "$PORT"; then
+     echo "erro: porta $PORT ja esta em uso no host (...); use --port <porta-livre> ou libere a porta" >&2
+     exit 1
+   fi
+   ```
+
+   O script não sabe que existem testes. O comportamento que ele tem em
+   produção é o mesmo que tem sob teste.
+
+2. **Alocação de portas efêmeras pelo kernel na camada de teste.** Em vez de
+   escolher um número, o teste pede ao sistema operacional uma porta livre:
+
+   ```python
+   def _get_free_port() -> str:
+       with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+           s.bind(("", 0))          # porta 0 = "kernel, escolhe uma livre"
+           return str(s.getsockname()[1])
+   ```
+
+   Todos os caminhos de sucesso (incluindo as asserções sobre o `compose`
+   gerado, que passaram a comparar contra a porta alocada, não contra uma
+   constante) usam esse helper. Foram mantidos dois casos deliberadamente:
+   `"8011\n"` no teste de rejeição de quebra de linha (é o próprio caso de
+   erro, rejeitado na validação antes da checagem de porta) e
+   `test_provision_refuses_port_in_use`, que já era dinâmico e continua
+   provando que o fail-fast funciona.
+
+**Validação:** `pytest orchestrator/tests/test_provision_client.py` → 44
+passed, rodando no mesmo host em que o orquestrador continua ouvindo na
+porta 8000 (a condição que originalmente quebrava a suíte).
+
+#### Limites conhecidos (auditoria da limpeza)
+
+- **Janela de corrida (TOCTOU).** `_get_free_port` fecha o socket antes de o
+  script checar a porta; em teoria, outro processo pode pegar aquela porta no
+  intervalo (o kernel não garante que ela não seja reatribuída). O intervalo
+  é de milissegundos e o risco foi aceito; não foi medido. Se aparecer
+  flakiness, a correção é retentar com uma nova porta, nunca reintroduzir
+  bypass no script.
+- **Resíduo cosmético.** `test_provision_refuses_port_in_use` ainda tem um
+  `import socket` local, redundante depois do import no topo do módulo.
+  Inofensivo; pode sair na próxima passada.
+- **Verificado:** `scripts/provision-client.sh` está idêntico ao `HEAD` (sem
+  diff), e a string `PROVISION_SKIP_PORT_CHECK` não existe em lugar nenhum
+  do repositório.
+
+#### Lição de engenharia
+
+> Quando um teste falha porque o ambiente é diferente do esperado, o defeito
+> está no teste, não no código de produção — e a correção não pode enfraquecer
+> o código de produção. Dois atalhos parecem razoáveis e são ruins: (1) abrir
+> uma "porta dos fundos" no código real para o teste passar, o que troca uma
+> proteção verdadeira por um interruptor escondido, e (2) trocar um valor
+> fixo por outro valor fixo, o que só adia a colisão. A solução é retirar do
+> teste a suposição sobre o host: deixar o sistema operacional alocar
+> recursos efêmeros (portas, diretórios temporários) em vez de o teste
+> "reservar" números. Fail-fast em produção, isolamento no teste.
+
+---
+
 ## Parte 2 — Template Oficial de Post-Mortem
 
 Salve como `docs/POSTMORTEM_TEMPLATE.md` e copie para um novo arquivo
@@ -501,7 +624,7 @@ estiver.
 
 ## Parte 3 — Posts para LinkedIn
 
-> Os três posts abaixo estão prontos para revisão final e publicação. Nomes
+> Os quatro posts abaixo estão prontos para revisão final e publicação. Nomes
 > de host, números de telefone, tokens e topologia de rede real foram
 > deliberadamente omitidos ou generalizados.
 
@@ -672,3 +795,69 @@ qual o timeout foi criado, o que o torna fácil de escrever e difícil de
 notar em code review.
 
 #NodeJS #Backend #HTTP #Resiliencia #EngenhariaDeSoftware #Debugging #TypeScript
+
+---
+
+### Post 4 — Meu teste falhou porque a porta estava ocupada. A "solução" quase abriu uma brecha em produção
+
+---
+
+O teste falhou porque a porta já estava em uso na minha máquina.
+
+O script de produção estava certo. Ele tem uma checagem que recusa subir um
+deployment em porta ocupada — exatamente para não falhar tarde e sem
+contexto no `docker compose up`. Ele só fez o trabalho dele.
+
+Aí veio a tentação. Duas, na verdade. Eu caí nas duas.
+
+**Erro 1: a porta dos fundos.**
+Criei uma variável de ambiente para desligar a checagem "só nos testes".
+Funcionou. Só que agora o script de produção tinha um interruptor escondido,
+sem documentação, que qualquer processo com acesso ao ambiente podia acionar —
+desligando justamente a proteção que existia para evitar deploy em porta
+ocupada. Meses depois, ninguém saberia que aquilo existe.
+
+**Erro 2: trocar um número fixo por outro número fixo.**
+Removi a variável e mudei as portas dos testes de 8011 para 8026. Passou.
+Mas o que eu resolvi? Nada. Só mudei *qual* porta a suíte assume estar livre.
+O teste continua acoplado a um estado da máquina que ele não controla — e vai
+quebrar de novo na primeira vez que algo escolher aquela porta.
+
+O que funcionou foi bem menos criativo:
+
+1. **Produção continua fail-fast, sem exceção.** Zero porta dos fundos. O
+   script não sabe que existem testes, então o comportamento em produção é
+   idêntico ao comportamento sob teste.
+2. **O teste não escolhe porta. Ele pede uma ao kernel.**
+
+```python
+def _get_free_port() -> str:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))   # porta 0 = "sistema, me dá uma livre"
+        return str(s.getsockname()[1])
+```
+
+Cada teste recebe uma porta livre de verdade, naquele instante, naquela
+máquina. As asserções passaram a comparar com a porta alocada, não com uma
+constante. 44 testes verdes — no mesmo host onde o orquestrador continua
+ouvindo na porta que quebrou tudo no começo.
+
+Ainda há uma janela de corrida minúscula (o socket fecha antes de o script
+checar a porta). Aceitei o risco conscientemente — e, se um dia ficar
+flaky, a saída é tentar de novo com outra porta, nunca reabrir a brecha no
+código de produção.
+
+**O que eu levo disso:**
+
+→ Se o teste quebra porque o ambiente é diferente do esperado, o defeito está
+no teste. Não enfraqueça o código de produção para consertar.
+→ Trocar um valor mágico por outro valor mágico é mascarar, não corrigir.
+→ Recursos efêmeros (portas, diretórios temporários) quem aloca é o sistema
+operacional, não você.
+→ Uma flag "só para teste" dentro de código de produção é uma decisão de
+segurança, mesmo que você não tenha percebido na hora.
+
+Você já abriu uma porta dos fundos "só pra teste passar"? Conta nos
+comentários — eu contei a minha.
+
+#Testes #EngenhariaDeSoftware #Backend #Seguranca #Python #DevOps #CleanCode #Docker
