@@ -1,5 +1,29 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Provisionamento multi-tenant homologado em produção, ajustes finos aplicados (2026-09-19)
+
+**Status do provisionamento multi-tenant:** operacional e homologado.
+`scripts/provision-client.sh` gera `deployments/<Cliente>/` autocontido
+(`.env` 600, `AGENTS.md` do nicho, `docker-compose.yml` com rede bridge
+dedicada `cliente-<slug>-net` + `healthcheck` nativo via `urllib.request`,
+`workflows/` com webhook sufixado pelo slug). Primeiro cliente-teste
+validado na Contabo (porta 8015, `/health` 200, `POST /v1/turn` isolado,
+`docker compose down` limpo, 8 containers de produção intactos). Compose
+gerado **sem `build:` relativo** — deploy em diretório isolado
+(`/root/meu-agente-clientes/deployments/<slug>/`) sobe com
+`docker compose up -d` puro sobre a imagem pré-compilada. Suíte
+`orchestrator/tests/test_provision_client.py`: 48/48 (100%), com
+asserções de rede bridge única blindadas. Detalhes:
+[SESSAO_2026-09-19.md](SESSAO_2026-09-19.md); runbook canônico: §§6.1–6.3
+de [PADRAO_CLIENTES_DOCKER.md](PADRAO_CLIENTES_DOCKER.md).
+
+**Próximos passos:** arquitetura do **Gateway OpenClaw por tenant**
+(compose do gateway por cliente na mesma rede `cliente-<slug>-net`,
+`GATEWAY_URL=http://gateway-<slug>:18789`, mount `AGENTS.md:ro` no
+gateway); depois n8n dedicado/cloudflared/TLS por cliente.
+
+---
+
 ## ✅ MARCO — Integração gateway ↔ orquestrador 100% ponta a ponta no Kali local (2026-08-27)
 
 Fechado o loop no ambiente **local (Kali)** — o Contabo já tinha o deploy
