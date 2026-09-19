@@ -11,7 +11,7 @@ bridge por DNS, sem `docker.sock`, consumidor do `AGENTS.md`, isolamento de
 sem mount `AGENTS.md:ro`), o alvo normativo é o descrito aqui.
 
 Objetivo: cada cliente = 1 pasta `deployments/<cliente>/` autocontida,
-subível com `docker compose up -d --build` a partir da própria pasta,
+subível com `docker compose up -d` a partir da própria pasta,
 sem conflito de portas/redes no mesmo host, usando só imagens construídas
 neste repositório.
 
@@ -66,11 +66,11 @@ por cliente exceto via substituição no provisionamento (`__SLUG__`,
 `__CLIENT_NAME__`, `__NICHE__`).
 
 ```yaml
-# Renderizado por scripts/provision-client.sh a partir de
-# templates/base/docker-compose.client.yml. Uso: docker compose up -d --build
+# Emitido diretamente por scripts/provision-client.sh (sem template
+# intermediário em templates/base/docker-compose.client.yml).
+# Uso: docker compose up -d
 services:
   orchestrator-__SLUG__:
-    build: ../../orchestrator              # imagem oficial do repo
     image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
     container_name: orchestrator-__SLUG__
     env_file:
@@ -89,12 +89,12 @@ services:
     networks:
       - net-__SLUG__                       # rede dedicada por cliente (abaixo)
     restart: unless-stopped
-    healthcheck:                           # hoje ausente no compose gerado;
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+    healthcheck:                           # conforme gerado pelo script;
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 10s
 
 networks:
   net-__SLUG__:
@@ -249,7 +249,7 @@ Novos arquivos gerados por cliente:
    permitir importar no mesmo n8n sem colisão.
 
 Critério de pronto: após `provision-client.sh --name X ... --port N`,
-`cd deployments/X && docker compose up -d --build && curl
+`cd deployments/X && docker compose up -d && curl
 http://localhost:N/health` retorna 200 sem tocar em outro cliente.
 
 ## 5. Viabilidade e não-conflitos
@@ -303,6 +303,12 @@ chave OpenRouter sem vazar o segredo e como provar o isolamento.
   docker compose up -d`.
 - Nunca republicar essa pasta de volta ao repo nem commitar `.env`/`data/`
   (gitignore já cobre `**/.env` e `**/data/`).
+- **Governança de imagem (operação):** como o compose desacoplado não faz
+  build em tempo de execução, a imagem
+  `${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}` precisa existir
+  previamente no host Docker (construída via
+  `docker build -t meu-agente-orchestrator:local orchestrator` ou obtida
+  via registry/ghcr.io) antes de disparar o `docker compose up -d`.
 
 ### 6.2 Cópia silenciosa e segura da chave OpenRouter
 
@@ -369,7 +375,7 @@ Executar do próprio host de produção, por cliente (trocar `<porta>` pela
    sem containers de outro tenant anexados (`docker network inspect
    cliente-<slug>-net -f '{{ range $k,$v := .Containers }}{{ $v.Name }} {{ end }}'`).
 3. **Saúde (liveness):** `curl -sf http://127.0.0.1:<porta>/health`
-   → HTTP 200. Repetir após `docker compose up -d --build` e após reboot
+   → HTTP 200. Repetir após `docker compose up -d` e após reboot
    (`restart: unless-stopped` deve trazer o container de volta; `docker ps
    --filter name=orchestrator-<slug>` mostra `healthy` após o
    `start_period`).
