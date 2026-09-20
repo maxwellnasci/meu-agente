@@ -3,7 +3,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from sse_starlette.sse import EventSourceResponse
 
 from orchestrator.config import settings
@@ -71,6 +71,28 @@ async def lifespan(app: FastAPI):
         yield
 
 
+def verify_api_token(request: Request) -> None:
+    """Dependencia de autenticacao dos endpoints protegidos.
+
+    Valida o token via `Authorization: Bearer <token>` ou
+    `X-Orchestrator-Token`. Se `settings.api_token` nao estiver
+    configurado (None/vazio), libera tudo (modo dev) para nao quebrar
+    suites existentes. Caso contrario, sem token ou com token invalido
+    responde 401 Unauthorized.
+    """
+    expected = settings.api_token
+    if not expected:
+        return
+    authorization = request.headers.get("authorization", "")
+    token: str | None = None
+    if authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip() or None
+    if token is None:
+        token = request.headers.get("x-orchestrator-token")
+    if not token or token != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+
 app = FastAPI(title="Orchestrator", version="0.1.0", lifespan=lifespan)
 
 
@@ -79,7 +101,7 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/v1/turn", response_model=TurnResponse)
+@app.post("/v1/turn", response_model=TurnResponse, dependencies=[Depends(verify_api_token)])
 async def turn(request: TurnRequest, http_request: Request) -> TurnResponse:
     """Endpoint sincrono consumido pela porta de entrada Node.js (Meta/
     WhatsApp Cloud): recebe uma mensagem, invoca o grafo ate o resultado
@@ -109,7 +131,7 @@ async def turn(request: TurnRequest, http_request: Request) -> TurnResponse:
     return TurnResponse(reply_text=reply_text)
 
 
-@app.post("/tasks/stream")
+@app.post("/tasks/stream", dependencies=[Depends(verify_api_token)])
 async def stream_task(request: TaskRequest, http_request: Request) -> EventSourceResponse:
     """Endpoint de streaming (SSE) de uma tarefa: liga o astream_events do
     grafo aos eventos tipados de schemas/events.py via event_mapper."""

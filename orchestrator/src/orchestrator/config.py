@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     # API
     host: str = "0.0.0.0"
     port: int = 8000
+    # Token de autenticacao dos endpoints protegidos (/v1/turn,
+    # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = modo dev,
+    # sem autenticacao (nao quebrar suites existentes).
+    api_token: str | None = None
 
     # OpenClaw gateway (Especialista em Programacao) - fala com o endpoint
     # OpenAI-compativel /v1/chat/completions do Gateway (ver
