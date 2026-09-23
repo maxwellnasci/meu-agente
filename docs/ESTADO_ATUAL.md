@@ -1,5 +1,25 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Deploy da imagem openclaw:local-sandboxed-v4 homologado em produção na Contabo (2026-09-23)
+
+Imagem `openclaw:local-sandboxed-v4` rodando em produção na Contabo,
+containers `openclaw-gateway` e `openclaw-cli` em estado `healthy`, GID
+988 ativo no grupo de execução para acesso ao Docker do sandbox. Backups
+completos (estado + configs + `SHA256SUMS`) em
+`/root/backups/pre-update-20260923-085535/` e tag de rollback rápido
+`openclaw:rollback-pre-v4` disponíveis caso necessário. Smoke test de 3
+turnos consecutivos no WhatsApp validado ao vivo com o Max (200 OK em
+todos), com persistência de sessão íntegra no checkpointer SQLite do
+LangGraph (mesmo `thread_id`, 157 checkpoints sem quebra de contexto).
+Detalhes: [SESSAO_2026-09-23.md](SESSAO_2026-09-23.md).
+
+**Próximos passos:** investigar ausência de logs do webhook do gateway
+em stdout do container; higienizar warnings de plugins obsoletos
+(`github-repo-report`, `ask-max`) no `openclaw.json` da VPS; arquitetura
+do Gateway OpenClaw por tenant (ver marco anterior).
+
+---
+
 ## ✅ MARCO — Provisionamento multi-tenant homologado em produção, ajustes finos aplicados (2026-09-19)
 
 **Status do provisionamento multi-tenant:** operacional e homologado.
