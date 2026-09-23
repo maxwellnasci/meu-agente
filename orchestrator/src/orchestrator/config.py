@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,20 @@ class Settings(BaseSettings):
     # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = modo dev,
     # sem autenticacao (nao quebrar suites existentes).
     api_token: str | None = None
+
+    @field_validator("api_token", mode="before")
+    @classmethod
+    def _normalize_api_token(cls, v: object) -> str | None:
+        """Simetria exata com o cliente TypeScript
+        (resolveOrchestratorApiToken em
+        extensions/whatsapp-cloud/src/orchestrator-client.ts): trim e
+        string vazia/so espacos vira None (modo dev, sem autenticacao)."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return v  # type: ignore[return-value]
+        stripped = v.strip()
+        return stripped or None
 
     # OpenClaw gateway (Especialista em Programacao) - fala com o endpoint
     # OpenAI-compativel /v1/chat/completions do Gateway (ver

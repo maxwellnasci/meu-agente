@@ -15,9 +15,11 @@ const DEFAULT_TURN_TIMEOUT_MS = 95_000;
 const TURN_ENDPOINT_PATH = "/v1/turn";
 
 export class OrchestratorClientError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
+  readonly status?: number;
+  constructor(message: string, options?: { cause?: unknown; status?: number }) {
     super(message, options);
     this.name = "OrchestratorClientError";
+    this.status = options?.status;
   }
 }
 
@@ -39,6 +41,28 @@ function resolveOrchestratorTurnTimeoutMs(): number {
   const raw = process.env.ORCHESTRATOR_TURN_TIMEOUT_MS;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TURN_TIMEOUT_MS;
+}
+
+/**
+ * Token de autenticacao do Orquestrador (ORCHESTRATOR_API_TOKEN). Deve ser
+ * identico ao configurado no servidor Python (orchestrator/.env). Retorna
+ * undefined quando ausente ou vazio - nesse caso o header e omitido e o
+ * servidor decide (401 com token ativo la, modo dev sem autenticacao caso
+ * contrario).
+ */
+export function resolveOrchestratorApiToken(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const raw = env.ORCHESTRATOR_API_TOKEN;
+  const token = raw?.trim();
+  return token ? token : undefined;
+}
+
+function buildTurnHeaders(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const token = resolveOrchestratorApiToken(env);
+  if (token !== undefined) {
+    headers["authorization"] = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 function buildOrchestratorSsrFPolicy(baseUrl: string) {
@@ -74,7 +98,7 @@ export async function callOrchestratorTurn(
       url,
       init: {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: buildTurnHeaders(),
         body: JSON.stringify({
           session_key: request.sessionKey,
           text: request.text,
@@ -95,7 +119,9 @@ export async function callOrchestratorTurn(
   }
 
   if (!responseOk) {
-    throw new OrchestratorClientError(`Orchestrator returned ${responseStatus}: ${responseText}`);
+    throw new OrchestratorClientError(`Orchestrator returned ${responseStatus}: ${responseText}`, {
+      status: responseStatus,
+    });
   }
 
   let parsed: { reply_text?: unknown };
