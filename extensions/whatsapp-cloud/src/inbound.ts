@@ -19,6 +19,7 @@ const ORCHESTRATOR_UNREACHABLE_FALLBACK_TEXT =
 type WhatsAppCloudLog = {
   info?: (message: string) => void;
   warn?: (message: string) => void;
+  error?: (message: string) => void;
 };
 
 export type WhatsAppCloudChannelRuntime = Pick<PluginRuntime["channel"], "pairing" | "routing">;
@@ -113,6 +114,11 @@ export async function dispatchWhatsAppCloudInboundEvent(params: {
     replyText = turn.replyText;
   } catch (err) {
     const message = err instanceof OrchestratorClientError ? err.message : String(err);
+    if (err instanceof OrchestratorClientError && (err.status === 401 || err.status === 403)) {
+      params.log?.error?.(
+        `Orquestrador: falha de autenticação (${err.status}) - token do Orquestrador ausente ou inválido (ORCHESTRATOR_API_TOKEN): ${message}`,
+      );
+    }
     params.log?.warn?.(`Orchestrator turn failed for ${from}: ${message}`);
     replyText = ORCHESTRATOR_UNREACHABLE_FALLBACK_TEXT;
   }

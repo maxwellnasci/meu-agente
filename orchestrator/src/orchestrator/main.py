@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -65,6 +66,11 @@ async def lifespan(app: FastAPI):
     """Abre o checkpointer (conexao sqlite assincrona) uma unica vez, monta o
     grafo sobre ele e guarda tudo em app.state - ver checkpointer.py sobre
     por que essa abertura nao pode acontecer por request."""
+    if not settings.api_token:
+        _logger.warning(
+            "ATENÇÃO: ORCHESTRATOR_API_TOKEN não está configurado. "
+            "Endpoints /v1/turn e /tasks/stream estão operando SEM autenticação (modo dev)."
+        )
     async with checkpointer_context() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
@@ -89,8 +95,13 @@ def verify_api_token(request: Request) -> None:
         token = authorization[7:].strip() or None
     if token is None:
         token = request.headers.get("x-orchestrator-token")
-    if not token or token != expected:
+    if not token or not _tokens_match(token, expected):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+
+def _tokens_match(provided: str, expected: str) -> bool:
+    """Comparacao em tempo constante (anti timing-attack)."""
+    return secrets.compare_digest(provided.encode("utf-8"), expected.encode("utf-8"))
 
 
 app = FastAPI(title="Orchestrator", version="0.1.0", lifespan=lifespan)
