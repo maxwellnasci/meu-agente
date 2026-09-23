@@ -38,3 +38,6 @@ scratch_*.py
 # Deployments locais de clientes (evita commit acidental de PII, telefones e configs de clientes)
 deployments/*
 !deployments/.gitkeep
+# Exceção: documentação de arquitetura do modelo de servidor dedicado (sem dados de cliente)
+!deployments/servidor-dedicado/
+!deployments/servidor-dedicado/README.md
