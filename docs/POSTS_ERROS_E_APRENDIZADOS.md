@@ -1,14 +1,14 @@
 # Erros Reais, Causas Raiz e Aprendizados — `meu-agente`
 
-> Este documento consolida quatro casos reais já investigados e corrigidos no
+> Este documento consolida cinco casos reais já investigados e corrigidos no
 > projeto `meu-agente`, na forma de (1) um dossiê técnico profundo de cada um,
 > (2) um template oficial de post-mortem para uso em futuros incidentes, e
-> (3) quatro rascunhos completos de posts para LinkedIn, prontos para revisão e
+> (3) cinco rascunhos completos de posts para LinkedIn, prontos para revisão e
 > publicação.
 >
 > Fontes primárias: `docs/RESOLUCAO_BUG_COMA_ETERNO.md`,
 > `docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md`, `P0_CONTENCAO_N8N_2026-09-06.md`,
-> `ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md`.
+> `ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md`, `docs/SESSAO_2026-09-23.md`.
 >
 > **Antes de publicar:** os posts abaixo foram escritos para não expor hosts,
 > tokens, números de telefone, nomes de clientes ou topologia de rede real.
@@ -527,6 +527,91 @@ porta 8000 (a condição que originalmente quebrava a suíte).
 
 ---
 
+### Caso 5 — Divergência de digest SHA256 entre Docker engines e cutover atômico sem downtime
+
+**Sistema afetado:** Gateway WhatsApp (`openclaw:local-sandboxed-v4`), deploy
+e cutover em produção na VPS Contabo.
+**Data do incidente:** 23/09/2026.
+
+#### Sintoma
+
+Depois do build local da imagem e da transferência via stream direto por SSH
+(`docker save | gzip | ssh contabo gunzip | docker load`), o digest SHA256 do
+manifesto da imagem carregada na VPS **não batia** com o digest do build
+local. À primeira vista, o sinal clássico de corrupção de imagem durante a
+transferência — motivo suficiente para abortar um deploy em produção.
+
+#### Diagnóstico e ferramental
+
+Em vez de aceitar o digest de topo como veredito final, a imagem foi
+inspecionada camada por camada, nos dois ambientes:
+
+```bash
+docker inspect --format='{{json .RootFS.Layers}}' openclaw:local-sandboxed-v4
+```
+
+A comparação revelou que **todas as camadas de dados (`RootFS.Layers`) eram
+100% idênticas**, bit a bit, entre o build local e a imagem carregada na
+Contabo — apesar do hash do manifesto de topo divergir. Isso descartou
+corrupção de dados como hipótese e apontou para uma diferença de ambiente,
+não de conteúdo:
+
+- **Local:** Docker 28.5.2, storage driver `overlay2`.
+- **Contabo:** Docker 29.6.1, storage driver `containerd overlayfs`.
+
+#### Causa raiz real
+
+Motores Docker com storage drivers diferentes serializam metadados e o
+manifesto de topo com formatos e assinaturas distintos, o que altera o
+digest final do manifesto **sem alterar os dados reais das camadas da
+imagem**. O digest de topo, nesse cenário, mede a serialização do metadado
+do daemon — não a integridade do conteúdo transferido.
+
+Um segundo risco estrutural foi identificado durante o planejamento do
+cutover, antes de virar incidente: o orquestrador Python (processo separado,
+fora do gateway) consome a mesma rede Docker externa (`openclaw_default`)
+que o gateway expõe. Um `docker compose down` nessa rede destruiria a bridge
+compartilhada e derrubaria o orquestrador junto — um efeito colateral que
+nada tem a ver com o gateway em si, mas que um `down`/`up` convencional
+teria disparado sem aviso.
+
+#### Correção
+
+- **Validação de integridade por camadas, não por digest de topo.**
+  `RootFS.Layers` idêntico nos dois daemons foi tratado como prova de
+  integridade real; o digest de topo divergente foi documentado como
+  esperado, não como falha.
+- **Transferência via pipe direto SSH**, sem gravar o `.tar` intermediário em
+  disco na VPS: `docker save | gzip | ssh contabo gunzip | docker load`,
+  concluída em ~72s, sem resíduos temporários a limpar depois.
+- **Snapshots de rollback explícitos antes do cutover**: backup dos arquivos
+  de estado e configuração (`openclaw-state.tar.gz`, `openclaw.json`,
+  `docker-compose.yml`, `env.bak`) com `SHA256SUMS`, mais duas tags de
+  imagem prontas para reverter em um comando
+  (`openclaw:rollback-pre-v4` e uma tag com timestamp).
+- **Cutover in-place com `docker compose up -d`, sem `docker compose down`**,
+  preservando a rede externa `openclaw_default` e evitando o efeito
+  colateral no orquestrador. `openclaw-gateway` e `openclaw-cli` atingiram
+  `healthy` sem interrupção observável.
+- **Validação pós-deploy com smoke test ao vivo**: 3 turnos reais de
+  WhatsApp respondidos com sucesso (200 OK), e conferência de que o
+  checkpointer SQLite (`checkpoints.sqlite`) manteve os 157 checkpoints do
+  `thread_id` de produção intactos, sem quebra de contexto de sessão.
+
+#### Lição de engenharia
+
+> Não julgue a integridade de uma imagem Docker só pelo digest de topo do
+> manifesto quando origem e destino usam daemons ou storage drivers
+> diferentes (`overlay2` vs `containerd overlayfs`) — esse digest reflete a
+> serialização de metadado do daemon, não necessariamente o conteúdo. A
+> prova real de integridade está nas camadas de dados (`RootFS.Layers`).
+> E: em arquiteturas onde múltiplos serviços compartilham uma rede Docker
+> externa, `compose down` é uma operação destrutiva além do serviço que você
+> está atualizando — prefira cutover in-place (`up -d` sem `down`) e sempre
+> tenha tags de rollback e snapshots prontos antes de tocar em produção.
+
+---
+
 ## Parte 2 — Template Oficial de Post-Mortem
 
 Salve como `docs/POSTMORTEM_TEMPLATE.md` e copie para um novo arquivo
@@ -624,7 +709,7 @@ estiver.
 
 ## Parte 3 — Posts para LinkedIn
 
-> Os quatro posts abaixo estão prontos para revisão final e publicação. Nomes
+> Os cinco posts abaixo estão prontos para revisão final e publicação. Nomes
 > de host, números de telefone, tokens e topologia de rede real foram
 > deliberadamente omitidos ou generalizados.
 
@@ -861,3 +946,79 @@ Você já abriu uma porta dos fundos "só pra teste passar"? Conta nos
 comentários — eu contei a minha.
 
 #Testes #EngenhariaDeSoftware #Backend #Seguranca #Python #DevOps #CleanCode #Docker
+
+---
+
+### Post 5 — O dia em que o digest da imagem Docker parecia corrompido em produção e o segredo do cutover sem downtime
+
+---
+
+Build local concluído. Imagem transferida para o servidor de produção via
+stream direto por SSH. Hora de conferir a integridade antes do cutover.
+
+Digest local: um hash. Digest na VPS: outro hash completamente diferente.
+
+Meu primeiro pensamento foi o óbvio: a imagem corrompeu na transferência.
+Abortar o deploy. Investigar do zero.
+
+Só que antes de abortar, decidi checar uma camada abaixo do óbvio.
+
+O digest de topo de uma imagem Docker não é só "o hash dos bytes". É o hash
+de um **manifesto** — e esse manifesto é serializado pelo daemon que está
+rodando. Meu ambiente local usava Docker 28.5.2 com storage driver
+`overlay2`. O servidor de produção, mais atualizado, rodava Docker 29.6.1
+com `containerd overlayfs`. Dois motores diferentes, duas formas diferentes
+de montar o metadado de topo — mesmo com o conteúdo real sendo idêntico.
+
+Fui direto na prova que realmente importa: as camadas de dados.
+
+```bash
+docker inspect --format='{{json .RootFS.Layers}}' openclaw:local-sandboxed-v4
+```
+
+Comparando a saída dos dois lados: **100% idêntico, bit a bit**. A imagem
+nunca tinha corrompido. O que divergia era só a assinatura do metadado do
+daemon — não uma linha do conteúdo real transferido.
+
+Com a integridade confirmada, faltava o segundo risco, esse identificado
+antes de virar problema: nosso orquestrador Python roda como processo
+separado do gateway, mas compartilha a mesma rede Docker externa com ele.
+Um `docker compose down` convencional destruiria essa rede bridge — e
+derrubaria o orquestrador junto, um efeito colateral silencioso que nada
+tem a ver com o serviço que eu estava atualizando.
+
+A solução: cutover in-place, sem `down`.
+
+```bash
+docker compose up -d
+```
+
+Sem derrubar a rede. Sem tocar no orquestrador. `openclaw-gateway` e
+`openclaw-cli` subiram, bateram `healthy`, e o smoke test ao vivo — 3 turnos
+reais de WhatsApp, 200 OK em todos — confirmou o que os números já diziam:
+zero downtime, sessão preservada (157 checkpoints do mesmo `thread_id`,
+sem quebra de contexto).
+
+Redes de segurança que valeram a pena ter prontas antes de começar:
+snapshot dos arquivos de estado e configuração com checksum, e duas tags de
+rollback (`openclaw:rollback-pre-v4` + uma com timestamp) — nenhuma das duas
+precisou ser usada, mas as duas estavam a um comando de distância se algo
+desse errado de verdade.
+
+**Lição que ficou:**
+
+→ Não julgue a integridade de uma imagem Docker só pelo digest de topo
+quando origem e destino rodam daemons ou storage drivers diferentes — esse
+hash mede a serialização do metadado, não necessariamente o conteúdo.
+Confira as camadas reais (`RootFS.Layers`) antes de gritar "corrupção".
+→ Em arquitetura com múltiplos serviços compartilhando uma rede Docker
+externa, `compose down` é mais destrutivo do que parece — prefira cutover
+in-place (`up -d` sem `down`).
+→ Tag de rollback e snapshot pré-deploy não são burocracia: são o motivo de
+você conseguir investigar um alarme com calma, em vez de reverter no
+pânico.
+
+Já teve um "falso alarme" de deploy que quase te fez reverter algo que
+estava, na verdade, 100% correto? Conta aí.
+
+#Docker #DevOps #SRE #EngenhariaDeConfiabilidade #Deploy #Infraestrutura #Backend
