@@ -26,6 +26,11 @@ CONFIG_FILE="$DIR/openclaw/openclaw.json"
 # este campo NÃO aceita SecretRef "${VAR}" — precisa de valor literal.
 PHONE_PLACEHOLDER="__WHATSAPP_CLOUD_PHONE_NUMBER_ID__"
 
+# Número de exemplo que aparece no comentário do .env.example. Se ele chegar
+# ao .env é porque alguém copiou a documentação em vez do número real — não
+# serve como valor e é recusado na etapa 5.
+PHONE_EXAMPLE="123456789012345"
+
 RUNTIME_UID=1000
 RUNTIME_GID=1000
 
@@ -129,17 +134,51 @@ read_env_value() {
 # literal, preenchido aqui a partir do .env.
 step "5/6  Inicializando openclaw/openclaw.json"
 
+# Troca o marcador do phoneNumberId em $CONFIG_FILE pelo valor do .env.
+# Define $phone_number_id para quem chamar. Retorna 0 se substituiu, 1 se o
+# .env ainda não tem um valor utilizável (o aviso de pendência cuida disso).
+fill_phone_placeholder() {
+  phone_number_id="$(read_env_value WHATSAPP_CLOUD_PHONE_NUMBER_ID)"
+
+  [ -n "$phone_number_id" ] || return 1
+
+  if [ "$phone_number_id" = "$PHONE_EXAMPLE" ]; then
+    warn "WHATSAPP_CLOUD_PHONE_NUMBER_ID ainda é o número de exemplo do"
+    warn ".env.example ($PHONE_EXAMPLE) — ignorado, use o número real."
+    return 1
+  fi
+
+  # Só dígitos: é o formato que a Meta emite e evita que metacaractere de
+  # um .env editado à mão (/, &, \) escape para o sed abaixo.
+  case "$phone_number_id" in
+    *[!0-9]*)
+      warn "WHATSAPP_CLOUD_PHONE_NUMBER_ID='$phone_number_id' não é só dígitos — ignorado."
+      return 1
+      ;;
+  esac
+
+  tmp_config="$(mktemp)"
+  sed "s/$PHONE_PLACEHOLDER/$phone_number_id/g" "$CONFIG_FILE" > "$tmp_config"
+  cat "$tmp_config" > "$CONFIG_FILE"   # `cat >` preserva inode e permissão
+  rm -f "$tmp_config"
+  return 0
+}
+
 if [ -f "$CONFIG_FILE" ]; then
-  ok "openclaw/openclaw.json já existe — preservado integralmente"
+  chmod 600 "$CONFIG_FILE"
+  ok "openclaw/openclaw.json já existe — preservado integralmente (permissão reforçada para 600)"
+
+  # Caso típico do 2º run: o 1º run gerou a config antes de o operador
+  # preencher o .env, então o marcador ficou no arquivo. Agora que o .env
+  # tem o número, resolvemos no lugar — sem exigir apagar o JSON nem editar
+  # à mão. Só o marcador é tocado; o resto da config editada é preservado.
+  if grep -q "$PHONE_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null && fill_phone_placeholder; then
+    ok "phoneNumberId atualizado no openclaw/openclaw.json existente a partir do .env ($phone_number_id)"
+  fi
 else
   cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
 
-  phone_number_id="$(read_env_value WHATSAPP_CLOUD_PHONE_NUMBER_ID)"
-  if [ -n "$phone_number_id" ]; then
-    tmp_config="$(mktemp)"
-    sed "s/$PHONE_PLACEHOLDER/$phone_number_id/g" "$CONFIG_FILE" > "$tmp_config"
-    cat "$tmp_config" > "$CONFIG_FILE"
-    rm -f "$tmp_config"
+  if fill_phone_placeholder; then
     ok "phoneNumberId preenchido a partir do .env ($phone_number_id)"
   fi
 
