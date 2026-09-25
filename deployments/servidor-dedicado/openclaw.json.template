@@ -1,0 +1,67 @@
+{
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "http": {
+      "endpoints": {
+        "chatCompletions": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "cron": {
+    "enabled": false
+  },
+  "agents": {
+    "defaults": {
+      "sandbox": {
+        "mode": "off",
+        "workspaceAccess": "none",
+        "scope": "agent"
+      },
+      "memorySearch": {
+        "enabled": false
+      }
+    }
+  },
+  "channels": {
+    "whatsapp-cloud": {
+      "enabled": true,
+      "phoneNumberId": "__WHATSAPP_CLOUD_PHONE_NUMBER_ID__",
+      "verifyToken": "${WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN}",
+      "appSecret": "${WHATSAPP_CLOUD_APP_SECRET}",
+      "accessToken": "${WHATSAPP_CLOUD_ACCESS_TOKEN}",
+      "dmPolicy": "open",
+      "allowFrom": ["*"]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "whatsapp-cloud": {
+        "enabled": true
+      },
+      "ask-max": {
+        "enabled": true,
+        "config": {
+          "channel": "whatsapp-cloud",
+          "to": "5541999999999",
+          "operatorName": "Operador",
+          "assistantName": "Assistente"
+        }
+      },
+      "github-repo-report": {
+        "enabled": false
+      }
+    }
+  },
+  "tools": {
+    "alsoAllow": ["ask_max"]
+  },
+  "session": {
+    "dmScope": "per-peer"
+  }
+}
