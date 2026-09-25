@@ -106,15 +106,59 @@ Regras de rede válidas para os dois moldes, sem exceção:
 3. Testes ponta a ponta com **teardown seguro** (`docker compose down -v`)
    entre iterações, garantindo que nenhum estado de teste vaze para o
    próximo ciclo.
-4. **Script futuro de bootstrap zero-touch** para VPS virgem (Ubuntu 24.04) —
-   ainda não implementado; objetivo é permitir provisionar um cliente novo
-   com o mínimo de passos manuais.
+4. **Script futuro de bootstrap zero-touch** para VPS virgem (Ubuntu 24.04)
+   — provisionar o host do zero (Docker, usuário, firewall) ainda não está
+   implementado. O `bootstrap.sh` atual cobre o passo seguinte: prepara o
+   diretório de deploy (bind mounts, dono UID 1000, `.env` 600,
+   `openclaw.json` a partir do template) de forma idempotente.
+
+---
+
+## Armadilhas conhecidas do Molde 1
+
+Duas regras que não são óbvias lendo só o compose, e que já causaram
+falha silenciosa:
+
+### `phoneNumberId` exige valor literal
+
+Em `channels.whatsapp-cloud`, os campos `accessToken`, `appSecret` e
+`verifyToken` aceitam SecretRef de ambiente `${VAR}` — passam por
+`resolveConfiguredSecretInputString()` (`src/config/types.secrets.ts`).
+O `phoneNumberId` **não**: ele é lido cru em
+`extensions/whatsapp-cloud/src/accounts.ts`
+(`String(merged.phoneNumberId ?? "").trim()`). Um `${VAR}` ali vira string
+literal e o agente falha **em silêncio nos dois sentidos** — não envia (URL
+do Graph inválida) e não recebe (webhook recusado por `phone_number_id`
+divergente).
+
+Por isso o `openclaw.json.template` traz o marcador
+`__WHATSAPP_CLOUD_PHONE_NUMBER_ID__`, que o `bootstrap.sh` substitui pelo
+número em dígitos vindo do `.env`. Se o marcador sobreviver, o bootstrap
+avisa antes de você subir a stack.
+
+### `dmPolicy`/`allowFrom` abertos por padrão
+
+O template sobe com `"dmPolicy": "open"` e `"allowFrom": ["*"]` de
+propósito, para não travar o handshake inicial nem o onboarding da empresa.
+Em produção, quando o número é restrito ou de uso interno, troque para
+`"dmPolicy": "allowlist"` e liste os contatos autorizados em `allowFrom`
+(DDI+DDD+número, só dígitos). Deixar `open` em número público significa
+responder a desconhecidos e gastar LLM com tráfego não autorizado.
 
 ---
 
 ## Status
 
-Este documento registra a **arquitetura definida**, ainda sem os artefatos de
-implementação (docker-compose dos moldes, script de bootstrap). Próximos
-passos ficam fora do escopo deste README e serão tratados em tarefas
-subsequentes.
+Este documento registra a **arquitetura definida** e, para o **Molde 1 — Kit
+Agente Essencial**, os artefatos de implementação já criados e validados
+localmente:
+
+| Artefato | Função |
+| --- | --- |
+| `docker-compose.molde1.yml` | Stack Core (gateway + orquestrador + cloudflared) na rede `agente-net`, sem porta publicada no host |
+| `.env.example` | Modelo versionado de variáveis, só placeholders |
+| `openclaw.json.template` | Config do gateway com SecretRefs e marcador do `phoneNumberId` |
+| `bootstrap.sh` | Prepara a VPS: bind mounts, permissões UID 1000, `.env` 600, config a partir do template, `docker compose config -q` |
+
+Pendente: os artefatos do **Molde 2 — Kit Power-Up de Automações** (`n8n` +
+`postgres` + ingress adicional) e o script de bootstrap zero-touch do host.
