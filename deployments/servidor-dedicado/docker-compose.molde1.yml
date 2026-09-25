@@ -161,7 +161,7 @@ services:
     environment:
       # Token do conector (Cloudflare Zero Trust). O ingress do tunnel é
       # configurado no dashboard apontando para http://openclaw-gateway:18789.
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?defina TUNNEL_TOKEN no .env}
     # cap_drop ALL é omitido de propósito aqui: o cloudflared usa socket
     # ICMP/raw para o proxy de ping e degrada com erro se perder a
     # capability. no-new-privileges cobre o essencial.
