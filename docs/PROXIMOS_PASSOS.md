@@ -5,12 +5,20 @@
 O agente está vivo (`deepseek/deepseek-chat`, v2026.6.9) mas rodando **sem sandbox**.
 Antes de qualquer nova feature, religar o isolamento é o passo zero.
 
+### Marco 25/09/2026 — Molde 1 (Servidor Dedicado) concluído
+
+- [x] **Molde 1 — Kit Agente Essencial em Servidor Dedicado concluído e homologado em laboratório:** artefatos fechados em `deployments/servidor-dedicado/` (`docker-compose.molde1.yml`, `.env.example`, `openclaw.json.template`, `bootstrap.sh`, `README.md`). Stack Core (gateway + orquestrador + cloudflared) na rede `agente-net` sem porta publicada no host; bootstrap idempotente validado em 3 runs (bind mounts `755`/UID 1000, `.env` e `openclaw.json` em `600`, `.env` preservado byte-a-byte no 2º run, `docker compose config -q` exit 0). Detalhes: [SESSAO_2026-09-25.md](SESSAO_2026-09-25.md).
+- [x] **Blindagem da falha silenciosa do `phoneNumberId`:** o campo não aceita SecretRef `${VAR}` (lido cru em `accounts.ts:82`) e o webhook responde `200 OK` no mismatch (`webhook.ts:176-180`), então a Meta não reenvia e a mensagem some sem erro. Resolvido com marcador literal `__WHATSAPP_CLOUD_PHONE_NUMBER_ID__` substituído automaticamente pelo `bootstrap.sh`, aviso se o marcador sobreviver e guard-rails de validação do valor.
+
 ### Marco 19/09/2026 — Provisionador multi-tenant homologado
 
 - [x] **Provisionador Multi-tenant do Orquestrador homologado:** `scripts/provision-client.sh` gerando diretórios autocontidos em `deployments/<slug>/`, isolamento de rede bridge dedicada `cliente-<slug>-net`, `docker-compose.yml` sem `build:` relativo, healthcheck nativo com `urllib.request` e suíte de 48 testes unitários/e2e passando (100%). Detalhes: [SESSAO_2026-09-19.md](SESSAO_2026-09-19.md).
 
 ### Próxima prioridade imediata (retorno)
 
+- [ ] **Molde 2 — Kit Agente + Automação n8n (add-on do Servidor Dedicado):** criar `deployments/servidor-dedicado/docker-compose.molde2.yml` somando ao Molde 1 um **n8n dedicado** e um **PostgreSQL dedicado** ao n8n, e configurar **2 hostnames no Cloudflare Tunnel** (`agente.<cliente>.com.br` para o gateway e `automacoes.<cliente>.com.br` para o n8n), mantendo a regra de zero porta publicada no host. VPS sobe para 4GB RAM / 2 vCPU. Pré-requisito já pronto: Molde 1 (marco 25/09).
+- [ ] **Fechar a validação do Molde 1 com stack de pé:** o laboratório parou em `docker compose config -q`. Falta um ciclo com `docker compose up -d` real + smoke test de webhook antes do primeiro cliente em produção.
+- [ ] **Bootstrap zero-touch do host (Ubuntu 24.04):** instalar Docker, criar usuário e firewall antes do `bootstrap.sh` atual, que hoje cobre apenas o diretório de deploy.
 - [ ] **Arquitetura e provisionamento do Gateway OpenClaw por tenant:** incluir container do gateway no compose do cliente sob a mesma rede isolada `cliente-<slug>-net`, com `openclaw.json` gerado, `AGENTS.md:ro` montado e `orchestrator-bridge` conectado.
 
 ### Prioridade 🔴 URGENTE
@@ -71,7 +79,7 @@ Aplicar esse aprendizado e arcabouço tecnológico sólido no projeto **MXOS**, 
 
 ---
 
-*Atualizado em 2026-09-19. O passo de segurança é a porta de entrada para tudo que vem depois.*
+*Atualizado em 2026-09-25. O passo de segurança é a porta de entrada para tudo que vem depois.*
 
 ## Pendência: nginx-app-1 não sobe automaticamente após reboot
 
