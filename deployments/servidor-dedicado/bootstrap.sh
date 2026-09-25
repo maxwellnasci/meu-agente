@@ -218,6 +218,22 @@ fi
 
 cat <<INSTRUCTIONS
 
+   >>> ATENÇÃO — política de acesso ao agente:
+       O template sobe com "dmPolicy": "open" e "allowFrom": ["*"], ou
+       seja, QUALQUER número que mandar mensagem é atendido. Isso é
+       proposital: facilita o teste do handshake e o onboarding rápido
+       da empresa, sem travar na allowlist.
+
+       Em produção, se o número for restrito ou de uso interno, troque
+       em channels.whatsapp-cloud para allowlist explícita:
+
+         "dmPolicy": "allowlist",
+         "allowFrom": ["5541999999999", "5511988887777"]
+
+       (DDI+DDD+número, só dígitos, um item por contato autorizado.)
+       Mantendo "open" em um número público, o agente responde a
+       desconhecidos e consome LLM com quem você não autorizou.
+
    Opcional: telefone/nome do operador em plugins.entries.ask-max.config
    ("to", "operatorName", "assistantName"). O "to" deve ser o MESMO
    número de ORCHESTRATOR_ATTENDANT_OPERATOR_TO no .env.
