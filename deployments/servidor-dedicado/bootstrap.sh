@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+#
+# Molde 1 — Kit Agente Essencial | bootstrap de VPS virgem
+#
+# Prepara o diretório de deploy para o primeiro `docker compose up -d`:
+# cria os bind mounts com dono correto (UID 1000), inicializa `.env` e
+# `openclaw/openclaw.json` a partir dos modelos versionados e valida a
+# sintaxe do compose.
+#
+# IDEMPOTENTE: rodar de novo nunca sobrescreve `.env` nem
+# `openclaw/openclaw.json` já existentes — só reforça permissões.
+#
+#   ./bootstrap.sh
+#
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+COMPOSE_FILE="$DIR/docker-compose.molde1.yml"
+ENV_FILE="$DIR/.env"
+ENV_EXAMPLE="$DIR/.env.example"
+CONFIG_TEMPLATE="$DIR/openclaw.json.template"
+CONFIG_FILE="$DIR/openclaw/openclaw.json"
+
+# Marcador do phoneNumberId no template. Ver bloco "Nota" na etapa 5:
+# este campo NÃO aceita SecretRef "${VAR}" — precisa de valor literal.
+PHONE_PLACEHOLDER="__WHATSAPP_CLOUD_PHONE_NUMBER_ID__"
+
+RUNTIME_UID=1000
+RUNTIME_GID=1000
+
+info()  { printf '  %s\n' "$*"; }
+ok()    { printf '  [ok]    %s\n' "$*"; }
+warn()  { printf '  [aviso] %s\n' "$*" >&2; }
+step()  { printf '\n==> %s\n' "$*"; }
+die()   { printf '\n[ERRO] %s\n' "$*" >&2; exit 1; }
+
+# ---------------------------------------------------------------------
+# 1. Pré-requisitos do host
+# ---------------------------------------------------------------------
+step "1/6  Checando pré-requisitos"
+
+if ! command -v docker >/dev/null 2>&1; then
+  die "docker não encontrado no PATH.
+       Instale com:  curl -fsSL https://get.docker.com | sh"
+fi
+ok "docker encontrado ($(docker --version 2>/dev/null | head -1))"
+
+if ! docker compose version >/dev/null 2>&1; then
+  die "'docker compose' (v2) não encontrado.
+       O plugin v2 é obrigatório — 'docker-compose' v1 (com hífen) não serve.
+       Instale o pacote docker-compose-plugin da sua distro."
+fi
+ok "docker compose v2 encontrado ($(docker compose version --short 2>/dev/null))"
+
+[ -f "$COMPOSE_FILE" ]    || die "arquivo não encontrado: $COMPOSE_FILE"
+[ -f "$ENV_EXAMPLE" ]     || die "arquivo não encontrado: $ENV_EXAMPLE"
+[ -f "$CONFIG_TEMPLATE" ] || die "arquivo não encontrado: $CONFIG_TEMPLATE"
+ok "modelos versionados presentes (compose, .env.example, openclaw.json.template)"
+
+# ---------------------------------------------------------------------
+# 2. Bind mounts
+# ---------------------------------------------------------------------
+step "2/6  Criando bind mounts"
+
+mkdir -p "$DIR/openclaw" "$DIR/workspace" "$DIR/data"
+ok "diretórios openclaw/ workspace/ data/ prontos"
+
+# ---------------------------------------------------------------------
+# 3. Permissões POSIX
+# ---------------------------------------------------------------------
+# Os containers rodam como UID 1000. Se o Docker criar estes diretórios
+# sozinho eles nascem root:root e o primeiro reply morre com EACCES.
+step "3/6  Ajustando dono e permissões dos bind mounts"
+
+chmod 755 "$DIR/openclaw" "$DIR/workspace" "$DIR/data"
+
+chown_targets() { chown -R "$RUNTIME_UID:$RUNTIME_GID" "$DIR/openclaw" "$DIR/workspace" "$DIR/data"; }
+
+if [ "$(id -u)" -eq 0 ]; then
+  chown_targets
+  ok "chown -R $RUNTIME_UID:$RUNTIME_GID aplicado (root)"
+elif chown_targets 2>/dev/null; then
+  ok "chown -R $RUNTIME_UID:$RUNTIME_GID aplicado (já era o dono)"
+elif command -v sudo >/dev/null 2>&1 && sudo -n chown -R "$RUNTIME_UID:$RUNTIME_GID" \
+       "$DIR/openclaw" "$DIR/workspace" "$DIR/data" 2>/dev/null; then
+  ok "chown -R $RUNTIME_UID:$RUNTIME_GID aplicado (sudo)"
+else
+  warn "não foi possível aplicar chown para $RUNTIME_UID:$RUNTIME_GID."
+  warn "Se os containers falharem com EACCES, rode manualmente:"
+  warn "  sudo chown -R $RUNTIME_UID:$RUNTIME_GID '$DIR/openclaw' '$DIR/workspace' '$DIR/data'"
+fi
+
+# ---------------------------------------------------------------------
+# 4. .env
+# ---------------------------------------------------------------------
+step "4/6  Inicializando .env"
+
+if [ -f "$ENV_FILE" ]; then
+  chmod 600 "$ENV_FILE"
+  ok ".env já existe — preservado integralmente (permissão reforçada para 600)"
+else
+  cp "$ENV_EXAMPLE" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  ok ".env criado a partir de .env.example (600)"
+fi
+
+# Lê uma chave do .env sem dar `source` no arquivo (evita execução de
+# conteúdo arbitrário vindo de um .env editado à mão).
+read_env_value() {
+  sed -n "s/^[[:space:]]*$1=//p" "$ENV_FILE" 2>/dev/null \
+    | tail -1 \
+    | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
+    | tr -d '[:space:]'
+}
+
+# ---------------------------------------------------------------------
+# 5. openclaw.json
+# ---------------------------------------------------------------------
+# Nota (validado no código do OpenClaw, 2026-09-25):
+# channels.whatsapp-cloud.{verifyToken,appSecret,accessToken} passam por
+# resolveConfiguredSecretInputString() e aceitam SecretRef de ambiente
+# "${VAR}" (src/config/types.secrets.ts, ENV_SECRET_TEMPLATE_RE).
+# `phoneNumberId` NÃO: extensions/whatsapp-cloud/src/accounts.ts lê o
+# campo cru via String(merged.phoneNumberId ?? "").trim(). Um "${VAR}"
+# ali viraria a string literal e o agente morreria em silêncio nos dois
+# sentidos (URL do Graph inválida no envio; webhook recusado por
+# phone_number_id divergente). Por isso o template traz um marcador
+# literal, preenchido aqui a partir do .env.
+step "5/6  Inicializando openclaw/openclaw.json"
+
+if [ -f "$CONFIG_FILE" ]; then
+  ok "openclaw/openclaw.json já existe — preservado integralmente"
+else
+  cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
+
+  phone_number_id="$(read_env_value WHATSAPP_CLOUD_PHONE_NUMBER_ID)"
+  if [ -n "$phone_number_id" ]; then
+    tmp_config="$(mktemp)"
+    sed "s/$PHONE_PLACEHOLDER/$phone_number_id/g" "$CONFIG_FILE" > "$tmp_config"
+    cat "$tmp_config" > "$CONFIG_FILE"
+    rm -f "$tmp_config"
+    ok "phoneNumberId preenchido a partir do .env ($phone_number_id)"
+  fi
+
+  chown "$RUNTIME_UID:$RUNTIME_GID" "$CONFIG_FILE" 2>/dev/null || true
+  chmod 600 "$CONFIG_FILE"
+  ok "openclaw/openclaw.json criado a partir do template (600)"
+fi
+
+# Vale para arquivo novo E para arquivo preservado: o marcador precisa
+# sumir antes de subir, senão a falha é silenciosa.
+phone_pending=0
+if grep -q "$PHONE_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null; then
+  phone_pending=1
+  warn "openclaw/openclaw.json ainda contém o marcador $PHONE_PLACEHOLDER."
+  warn "Este campo NÃO aceita \${VAR} — precisa do número literal."
+fi
+
+# ---------------------------------------------------------------------
+# 6. Sanidade do compose
+# ---------------------------------------------------------------------
+# TUNNEL_TOKEN é obrigatório no compose (\${TUNNEL_TOKEN:?...}); aqui usamos
+# um valor descartável só para checar SINTAXE, sem exigir o token real.
+step "6/6  Validando sintaxe do docker-compose.molde1.yml"
+
+if env TUNNEL_TOKEN=placeholder_check docker compose -f "$COMPOSE_FILE" config -q 2>/dev/null; then
+  ok "sintaxe do compose válida"
+else
+  die "docker compose config falhou. Saída completa:
+$(env TUNNEL_TOKEN=placeholder_check docker compose -f "$COMPOSE_FILE" config 2>&1 | tail -20)"
+fi
+
+# ---------------------------------------------------------------------
+# Instruções finais
+# ---------------------------------------------------------------------
+cat <<INSTRUCTIONS
+
+========================================================================
+Bootstrap concluído. Próximos passos (manuais):
+========================================================================
+
+1. Preencher os segredos do cliente no .env:
+
+     nano $DIR/.env
+
+   Obrigatórios para subir:
+     - TUNNEL_TOKEN                          (Cloudflare Zero Trust)
+     - WHATSAPP_CLOUD_ACCESS_TOKEN           (System User, permanente)
+     - WHATSAPP_CLOUD_PHONE_NUMBER_ID        (só dígitos)
+     - WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN   (openssl rand -hex 16)
+     - WHATSAPP_CLOUD_APP_SECRET             (App Secret do app Meta)
+     - ORCHESTRATOR_OPENROUTER_API_KEY       (https://openrouter.ai/keys)
+     - OPENCLAW_GATEWAY_TOKEN                (openssl rand -hex 32)
+     - ORCHESTRATOR_API_TOKEN                (openssl rand -hex 32)
+
+2. Ajustar a config do gateway:
+
+     nano $DIR/openclaw/openclaw.json
+INSTRUCTIONS
+
+if [ "$phone_pending" -eq 1 ]; then
+  cat <<INSTRUCTIONS
+
+   >>> OBRIGATÓRIO: trocar $PHONE_PLACEHOLDER
+       pelo WHATSAPP_CLOUD_PHONE_NUMBER_ID literal (só dígitos).
+       Diferente dos tokens, este campo não resolve \${VAR}: deixá-lo
+       assim faz o agente falhar EM SILÊNCIO (não envia e não recebe).
+       Alternativa: preencha o .env e recrie a config com
+         rm $DIR/openclaw/openclaw.json && $DIR/bootstrap.sh
+INSTRUCTIONS
+else
+  cat <<INSTRUCTIONS
+
+   (phoneNumberId já preenchido a partir do .env.)
+INSTRUCTIONS
+fi
+
+cat <<INSTRUCTIONS
+
+   Opcional: telefone/nome do operador em plugins.entries.ask-max.config
+   ("to", "operatorName", "assistantName"). O "to" deve ser o MESMO
+   número de ORCHESTRATOR_ATTENDANT_OPERATOR_TO no .env.
+
+3. Subir a stack:
+
+     cd $DIR && docker compose -f docker-compose.molde1.yml up -d
+
+   Acompanhar o boot:
+     docker compose -f docker-compose.molde1.yml logs -f
+
+========================================================================
+INSTRUCTIONS
