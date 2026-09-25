@@ -1,5 +1,43 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Molde 1 (Kit Agente Essencial em Servidor Dedicado) 100% implementado e homologado em laboratório (2026-09-25)
+
+Linha de **Servidor Dedicado por cliente** com seus artefatos de
+implementação fechados em `deployments/servidor-dedicado/`:
+`docker-compose.molde1.yml` (gateway + orquestrador + cloudflared na rede
+`agente-net`, zero porta publicada no host), `.env.example`,
+`openclaw.json.template`, `bootstrap.sh` e `README.md`. Homologado em
+laboratório descartável simulando VPS virgem: 1º boot cria bind mounts em
+`755`/UID 1000, `.env` e `openclaw.json` em `600`; 2º boot preserva o
+`.env` byte-a-byte (sha256 idêntico) e resolve o marcador do
+`phoneNumberId` no JSON existente sem tocar em edições manuais (inode e
+permissão preservados); `docker compose config -q` exit 0. Idempotência
+confirmada em 3 runs consecutivos.
+
+**Blindagem contra falha silenciosa do `phoneNumberId`:** descoberto que o
+campo **não** aceita SecretRef `${VAR}` — é lido cru em
+`extensions/whatsapp-cloud/src/accounts.ts:82`. Um `${VAR}` ali quebra
+envio (URL do Graph inválida) **e** recebimento, sendo que o webhook
+responde `200 OK` no mismatch (`webhook.ts:176-180`): a Meta não reenvia e
+a mensagem some sem erro. Mitigado com o marcador literal
+`__WHATSAPP_CLOUD_PHONE_NUMBER_ID__` no template, substituição automática
+pelo `bootstrap.sh` a partir do `.env`, aviso bloqueante se o marcador
+sobreviver, e guard-rails que recusam o número de exemplo da doc e valores
+não-numéricos.
+
+**Prontidão:** o Molde 1 está pronto para provisionar um cliente novo, com
+a ressalva de que a validação parou em `config -q` — falta um ciclo com
+`docker compose up -d` real e smoke test de webhook antes do primeiro
+deploy de produção. Produção na Contabo (Amigão, n8n, WhatsApp) **não foi
+tocada** nesta sessão. Detalhes:
+[SESSAO_2026-09-25.md](SESSAO_2026-09-25.md).
+
+**Próximos passos:** **Molde 2 — Kit Agente + Automação n8n**
+(`docker-compose.molde2.yml` com `n8n` + `postgres` dedicado e 2 hostnames
+no Cloudflare Tunnel); bootstrap zero-touch do host Ubuntu 24.04.
+
+---
+
 ## ✅ MARCO — Deploy da imagem openclaw:local-sandboxed-v4 homologado em produção na Contabo (2026-09-23)
 
 Imagem `openclaw:local-sandboxed-v4` rodando em produção na Contabo,
