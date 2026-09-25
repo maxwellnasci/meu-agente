@@ -1,0 +1,193 @@
+# Molde 1 — Kit Agente Essencial (Core Standalone / Entrada)
+#
+# Deploy SINGLE-TENANT: uma VPS por empresa cliente (2 vCPU / 2GB RAM).
+# Ver `README.md` nesta pasta para a arquitetura e o modelo comercial.
+#
+# Serviços: openclaw-gateway (WhatsApp) + orchestrator (cérebro LangGraph)
+# + cloudflared (único caminho de entrada, 100% outbound).
+#
+# Postura de rede (regra do molde, sem exceção):
+#   - ZERO portas publicadas no host (nenhum bloco `ports:`).
+#   - Comunicação só pela bridge dedicada `agente-net`, por nome de serviço.
+#   - Entrada externa só via Cloudflare Tunnel (conexão iniciada de dentro
+#     para fora; nenhum listener público na VPS, firewall sem porta aberta).
+#
+# Blindagem do runtime (diferença deliberada do compose de desenvolvimento):
+#   - SEM mount de /var/run/docker.sock e SEM group_add/DOCKER_GID: o agente
+#     do cliente não recebe controle do daemon Docker da VPS (docker.sock é
+#     root equivalente no host).
+#   - SEM mounts de desenvolvimento (~/.claude/skills, raiz do repo).
+#   - SEM extra_hosts/host.docker.internal: o orquestrador é alcançado pelo
+#     nome do serviço na `agente-net`, não pelo host.
+#   - no-new-privileges + cap_drop ALL nos dois serviços core.
+#
+# Preparação da VPS (ANTES do primeiro `up`) — os 3 diretórios abaixo são
+# bind mounts; se o Docker os criar sozinho eles nascem root:root e os
+# containers (que rodam como UID 1000) não conseguem escrever:
+#
+#   cp .env.example .env && chmod 600 .env   # edite com as credenciais
+#   mkdir -p openclaw workspace data
+#   sudo chown -R 1000:1000 openclaw workspace data
+#   docker compose -f docker-compose.molde1.yml up -d
+#
+# Teardown de teste (apaga volumes anônimos, preserva os bind mounts):
+#   docker compose -f docker-compose.molde1.yml down -v
+
+services:
+  # ---------------------------------------------------------------------
+  # Gateway OpenClaw — canal WhatsApp Cloud API + plugins (ask-max).
+  # ---------------------------------------------------------------------
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-openclaw:local-sandboxed-v4}
+    container_name: openclaw-gateway
+    # `lan` = bind 0.0.0.0 (ver src/gateway/net.ts): obrigatório para o
+    # gateway responder ao cloudflared e ao orquestrador na bridge interna.
+    # Com `loopback` (default do código) ele só atenderia a si mesmo.
+    # Continua sem exposição pública: não há `ports:` neste arquivo.
+    command: ["openclaw", "gateway", "--bind", "lan"]
+    environment:
+      # Fixa os paths de estado/config/workspace DENTRO do container. Sem
+      # isso, valores de HOME/OPENCLAW_* vazados do host quebram o primeiro
+      # reply com EACCES em mkdir (upstream #77436).
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      # Bonjour/mDNS não tem uso em VPS single-tenant: 1 = desligado.
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      TZ: ${TZ:-America/Sao_Paulo}
+      # Auth do gateway (server-side).
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      # Credenciais Meta lidas por openclaw.json via SecretRef de ambiente
+      # (ex.: "accessToken": "${WHATSAPP_CLOUD_ACCESS_TOKEN}").
+      WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
+      WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID:-}
+      WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN:-}
+      WHATSAPP_CLOUD_APP_SECRET: ${WHATSAPP_CLOUD_APP_SECRET:-}
+      # Cliente do orquestrador no plugin whatsapp-cloud
+      # (extensions/whatsapp-cloud/src/orchestrator-client.ts).
+      ORCHESTRATOR_URL: ${ORCHESTRATOR_URL:-http://orchestrator:8000}
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:-}
+      ORCHESTRATOR_TURN_TIMEOUT_MS: ${ORCHESTRATOR_TURN_TIMEOUT_MS:-160000}
+    volumes:
+      # Estado + config do gateway (openclaw.json, sessões, logs).
+      - ./openclaw:/home/node/.openclaw
+      # Workspace do agente, separado do estado para backup independente.
+      - ./workspace:/home/node/.openclaw/workspace
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      # /healthz é probe raso e sem auth (src/gateway/control-ui-routing.ts).
+      # `node -e` porque a imagem não tem curl/wget garantidos.
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # Orquestrador — cérebro LangGraph (FastAPI), persistência SQLite local.
+  # ---------------------------------------------------------------------
+  orchestrator:
+    image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
+    container_name: orchestrator
+    # A imagem roda como root por default; fixar 1000:1000 garante que o
+    # checkpoints.sqlite apareça no host como arquivo do usuário da VPS
+    # (backup/rsync sem sudo) em vez de root.
+    user: "1000:1000"
+    env_file:
+      # Único bloco env_file do arquivo: o orquestrador precisa de muitas
+      # ORCHESTRATOR_* (ver orchestrator/src/orchestrator/config.py).
+      - path: .env
+        required: false
+    environment:
+      # Defaults explícitos: valem mesmo se o .env não existir/estiver
+      # incompleto, e documentam a topologia interna do molde.
+      ORCHESTRATOR_HOST: ${ORCHESTRATOR_HOST:-0.0.0.0}
+      ORCHESTRATOR_PORT: ${ORCHESTRATOR_PORT:-8000}
+      ORCHESTRATOR_OPENCLAW_GATEWAY_URL: ${ORCHESTRATOR_OPENCLAW_GATEWAY_URL:-http://openclaw-gateway:18789}
+      ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH: ${ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH:-/app/data/checkpoints.sqlite}
+    volumes:
+      # Persistência do checkpoints.sqlite (memória de conversa).
+      - ./data:/app/data
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    healthcheck:
+      # python urllib: a imagem é python:3.11-slim, não tem curl.
+      test: ["CMD", "python", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').getcode() == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # Cloudflare Tunnel — único ingress do molde, 100% outbound.
+  # ---------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    # O entrypoint oficial já injeta `cloudflared --no-autoupdate`.
+    command: ["run"]
+    environment:
+      # Token do conector (Cloudflare Zero Trust). O ingress do tunnel é
+      # configurado no dashboard apontando para http://openclaw-gateway:18789.
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    # cap_drop ALL é omitido de propósito aqui: o cloudflared usa socket
+    # ICMP/raw para o proxy de ping e degrada com erro se perder a
+    # capability. no-new-privileges cobre o essencial.
+    security_opt:
+      - "no-new-privileges:true"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    depends_on:
+      # Só abre o tunnel depois que os dois serviços core respondem: evita
+      # publicar um webhook que devolveria 502 para a Meta no boot.
+      openclaw-gateway:
+        condition: service_healthy
+      orchestrator:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+networks:
+  agente-net:
+    name: agente-net
+    driver: bridge
