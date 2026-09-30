@@ -41,3 +41,9 @@ deployments/*
 # Exceção: documentação de arquitetura do modelo de servidor dedicado (sem dados de cliente)
 !deployments/servidor-dedicado/
 !deployments/servidor-dedicado/README.md
+# Runtime gerado pelo bootstrap do servidor dedicado (nunca versionar: segredos/dados reais)
+deployments/servidor-dedicado/n8n/
+deployments/servidor-dedicado/workspace/
+deployments/servidor-dedicado/openclaw/
+deployments/servidor-dedicado/data/
+deployments/servidor-dedicado/.env
