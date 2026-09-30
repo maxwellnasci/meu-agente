@@ -35,20 +35,17 @@
 #     boot — omitido de propósito aqui, mesma lógica documentada para o
 #     cloudflared no Molde 1. no-new-privileges continua valendo.
 #
-# Preparação da VPS (ANTES do primeiro `up`) — bind mounts nascem
-# root:root se o Docker os criar sozinho; containers do gateway/n8n
-# rodam como UID 1000 e não conseguem escrever nesse caso:
+# Preparação da VPS (ANTES do primeiro `up`) — use o bootstrap dedicado ao
+# Molde 2, que cria os bind mounts (incluindo `n8n/`) já com dono UID 1000
+# (containers do gateway/n8n rodam como esse UID e não conseguem escrever
+# em diretórios criados root:root pelo Docker):
 #
-#   cp .env.example .env && chmod 600 .env   # edite com as credenciais
-#   mkdir -p openclaw workspace data n8n
-#   sudo chown -R 1000:1000 openclaw workspace data n8n
+#   ./bootstrap.sh molde2
+#   nano .env   # preencha as credenciais
 #   docker compose -f docker-compose.molde2.yml up -d
 #
-# NOTA (pendência aberta, ver PROXIMOS_PASSOS.md): o `bootstrap.sh` atual
-# só conhece os 3 diretórios do Molde 1 (openclaw/ workspace/ data/) — o
-# diretório `n8n/` acima precisa do mesmo chown manual até o bootstrap
-# ganhar suporte ao Molde 2. `postgres-data` é volume nomeado do Docker
-# (gerenciado internamente, sem esse problema de UID).
+# `postgres-data` é volume nomeado do Docker (gerenciado internamente, sem
+# esse problema de UID).
 #
 # Teardown de teste (apaga volumes anônimos/nomeados, preserva os bind
 # mounts):
