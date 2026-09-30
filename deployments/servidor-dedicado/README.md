@@ -88,11 +88,20 @@ Regras de rede válidas para os dois moldes, sem exceção:
 
 - **Nenhuma porta aberta em `0.0.0.0`** no host da VPS.
 - Comunicação entre containers exclusivamente via **rede interna bridge**
-  dedicada (`agente-net`) — nenhum serviço interno é exposto diretamente ao
-  host.
+  — nenhum serviço interno é exposto diretamente ao host.
 - Acesso externo **100% outbound** via Cloudflare Tunnel: zero portas de
   entrada abertas no firewall da VPS. O tunnel inicia a conexão de dentro
   para fora; não há listener público exposto.
+
+No Molde 1 há uma única bridge (`agente-net`) com os 3 serviços core. No
+Molde 2, o `n8n` e o `postgres` ficam numa segunda bridge dedicada
+(`automacoes-net`), separada do `openclaw-gateway`: o gateway processa
+conteúdo vindo direto da internet (mensagens do WhatsApp) e não tem motivo
+funcional para alcançar n8n/postgres — só o `orchestrator` fala com o n8n
+(via API key, ver `orchestrator/src/orchestrator/clients/n8n_client.py`), e
+só o `cloudflared` precisa das duas bridges (rotea os 2 hostnames
+públicos). Resultado: um gateway comprometido não tem rota de rede até
+n8n/postgres, não só ausência de credenciais.
 
 ---
 
@@ -114,10 +123,10 @@ Regras de rede válidas para os dois moldes, sem exceção:
 
 ---
 
-## Armadilhas conhecidas do Molde 1
+## Armadilhas conhecidas (Molde 1 e Molde 2)
 
-Duas regras que não são óbvias lendo só o compose, e que já causaram
-falha silenciosa:
+Regras que não são óbvias lendo só o compose, e que já causaram (ou
+causariam) falha silenciosa:
 
 ### `phoneNumberId` exige valor literal
 
@@ -145,6 +154,28 @@ Em produção, quando o número é restrito ou de uso interno, troque para
 (DDI+DDD+número, só dígitos). Deixar `open` em número público significa
 responder a desconhecidos e gastar LLM com tráfego não autorizado.
 
+### `ORCHESTRATOR_API_TOKEN` é obrigatório, sem token padrão
+
+Os dois compose declaram `${ORCHESTRATOR_API_TOKEN:?defina ... no .env}`
+tanto no `orchestrator` quanto no `openclaw-gateway` — `docker compose
+up`/`config` aborta se a variável estiver vazia. Isso fecha o modo dev do
+orquestrador (`orchestrator/src/orchestrator/main.py`: token vazio =
+`/v1/turn` e `/tasks/stream` sem autenticação, com apenas um warning no
+log) para qualquer deploy que passe pelo compose. Gere com
+`openssl rand -hex 32` e use o MESMO valor nos dois serviços.
+
+### `ask-max.config.to` exige valor literal (mesmo padrão do `phoneNumberId`)
+
+`plugins.entries.ask-max.config.to` (contato do operador humano para
+transbordo) não lê `${VAR}` — é um valor literal no JSON, igual ao
+`phoneNumberId`. Por isso o template não traz mais um número de exemplo
+fixo: o `openclaw.json.template` usa o marcador `__ASK_MAX_OPERATOR_TO__`,
+que o `bootstrap.sh` substitui pelo número em dígitos de
+`ORCHESTRATOR_ATTENDANT_OPERATOR_TO` no `.env`. Um número de exemplo
+"utilizável" aqui seria um destino de escalonamento real por engano — a
+mesma classe de risco documentada acima para o `phoneNumberId`. Se o
+marcador sobreviver, o bootstrap avisa antes de você subir a stack.
+
 ---
 
 ## Status
@@ -160,7 +191,7 @@ real de `docker compose up -d` em laboratório descartável (containers
 | --- | --- |
 | `docker-compose.molde1.yml` | Stack Core (gateway + orquestrador + cloudflared) na rede `agente-net`, sem porta publicada no host |
 | `.env.example` | Modelo versionado de variáveis, só placeholders |
-| `openclaw.json.template` | Config do gateway com SecretRefs e marcador do `phoneNumberId` |
+| `openclaw.json.template` | Config do gateway com SecretRefs e marcadores literais (`phoneNumberId`, `ask-max.config.to`) |
 | `bootstrap.sh` | Prepara a VPS: bind mounts, permissões UID 1000, `.env` 600, config a partir do template, `docker compose config -q`. O mesmo script cobre o Molde 2 via `./bootstrap.sh molde2`, criando também `n8n/` |
 
 Pendente no Molde 1: smoke test de webhook ponta a ponta (o `cloudflared`
@@ -172,7 +203,7 @@ bootstrap dedicado (`./bootstrap.sh molde2`) criados; validado apenas com
 
 | Artefato | Função |
 | --- | --- |
-| `docker-compose.molde2.yml` | Stack Core do Molde 1 (standalone, replicada, não `extends`) + `n8n` + `postgres`, com `cloudflared` roteando 2 hostnames |
+| `docker-compose.molde2.yml` | Stack Core do Molde 1 (standalone, replicada, não `extends`) + `n8n` + `postgres`, com `cloudflared` roteando 2 hostnames; `n8n`/`postgres` isolados do gateway numa 2ª bridge (`automacoes-net`) |
 | `.env.example` (seções 8-10) | Variáveis `POSTGRES_*`, `N8N_*` e `ORCHESTRATOR_N8N_*`, adicionadas na mesma seção do arquivo do Molde 1 |
 
 Pendente no Molde 2:

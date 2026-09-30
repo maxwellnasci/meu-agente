@@ -69,7 +69,10 @@ services:
       # Cliente do orquestrador no plugin whatsapp-cloud
       # (extensions/whatsapp-cloud/src/orchestrator-client.ts).
       ORCHESTRATOR_URL: ${ORCHESTRATOR_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:-}
+      # Obrigatório e sem default (ver mesma trava em TUNNEL_TOKEN acima):
+      # sem autenticação aqui, /v1/turn e /tasks/stream do orquestrador
+      # ficariam abertos a qualquer requisição na bridge `agente-net`.
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:?defina ORCHESTRATOR_API_TOKEN no .env}
       ORCHESTRATOR_TURN_TIMEOUT_MS: ${ORCHESTRATOR_TURN_TIMEOUT_MS:-160000}
     volumes:
       # Estado + config do gateway (openclaw.json, sessões, logs).
@@ -123,6 +126,11 @@ services:
       ORCHESTRATOR_PORT: ${ORCHESTRATOR_PORT:-8000}
       ORCHESTRATOR_OPENCLAW_GATEWAY_URL: ${ORCHESTRATOR_OPENCLAW_GATEWAY_URL:-http://openclaw-gateway:18789}
       ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH: ${ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH:-/app/data/checkpoints.sqlite}
+      # Redeclarado explicitamente (já chega via env_file acima) só para
+      # forçar a mesma trava `:?` do lado do gateway: sem isto, um .env sem
+      # a variável subiria o orquestrador em modo dev SEM autenticação
+      # (fallback silencioso em orchestrator/src/orchestrator/main.py).
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:?defina ORCHESTRATOR_API_TOKEN no .env}
     volumes:
       # Persistência do checkpoints.sqlite (memória de conversa).
       - ./data:/app/data
