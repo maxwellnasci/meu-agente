@@ -1,0 +1,301 @@
+# Molde 2 — Kit Power-Up de Automações (Add-on / Expansão do Molde 1)
+#
+# Deploy SINGLE-TENANT: uma VPS por empresa cliente, agora em 4GB RAM /
+# 2 vCPU (upgrade do Molde 1). Ver `README.md` nesta pasta para a
+# arquitetura e o modelo comercial.
+#
+# Serviços: openclaw-gateway (WhatsApp) + orchestrator (cérebro LangGraph)
+# + cloudflared (único caminho de entrada, 100% outbound) — herdados do
+# Molde 1, sem alteração de comportamento — MAIS n8n (motor de automações)
+# + postgres (banco dedicado ao n8n).
+#
+# Este arquivo é standalone: não usa `extends`/`include` do Molde 1 de
+# propósito, para que uma VPS de cliente em Molde 2 suba a partir de um
+# único compose, sem depender de dois arquivos coexistirem no disco.
+# Qualquer mudança na stack Core (`docker-compose.molde1.yml`) precisa ser
+# replicada aqui manualmente até existir um mecanismo de composição.
+#
+# Postura de rede (regra do molde, sem exceção, igual ao Molde 1):
+#   - ZERO portas publicadas no host (nenhum bloco `ports:` em nenhum
+#     serviço, incluindo n8n e postgres).
+#   - Comunicação só pela bridge dedicada `agente-net`, por nome de serviço.
+#   - Entrada externa só via Cloudflare Tunnel, com 2 hostnames configurados
+#     no dashboard (fora deste arquivo):
+#       agente.<cliente>.com.br      -> http://openclaw-gateway:18789
+#       automacoes.<cliente>.com.br  -> http://n8n:5678
+#
+# Blindagem do runtime (igual ao Molde 1 nos serviços core):
+#   - openclaw-gateway/orchestrator: SEM docker.sock, SEM mounts de dev,
+#     SEM extra_hosts, no-new-privileges + cap_drop ALL.
+#   - n8n roda nativamente como usuário não-root (uid 1000, "node") e
+#     recebe cap_drop ALL sem quebrar o entrypoint.
+#   - postgres:16-alpine roda o entrypoint oficial como root para depois
+#     trocar para o usuário `postgres` (uid 999) via `gosu`; isso PRECISA
+#     de CAP_SETUID/CAP_SETGID/CAP_CHOWN, então cap_drop ALL quebraria o
+#     boot — omitido de propósito aqui, mesma lógica documentada para o
+#     cloudflared no Molde 1. no-new-privileges continua valendo.
+#
+# Preparação da VPS (ANTES do primeiro `up`) — bind mounts nascem
+# root:root se o Docker os criar sozinho; containers do gateway/n8n
+# rodam como UID 1000 e não conseguem escrever nesse caso:
+#
+#   cp .env.example .env && chmod 600 .env   # edite com as credenciais
+#   mkdir -p openclaw workspace data n8n
+#   sudo chown -R 1000:1000 openclaw workspace data n8n
+#   docker compose -f docker-compose.molde2.yml up -d
+#
+# NOTA (pendência aberta, ver PROXIMOS_PASSOS.md): o `bootstrap.sh` atual
+# só conhece os 3 diretórios do Molde 1 (openclaw/ workspace/ data/) — o
+# diretório `n8n/` acima precisa do mesmo chown manual até o bootstrap
+# ganhar suporte ao Molde 2. `postgres-data` é volume nomeado do Docker
+# (gerenciado internamente, sem esse problema de UID).
+#
+# Teardown de teste (apaga volumes anônimos/nomeados, preserva os bind
+# mounts):
+#   docker compose -f docker-compose.molde2.yml down -v
+
+services:
+  # ---------------------------------------------------------------------
+  # Gateway OpenClaw — canal WhatsApp Cloud API + plugins (ask-max).
+  # Idêntico ao Molde 1 (docker-compose.molde1.yml) — nenhuma alteração.
+  # ---------------------------------------------------------------------
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-openclaw:local-sandboxed-v4}
+    container_name: openclaw-gateway
+    # `lan` = bind 0.0.0.0 (ver src/gateway/net.ts): obrigatório para o
+    # gateway responder ao cloudflared e ao orquestrador na bridge interna.
+    # Continua sem exposição pública: não há `ports:` neste arquivo.
+    command: ["openclaw", "gateway", "--bind", "lan"]
+    environment:
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/openclaw.json
+      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      TZ: ${TZ:-America/Sao_Paulo}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
+      WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID:-}
+      WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN:-}
+      WHATSAPP_CLOUD_APP_SECRET: ${WHATSAPP_CLOUD_APP_SECRET:-}
+      ORCHESTRATOR_URL: ${ORCHESTRATOR_URL:-http://orchestrator:8000}
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:-}
+      ORCHESTRATOR_TURN_TIMEOUT_MS: ${ORCHESTRATOR_TURN_TIMEOUT_MS:-160000}
+    volumes:
+      - ./openclaw:/home/node/.openclaw
+      - ./workspace:/home/node/.openclaw/workspace
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # Orquestrador — cérebro LangGraph (FastAPI), persistência SQLite local.
+  # Igual ao Molde 1 + variáveis novas ORCHESTRATOR_N8N_* para o agente
+  # conseguir acionar/consultar automações no n8n dedicado deste cliente.
+  # ---------------------------------------------------------------------
+  orchestrator:
+    image: ${ORCHESTRATOR_IMAGE:-meu-agente-orchestrator:local}
+    container_name: orchestrator
+    user: "1000:1000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ORCHESTRATOR_HOST: ${ORCHESTRATOR_HOST:-0.0.0.0}
+      ORCHESTRATOR_PORT: ${ORCHESTRATOR_PORT:-8000}
+      ORCHESTRATOR_OPENCLAW_GATEWAY_URL: ${ORCHESTRATOR_OPENCLAW_GATEWAY_URL:-http://openclaw-gateway:18789}
+      ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH: ${ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH:-/app/data/checkpoints.sqlite}
+      # Novo no Molde 2: endpoint do n8n dedicado, visto DE DENTRO da
+      # `agente-net` (nome de serviço, nunca IP/host da VPS).
+      ORCHESTRATOR_N8N_URL: ${ORCHESTRATOR_N8N_URL:-http://n8n:5678}
+      ORCHESTRATOR_N8N_API_KEY: ${ORCHESTRATOR_N8N_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').getcode() == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # PostgreSQL — banco relacional dedicado ao n8n deste cliente.
+  # ---------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-n8n}
+      POSTGRES_USER: ${POSTGRES_USER:-n8n}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      # Volume nomeado (não bind mount): o entrypoint oficial já gerencia
+      # o dono/UID interno dos arquivos do datadir; um bind mount exigiria
+      # chown manual para uid 999 (postgres), armadilha equivalente à do
+      # UID 1000 do gateway no Molde 1.
+      - postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - "no-new-privileges:true"
+    # cap_drop ALL NÃO aplicado de propósito: o entrypoint oficial sobe
+    # como root e usa `gosu` para trocar para o usuário `postgres` (uid
+    # 999), o que exige CAP_SETUID/CAP_SETGID/CAP_CHOWN. Ver nota no topo
+    # do arquivo.
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-n8n}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # n8n — motor de automações dedicado deste cliente.
+  # ---------------------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:${N8N_VERSION:-latest}
+    container_name: n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      # Chave de criptografia das credenciais salvas no n8n. Perder este
+      # valor depois de credenciais criadas torna todas elas irrecuperáveis
+      # — por isso não tem default e é obrigatório (:?), igual ao
+      # TUNNEL_TOKEN do Molde 1.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?defina N8N_ENCRYPTION_KEY no .env}
+      # Domínio público do 2º hostname do Cloudflare Tunnel deste cliente
+      # (automacoes.<cliente>.com.br). Usado só para o n8n montar URLs de
+      # webhook corretas nos fluxos — não abre porta nenhuma aqui.
+      WEBHOOK_URL: https://${N8N_PUBLIC_DOMAIN:-automacoes.exemplo.com.br}/
+      N8N_HOST: ${N8N_PUBLIC_DOMAIN:-automacoes.exemplo.com.br}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: https
+      GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      # Bind mount (não volume nomeado): mantém o padrão do Molde 1 de
+      # estado inspecionável/backupável direto no host. Exige chown -R
+      # 1000:1000 ANTES do primeiro `up` (ver nota no topo do arquivo).
+      - ./n8n:/home/node/.n8n
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+  # ---------------------------------------------------------------------
+  # Cloudflare Tunnel — único ingress do molde, 100% outbound.
+  # Igual ao Molde 1 + espera o n8n ficar `healthy` também, já que este
+  # tunnel passa a rotear 2 hostnames (gateway e n8n).
+  # ---------------------------------------------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    command: ["run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?defina TUNNEL_TOKEN no .env}
+    # cap_drop ALL é omitido de propósito aqui: o cloudflared usa socket
+    # ICMP/raw para o proxy de ping e degrada com erro se perder a
+    # capability. no-new-privileges cobre o essencial.
+    security_opt:
+      - "no-new-privileges:true"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    depends_on:
+      # Só abre o tunnel depois que os 3 serviços com ingress respondem:
+      # evita publicar um webhook (Meta ou n8n) que devolveria 502 no boot.
+      openclaw-gateway:
+        condition: service_healthy
+      orchestrator:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - agente-net
+
+networks:
+  agente-net:
+    name: agente-net
+    driver: bridge
+
+volumes:
+  postgres-data:

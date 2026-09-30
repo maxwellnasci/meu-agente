@@ -149,9 +149,12 @@ responder a desconhecidos e gastar LLM com tráfego não autorizado.
 
 ## Status
 
-Este documento registra a **arquitetura definida** e, para o **Molde 1 — Kit
-Agente Essencial**, os artefatos de implementação já criados e validados
-localmente:
+Este documento registra a **arquitetura definida** e os artefatos de
+implementação já criados para os dois moldes.
+
+**Molde 1 — Kit Agente Essencial** — criado e homologado, incluindo ciclo
+real de `docker compose up -d` em laboratório descartável (containers
+`healthy`, bridge `agente-net` testada ativamente, teardown limpo):
 
 | Artefato | Função |
 | --- | --- |
@@ -160,5 +163,26 @@ localmente:
 | `openclaw.json.template` | Config do gateway com SecretRefs e marcador do `phoneNumberId` |
 | `bootstrap.sh` | Prepara a VPS: bind mounts, permissões UID 1000, `.env` 600, config a partir do template, `docker compose config -q` |
 
-Pendente: os artefatos do **Molde 2 — Kit Power-Up de Automações** (`n8n` +
-`postgres` + ingress adicional) e o script de bootstrap zero-touch do host.
+Pendente no Molde 1: smoke test de webhook ponta a ponta (o `cloudflared`
+ainda não foi validado com um `POST` real/simulado da Meta).
+
+**Molde 2 — Kit Power-Up de Automações** — compose e templates de suporte
+criados; validado apenas com `docker compose config -q` (sintaxe), **ainda
+sem** ciclo de `up -d` real nem bootstrap dedicado:
+
+| Artefato | Função |
+| --- | --- |
+| `docker-compose.molde2.yml` | Stack Core do Molde 1 (standalone, replicada, não `extends`) + `n8n` + `postgres`, com `cloudflared` roteando 2 hostnames |
+| `.env.example` (seções 8-10) | Variáveis `POSTGRES_*`, `N8N_*` e `ORCHESTRATOR_N8N_*`, adicionadas na mesma seção do arquivo do Molde 1 |
+
+Pendente no Molde 2:
+- Ciclo real de `docker compose up -d` (containers + healthchecks + bridge),
+  igual ao que já foi feito para o Molde 1.
+- `bootstrap.sh` ainda não conhece o diretório `n8n/` (só cria/chowna
+  `openclaw/ workspace/ data/`) — hoje o `chown -R 1000:1000 n8n` do
+  Molde 2 é manual.
+- Segundo hostname do Cloudflare Tunnel (`automacoes.<cliente>.com.br`) só
+  existe como variável de ambiente/documentação; a configuração real fica
+  no dashboard da Cloudflare, fora deste repositório.
+- Script de bootstrap zero-touch do host (Ubuntu 24.04) — comum aos dois
+  moldes, continua não implementado.
