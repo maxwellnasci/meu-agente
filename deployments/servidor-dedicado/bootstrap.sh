@@ -50,6 +50,16 @@ PHONE_PLACEHOLDER="__WHATSAPP_CLOUD_PHONE_NUMBER_ID__"
 # serve como valor e é recusado na etapa 5.
 PHONE_EXAMPLE="123456789012345"
 
+# Marcador do "to" do plugin ask-max (transbordo humano) no template. Mesmo
+# mecanismo do phoneNumberId acima: evita um número de operador padrão
+# utilizável no template versionado.
+ASK_MAX_TO_PLACEHOLDER="__ASK_MAX_OPERATOR_TO__"
+
+# Número de exemplo que já existiu como default literal em versões antigas
+# do .env.example — se sobreviver em um .env copiado de fora, é recusado
+# na etapa 5 igual ao PHONE_EXAMPLE.
+ASK_MAX_TO_EXAMPLE="5541999999999"
+
 RUNTIME_UID=1000
 RUNTIME_GID=1000
 
@@ -188,6 +198,34 @@ fill_phone_placeholder() {
   return 0
 }
 
+# Troca o marcador do "to" do ask-max em $CONFIG_FILE pelo valor do .env.
+# Mesma lógica de fill_phone_placeholder acima, aplicada ao número do
+# operador humano do transbordo (plugins.entries.ask-max.config.to).
+fill_ask_max_to_placeholder() {
+  ask_max_to="$(read_env_value ORCHESTRATOR_ATTENDANT_OPERATOR_TO)"
+
+  [ -n "$ask_max_to" ] || return 1
+
+  if [ "$ask_max_to" = "$ASK_MAX_TO_EXAMPLE" ]; then
+    warn "ORCHESTRATOR_ATTENDANT_OPERATOR_TO ainda é o número de exemplo"
+    warn "($ASK_MAX_TO_EXAMPLE) — ignorado, use o número real do operador."
+    return 1
+  fi
+
+  case "$ask_max_to" in
+    *[!0-9]*)
+      warn "ORCHESTRATOR_ATTENDANT_OPERATOR_TO='$ask_max_to' não é só dígitos — ignorado."
+      return 1
+      ;;
+  esac
+
+  tmp_config="$(mktemp)"
+  sed "s/$ASK_MAX_TO_PLACEHOLDER/$ask_max_to/g" "$CONFIG_FILE" > "$tmp_config"
+  cat "$tmp_config" > "$CONFIG_FILE"
+  rm -f "$tmp_config"
+  return 0
+}
+
 if [ -f "$CONFIG_FILE" ]; then
   chmod 600 "$CONFIG_FILE"
   ok "openclaw/openclaw.json já existe — preservado integralmente (permissão reforçada para 600)"
@@ -199,11 +237,17 @@ if [ -f "$CONFIG_FILE" ]; then
   if grep -q "$PHONE_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null && fill_phone_placeholder; then
     ok "phoneNumberId atualizado no openclaw/openclaw.json existente a partir do .env ($phone_number_id)"
   fi
+  if grep -q "$ASK_MAX_TO_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null && fill_ask_max_to_placeholder; then
+    ok "ask-max.config.to atualizado no openclaw/openclaw.json existente a partir do .env ($ask_max_to)"
+  fi
 else
   cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
 
   if fill_phone_placeholder; then
     ok "phoneNumberId preenchido a partir do .env ($phone_number_id)"
+  fi
+  if fill_ask_max_to_placeholder; then
+    ok "ask-max.config.to preenchido a partir do .env ($ask_max_to)"
   fi
 
   chown "$RUNTIME_UID:$RUNTIME_GID" "$CONFIG_FILE" 2>/dev/null || true
@@ -211,8 +255,9 @@ else
   ok "openclaw/openclaw.json criado a partir do template (600)"
 fi
 
-# Vale para arquivo novo E para arquivo preservado: o marcador precisa
-# sumir antes de subir, senão a falha é silenciosa.
+# Vale para arquivo novo E para arquivo preservado: os marcadores precisam
+# sumir antes de subir, senão a falha é silenciosa (phoneNumberId) ou o
+# transbordo humano manda mensagem pro contato literal errado (ask-max.to).
 phone_pending=0
 if grep -q "$PHONE_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null; then
   phone_pending=1
@@ -220,15 +265,23 @@ if grep -q "$PHONE_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null; then
   warn "Este campo NÃO aceita \${VAR} — precisa do número literal."
 fi
 
+ask_max_to_pending=0
+if grep -q "$ASK_MAX_TO_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null; then
+  ask_max_to_pending=1
+  warn "openclaw/openclaw.json ainda contém o marcador $ASK_MAX_TO_PLACEHOLDER."
+  warn "Preencha ORCHESTRATOR_ATTENDANT_OPERATOR_TO no .env antes de subir."
+fi
+
 # ---------------------------------------------------------------------
 # 6. Sanidade do compose
 # ---------------------------------------------------------------------
-# TUNNEL_TOKEN (e, no Molde 2, POSTGRES_PASSWORD/N8N_ENCRYPTION_KEY) são
-# obrigatórios no compose (`${VAR:?...}`); aqui usamos valores descartáveis
-# só para checar SINTAXE, sem exigir os segredos reais.
+# TUNNEL_TOKEN e ORCHESTRATOR_API_TOKEN (e, no Molde 2, também
+# POSTGRES_PASSWORD/N8N_ENCRYPTION_KEY) são obrigatórios no compose
+# (`${VAR:?...}`); aqui usamos valores descartáveis só para checar
+# SINTAXE, sem exigir os segredos reais.
 step "6/6  Validando sintaxe do $COMPOSE_BASENAME"
 
-CHECK_ENV=(TUNNEL_TOKEN=placeholder_check)
+CHECK_ENV=(TUNNEL_TOKEN=placeholder_check ORCHESTRATOR_API_TOKEN=placeholder_check)
 if [ "$MOLDE" = "molde2" ]; then
   CHECK_ENV+=(POSTGRES_PASSWORD=placeholder_check N8N_ENCRYPTION_KEY=placeholder_check)
 fi
@@ -262,6 +315,9 @@ Bootstrap concluído (molde: $MOLDE). Próximos passos (manuais):
      - ORCHESTRATOR_OPENROUTER_API_KEY       (https://openrouter.ai/keys)
      - OPENCLAW_GATEWAY_TOKEN                (openssl rand -hex 32)
      - ORCHESTRATOR_API_TOKEN                (openssl rand -hex 32)
+     - ORCHESTRATOR_ATTENDANT_OPERATOR_TO    (WhatsApp do operador humano,
+                                               só dígitos — transbordo via
+                                               ask-max)
 INSTRUCTIONS
 
 if [ "$MOLDE" = "molde2" ]; then
@@ -322,9 +378,28 @@ cat <<INSTRUCTIONS
        Mantendo "open" em um número público, o agente responde a
        desconhecidos e consome LLM com quem você não autorizou.
 
-   Opcional: telefone/nome do operador em plugins.entries.ask-max.config
-   ("to", "operatorName", "assistantName"). O "to" deve ser o MESMO
-   número de ORCHESTRATOR_ATTENDANT_OPERATOR_TO no .env.
+   Nome/assistente do operador (opcional, sem marcador nem obrigatoriedade):
+   plugins.entries.ask-max.config.operatorName/assistantName.
+INSTRUCTIONS
+
+if [ "$ask_max_to_pending" -eq 1 ]; then
+  cat <<INSTRUCTIONS
+
+   >>> OBRIGATÓRIO: trocar $ASK_MAX_TO_PLACEHOLDER
+       pelo ORCHESTRATOR_ATTENDANT_OPERATOR_TO literal (só dígitos) em
+       plugins.entries.ask-max.config.to. Deixá-lo assim faz o transbordo
+       humano tentar enviar para um contato inexistente.
+       Alternativa: preencha o .env e recrie a config com
+         rm $DIR/openclaw/openclaw.json && $DIR/bootstrap.sh $MOLDE
+INSTRUCTIONS
+else
+  cat <<INSTRUCTIONS
+
+   (ask-max.config.to já preenchido a partir do .env.)
+INSTRUCTIONS
+fi
+
+cat <<INSTRUCTIONS
 
 3. Subir a stack:
 
@@ -340,7 +415,7 @@ if [ "$MOLDE" = "molde2" ]; then
 4. Depois do primeiro boot do n8n (não bloqueia o passo 3 acima):
 
      Acesse o n8n (hostname de N8N_PUBLIC_DOMAIN, ou http://n8n:5678 de
-     dentro da rede agente-net), crie o usuário owner e gere uma API key
+     dentro da rede automacoes-net), crie o usuário owner e gere uma API key
      em Settings > n8n API > Create an API key.
 
      Adicione a chave ao .env e recrie só o orquestrador para ele passar

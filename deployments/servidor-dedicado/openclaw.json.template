@@ -48,7 +48,7 @@
         "enabled": true,
         "config": {
           "channel": "whatsapp-cloud",
-          "to": "5541999999999",
+          "to": "__ASK_MAX_OPERATOR_TO__",
           "operatorName": "Operador",
           "assistantName": "Assistente"
         }

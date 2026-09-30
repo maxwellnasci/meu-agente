@@ -18,11 +18,28 @@
 # Postura de rede (regra do molde, sem exceção, igual ao Molde 1):
 #   - ZERO portas publicadas no host (nenhum bloco `ports:` em nenhum
 #     serviço, incluindo n8n e postgres).
-#   - Comunicação só pela bridge dedicada `agente-net`, por nome de serviço.
+#   - Comunicação só por bridge Docker, por nome de serviço — SEM `ports:`,
+#     mesmo entre serviços internos.
 #   - Entrada externa só via Cloudflare Tunnel, com 2 hostnames configurados
 #     no dashboard (fora deste arquivo):
 #       agente.<cliente>.com.br      -> http://openclaw-gateway:18789
 #       automacoes.<cliente>.com.br  -> http://n8n:5678
+#
+# Segmentação em 2 bridges (diferença deliberada do Molde 1, que só tem
+# `agente-net`): o openclaw-gateway processa conteúdo vindo direto da
+# internet (mensagens do WhatsApp) e não tem motivo funcional para falar
+# com n8n/postgres — só com o orchestrator. Por isso:
+#   - `agente-net`: openclaw-gateway + orchestrator + cloudflared (igual ao
+#     Molde 1).
+#   - `automacoes-net`: orchestrator + n8n + postgres + cloudflared (o
+#     tunnel precisa alcançar os DOIS hostnames públicos, logo participa
+#     das duas redes; o orchestrator também, pois é o único consumidor
+#     interno da API do n8n — ver clients/n8n_client.py).
+# Resultado: se o gateway for comprometido, ele não tem rota de rede direta
+# até n8n ou postgres (isolamento Docker por bridge, não só ausência de
+# `ports:`). Nenhum caminho de comunicação hoje em uso (orchestrator->n8n
+# via API key, orchestrator->postgres nenhum, cloudflared->ambos os
+# hostnames) é quebrado por essa segmentação.
 #
 # Blindagem do runtime (igual ao Molde 1 nos serviços core):
 #   - openclaw-gateway/orchestrator: SEM docker.sock, SEM mounts de dev,
@@ -78,7 +95,10 @@ services:
       WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN:-}
       WHATSAPP_CLOUD_APP_SECRET: ${WHATSAPP_CLOUD_APP_SECRET:-}
       ORCHESTRATOR_URL: ${ORCHESTRATOR_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:-}
+      # Obrigatório e sem default (ver mesma trava em TUNNEL_TOKEN abaixo):
+      # sem autenticação aqui, /v1/turn e /tasks/stream do orquestrador
+      # ficariam abertos a qualquer requisição na bridge `agente-net`.
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:?defina ORCHESTRATOR_API_TOKEN no .env}
       ORCHESTRATOR_TURN_TIMEOUT_MS: ${ORCHESTRATOR_TURN_TIMEOUT_MS:-160000}
     volumes:
       - ./openclaw:/home/node/.openclaw
@@ -104,6 +124,8 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
+      # Só `agente-net`: o gateway fala com o orchestrator, nunca com n8n
+      # ou postgres diretamente — ver segmentação no topo do arquivo.
       - agente-net
 
   # ---------------------------------------------------------------------
@@ -123,8 +145,14 @@ services:
       ORCHESTRATOR_PORT: ${ORCHESTRATOR_PORT:-8000}
       ORCHESTRATOR_OPENCLAW_GATEWAY_URL: ${ORCHESTRATOR_OPENCLAW_GATEWAY_URL:-http://openclaw-gateway:18789}
       ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH: ${ORCHESTRATOR_CHECKPOINTER_SQLITE_PATH:-/app/data/checkpoints.sqlite}
-      # Novo no Molde 2: endpoint do n8n dedicado, visto DE DENTRO da
-      # `agente-net` (nome de serviço, nunca IP/host da VPS).
+      # Redeclarado explicitamente (já chega via env_file acima) só para
+      # forçar a mesma trava `:?` do lado do gateway: sem isto, um .env sem
+      # a variável subiria o orquestrador em modo dev SEM autenticação
+      # (fallback silencioso em orchestrator/src/orchestrator/main.py).
+      ORCHESTRATOR_API_TOKEN: ${ORCHESTRATOR_API_TOKEN:?defina ORCHESTRATOR_API_TOKEN no .env}
+      # Novo no Molde 2: endpoint do n8n dedicado, visto DE DENTRO da rede
+      # `automacoes-net` (nome de serviço, nunca IP/host da VPS) — ver
+      # segmentação de rede no topo do arquivo.
       ORCHESTRATOR_N8N_URL: ${ORCHESTRATOR_N8N_URL:-http://n8n:5678}
       ORCHESTRATOR_N8N_API_KEY: ${ORCHESTRATOR_N8N_API_KEY:-}
     volumes:
@@ -150,7 +178,11 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
+      # `agente-net`: fala com o gateway (ORCHESTRATOR_OPENCLAW_GATEWAY_URL).
+      # `automacoes-net`: fala com o n8n (ORCHESTRATOR_N8N_URL) — ver
+      # segmentação no topo do arquivo.
       - agente-net
+      - automacoes-net
 
   # ---------------------------------------------------------------------
   # PostgreSQL — banco relacional dedicado ao n8n deste cliente.
@@ -191,7 +223,9 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agente-net
+      # Só o n8n fala com o postgres — nem gateway, nem cloudflared, nem o
+      # host da VPS têm rota até aqui. Ver segmentação no topo do arquivo.
+      - automacoes-net
 
   # ---------------------------------------------------------------------
   # n8n — motor de automações dedicado deste cliente.
@@ -249,7 +283,9 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - agente-net
+      # Só `automacoes-net`: recebe do orchestrator (API) e do cloudflared
+      # (público), fala com o postgres. Nunca precisa alcançar o gateway.
+      - automacoes-net
 
   # ---------------------------------------------------------------------
   # Cloudflare Tunnel — único ingress do molde, 100% outbound.
@@ -287,11 +323,18 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
+      # Precisa das duas: roteia o hostname público do gateway
+      # (`agente-net`) E o do n8n (`automacoes-net`) — é o único serviço
+      # com essa necessidade, por isso é o único presente nas duas.
       - agente-net
+      - automacoes-net
 
 networks:
   agente-net:
     name: agente-net
+    driver: bridge
+  automacoes-net:
+    name: automacoes-net
     driver: bridge
 
 volumes:
