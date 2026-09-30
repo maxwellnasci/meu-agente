@@ -161,14 +161,14 @@ real de `docker compose up -d` em laboratório descartável (containers
 | `docker-compose.molde1.yml` | Stack Core (gateway + orquestrador + cloudflared) na rede `agente-net`, sem porta publicada no host |
 | `.env.example` | Modelo versionado de variáveis, só placeholders |
 | `openclaw.json.template` | Config do gateway com SecretRefs e marcador do `phoneNumberId` |
-| `bootstrap.sh` | Prepara a VPS: bind mounts, permissões UID 1000, `.env` 600, config a partir do template, `docker compose config -q` |
+| `bootstrap.sh` | Prepara a VPS: bind mounts, permissões UID 1000, `.env` 600, config a partir do template, `docker compose config -q`. O mesmo script cobre o Molde 2 via `./bootstrap.sh molde2`, criando também `n8n/` |
 
 Pendente no Molde 1: smoke test de webhook ponta a ponta (o `cloudflared`
 ainda não foi validado com um `POST` real/simulado da Meta).
 
-**Molde 2 — Kit Power-Up de Automações** — compose e templates de suporte
-criados; validado apenas com `docker compose config -q` (sintaxe), **ainda
-sem** ciclo de `up -d` real nem bootstrap dedicado:
+**Molde 2 — Kit Power-Up de Automações** — compose, templates de suporte e
+bootstrap dedicado (`./bootstrap.sh molde2`) criados; validado apenas com
+`docker compose config -q` (sintaxe), **ainda sem** ciclo de `up -d` real:
 
 | Artefato | Função |
 | --- | --- |
@@ -178,9 +178,6 @@ sem** ciclo de `up -d` real nem bootstrap dedicado:
 Pendente no Molde 2:
 - Ciclo real de `docker compose up -d` (containers + healthchecks + bridge),
   igual ao que já foi feito para o Molde 1.
-- `bootstrap.sh` ainda não conhece o diretório `n8n/` (só cria/chowna
-  `openclaw/ workspace/ data/`) — hoje o `chown -R 1000:1000 n8n` do
-  Molde 2 é manual.
 - Segundo hostname do Cloudflare Tunnel (`automacoes.<cliente>.com.br`) só
   existe como variável de ambiente/documentação; a configuração real fica
   no dashboard da Cloudflare, fora deste repositório.
