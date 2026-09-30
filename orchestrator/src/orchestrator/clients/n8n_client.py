@@ -30,7 +30,8 @@ class N8nClient:
     """
 
     def __init__(self, base_url: str | None = None, api_key: str | None = None) -> None:
-        self._base_url = (base_url or settings.n8n_url or "").rstrip("/")
+        self._base_url = (base_url if base_url is not None else settings.n8n_url) or ""
+        self._base_url = self._base_url.rstrip("/")
         self._api_key = api_key or settings.n8n_api_key
         self._timeout = settings.n8n_request_timeout_sec
 

@@ -47,6 +47,17 @@ class Settings(BaseSettings):
     n8n_api_key: str | None = None
     n8n_request_timeout_sec: int = 30
 
+    @field_validator("n8n_url", "n8n_api_key", mode="before")
+    @classmethod
+    def _normalize_n8n_config(cls, v: object) -> str | None:
+        """Mesma normalizacao de api_token: string vazia/so espacos vira None."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return v  # type: ignore[return-value]
+        stripped = v.strip()
+        return stripped or None
+
     # Janela de validade (segundos) de uma proposta de acao n8n que muda
     # producao (create/activate/deactivate/delete) enquanto espera o usuario
     # confirmar. Passado o prazo, a pendencia e descartada e o usuario precisa
