@@ -273,8 +273,10 @@ if [ "$MOLDE" = "molde2" ]; then
      - N8N_PUBLIC_DOMAIN                     (2º Public Hostname do
                                                Cloudflare Tunnel, ex.:
                                                automacoes.<cliente>.com.br)
-     - ORCHESTRATOR_N8N_API_KEY              (Settings > n8n API, gerada
-                                               depois do 1º boot do n8n)
+
+   NÃO obrigatório para subir (só existe DEPOIS do 1º boot do n8n — ver
+   passo 4 no final):
+     - ORCHESTRATOR_N8N_API_KEY
 INSTRUCTIONS
 fi
 
@@ -330,6 +332,29 @@ cat <<INSTRUCTIONS
 
    Acompanhar o boot:
      docker compose -f $COMPOSE_BASENAME logs -f
+INSTRUCTIONS
+
+if [ "$MOLDE" = "molde2" ]; then
+  cat <<INSTRUCTIONS
+
+4. Depois do primeiro boot do n8n (não bloqueia o passo 3 acima):
+
+     Acesse o n8n (hostname de N8N_PUBLIC_DOMAIN, ou http://n8n:5678 de
+     dentro da rede agente-net), crie o usuário owner e gere uma API key
+     em Settings > n8n API > Create an API key.
+
+     Adicione a chave ao .env e recrie só o orquestrador para ele passar
+     a enxergar o n8n:
+
+       nano $DIR/.env   # ORCHESTRATOR_N8N_API_KEY=<chave gerada>
+       cd $DIR && docker compose -f $COMPOSE_BASENAME up -d orchestrator
+
+     Sem essa chave o boot da stack não é afetado, mas o orquestrador evita
+     a chamada ao n8n e não dispara automações até ela ser preenchida.
+INSTRUCTIONS
+fi
+
+cat <<INSTRUCTIONS
 
 ========================================================================
 INSTRUCTIONS
