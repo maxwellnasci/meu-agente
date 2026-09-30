@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-## ✅ MARCO — Molde 1 (Kit Agente Essencial em Servidor Dedicado) 100% implementado e homologado em laboratório (2026-09-25)
+## ✅ MARCO — Molde 1 (Kit Agente Essencial em Servidor Dedicado) 100% implementado e homologado em laboratório, incluindo subida real de containers (2026-09-25, runtime validado em 2026-09-29)
 
 Linha de **Servidor Dedicado por cliente** com seus artefatos de
 implementação fechados em `deployments/servidor-dedicado/`:
@@ -25,12 +25,45 @@ pelo `bootstrap.sh` a partir do `.env`, aviso bloqueante se o marcador
 sobreviver, e guard-rails que recusam o número de exemplo da doc e valores
 não-numéricos.
 
-**Prontidão:** o Molde 1 está pronto para provisionar um cliente novo, com
-a ressalva de que a validação parou em `config -q` — falta um ciclo com
-`docker compose up -d` real e smoke test de webhook antes do primeiro
-deploy de produção. Produção na Contabo (Amigão, n8n, WhatsApp) **não foi
-tocada** nesta sessão. Detalhes:
-[SESSAO_2026-09-25.md](SESSAO_2026-09-25.md).
+**Atualização 2026-09-29 — ciclo completo de subida real (`docker compose
+up -d`) validado em laboratório descartável** (`/tmp/teste-molde1-up`,
+apagado ao final): confirma em runtime o que a etapa de 25/09 só havia
+checado estaticamente (`config -q`).
+
+- Imagens locais usadas sem build: `openclaw:local-sandboxed-v4` e
+  `meu-agente-orchestrator:local` (defaults do compose).
+- `openclaw-gateway` e `orchestrator` subiram com `docker compose up -d
+  openclaw-gateway orchestrator` e atingiram `healthy` em ~11s.
+- Conectividade interna na bridge `agente-net` comprovada ativamente: de
+  dentro do container `openclaw-gateway`, `fetch('http://orchestrator:8000/health')`
+  retornou HTTP 200 `{"status":"ok"}` pelo nome do serviço (sem
+  `host.docker.internal`, sem porta publicada no host).
+- Permissões preservadas sem vazamento de root: bind mounts `openclaw/`,
+  `workspace/`, `data/` seguem `1000:1000`; `checkpoints.sqlite` foi
+  criado pelo container `orchestrator` (`user: "1000:1000"`) já com esse
+  dono no host, pronto para backup/rsync sem sudo.
+- Resolução automática do `phoneNumberId` confirmada em runtime: o 2º
+  `bootstrap.sh` (após o `.env` preenchido) reportou *"phoneNumberId
+  atualizado no openclaw/openclaw.json existente a partir do .env"*, sem
+  o aviso de marcador pendente.
+- Logs de boot sem `EACCES`/exceção em nenhum dos dois containers; único
+  ruído são 2 avisos esperados de "stale config" para plugins ausentes
+  na imagem (`ask-max`, `github-repo-report`), não bloqueantes.
+- Teardown limpo: `docker compose down -v` removeu os 2 containers e a
+  rede `agente-net`; `docker ps -a` / `docker network ls` confirmaram
+  zero resíduo do teste.
+
+**Pendência explícita (não coberta neste smoke test):** o `cloudflared`
+não foi subido e nenhum webhook real da Meta foi simulado/recebido — a
+validação de hoje cobriu subida de containers + healthcheck + bridge
+interna, **não** o smoke test de webhook ponta a ponta. Esse item
+continua aberto (ver `PROXIMOS_PASSOS.md`).
+
+**Prontidão:** o Molde 1 está pronto para provisionar um cliente novo do
+ponto de vista de runtime de containers. Falta o smoke test de webhook
+(chamada real/simulada da Meta) antes do primeiro deploy de produção.
+Produção na Contabo (Amigão, n8n, WhatsApp) **não foi tocada** em nenhuma
+das duas sessões. Detalhes: [SESSAO_2026-09-25.md](SESSAO_2026-09-25.md).
 
 **Próximos passos:** **Molde 2 — Kit Agente + Automação n8n**
 (`docker-compose.molde2.yml` com `n8n` + `postgres` dedicado e 2 hostnames
