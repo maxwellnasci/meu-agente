@@ -1,26 +1,45 @@
 #!/usr/bin/env bash
 #
-# Molde 1 — Kit Agente Essencial | bootstrap de VPS virgem
+# Molde 1 (Kit Agente Essencial) e Molde 2 (+ n8n/Postgres) — bootstrap de
+# VPS virgem para o Servidor Dedicado.
 #
 # Prepara o diretório de deploy para o primeiro `docker compose up -d`:
 # cria os bind mounts com dono correto (UID 1000), inicializa `.env` e
 # `openclaw/openclaw.json` a partir dos modelos versionados e valida a
-# sintaxe do compose.
+# sintaxe do compose escolhido. No Molde 2, também cria e ajusta o dono de
+# `n8n/` (bind mount do n8n, que roda como UID 1000 dentro do container).
 #
 # IDEMPOTENTE: rodar de novo nunca sobrescreve `.env` nem
 # `openclaw/openclaw.json` já existentes — só reforça permissões.
 #
-#   ./bootstrap.sh
+#   ./bootstrap.sh            # Molde 1 (default)
+#   ./bootstrap.sh molde1     # Molde 1, explícito
+#   ./bootstrap.sh molde2     # Molde 2 (Molde 1 + n8n/Postgres)
 #
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-COMPOSE_FILE="$DIR/docker-compose.molde1.yml"
+MOLDE="${1:-molde1}"
+case "$MOLDE" in
+  molde1|molde2) ;;
+  *)
+    printf '\n[ERRO] molde inválido: "%s"\n\nUso:\n  ./bootstrap.sh            # Molde 1 (default)\n  ./bootstrap.sh molde1     # Molde 1, explícito\n  ./bootstrap.sh molde2     # Molde 2 (Molde 1 + n8n/Postgres)\n' "$MOLDE" >&2
+    exit 1
+    ;;
+esac
+
+COMPOSE_FILE="$DIR/docker-compose.$MOLDE.yml"
+COMPOSE_BASENAME="$(basename "$COMPOSE_FILE")"
 ENV_FILE="$DIR/.env"
 ENV_EXAMPLE="$DIR/.env.example"
 CONFIG_TEMPLATE="$DIR/openclaw.json.template"
 CONFIG_FILE="$DIR/openclaw/openclaw.json"
+
+# Bind mounts comuns aos dois moldes, mais `n8n/` no Molde 2 (o container
+# n8n roda como UID 1000 dentro da imagem, igual ao gateway).
+BIND_MOUNT_DIRS=("$DIR/openclaw" "$DIR/workspace" "$DIR/data")
+[ "$MOLDE" = "molde2" ] && BIND_MOUNT_DIRS+=("$DIR/n8n")
 
 # Marcador do phoneNumberId no template. Ver bloco "Nota" na etapa 5:
 # este campo NÃO aceita SecretRef "${VAR}" — precisa de valor literal.
@@ -44,6 +63,7 @@ die()   { printf '\n[ERRO] %s\n' "$*" >&2; exit 1; }
 # 1. Pré-requisitos do host
 # ---------------------------------------------------------------------
 step "1/6  Checando pré-requisitos"
+info "Molde selecionado: $MOLDE ($COMPOSE_BASENAME)"
 
 if ! command -v docker >/dev/null 2>&1; then
   die "docker não encontrado no PATH.
@@ -68,8 +88,12 @@ ok "modelos versionados presentes (compose, .env.example, openclaw.json.template
 # ---------------------------------------------------------------------
 step "2/6  Criando bind mounts"
 
-mkdir -p "$DIR/openclaw" "$DIR/workspace" "$DIR/data"
-ok "diretórios openclaw/ workspace/ data/ prontos"
+mkdir -p "${BIND_MOUNT_DIRS[@]}"
+if [ "$MOLDE" = "molde2" ]; then
+  ok "diretórios openclaw/ workspace/ data/ n8n/ prontos"
+else
+  ok "diretórios openclaw/ workspace/ data/ prontos"
+fi
 
 # ---------------------------------------------------------------------
 # 3. Permissões POSIX
@@ -78,9 +102,9 @@ ok "diretórios openclaw/ workspace/ data/ prontos"
 # sozinho eles nascem root:root e o primeiro reply morre com EACCES.
 step "3/6  Ajustando dono e permissões dos bind mounts"
 
-chmod 755 "$DIR/openclaw" "$DIR/workspace" "$DIR/data"
+chmod 755 "${BIND_MOUNT_DIRS[@]}"
 
-chown_targets() { chown -R "$RUNTIME_UID:$RUNTIME_GID" "$DIR/openclaw" "$DIR/workspace" "$DIR/data"; }
+chown_targets() { chown -R "$RUNTIME_UID:$RUNTIME_GID" "${BIND_MOUNT_DIRS[@]}"; }
 
 if [ "$(id -u)" -eq 0 ]; then
   chown_targets
@@ -88,12 +112,12 @@ if [ "$(id -u)" -eq 0 ]; then
 elif chown_targets 2>/dev/null; then
   ok "chown -R $RUNTIME_UID:$RUNTIME_GID aplicado (já era o dono)"
 elif command -v sudo >/dev/null 2>&1 && sudo -n chown -R "$RUNTIME_UID:$RUNTIME_GID" \
-       "$DIR/openclaw" "$DIR/workspace" "$DIR/data" 2>/dev/null; then
+       "${BIND_MOUNT_DIRS[@]}" 2>/dev/null; then
   ok "chown -R $RUNTIME_UID:$RUNTIME_GID aplicado (sudo)"
 else
   warn "não foi possível aplicar chown para $RUNTIME_UID:$RUNTIME_GID."
   warn "Se os containers falharem com EACCES, rode manualmente:"
-  warn "  sudo chown -R $RUNTIME_UID:$RUNTIME_GID '$DIR/openclaw' '$DIR/workspace' '$DIR/data'"
+  warn "  sudo chown -R $RUNTIME_UID:$RUNTIME_GID ${BIND_MOUNT_DIRS[*]}"
 fi
 
 # ---------------------------------------------------------------------
@@ -199,15 +223,21 @@ fi
 # ---------------------------------------------------------------------
 # 6. Sanidade do compose
 # ---------------------------------------------------------------------
-# TUNNEL_TOKEN é obrigatório no compose (\${TUNNEL_TOKEN:?...}); aqui usamos
-# um valor descartável só para checar SINTAXE, sem exigir o token real.
-step "6/6  Validando sintaxe do docker-compose.molde1.yml"
+# TUNNEL_TOKEN (e, no Molde 2, POSTGRES_PASSWORD/N8N_ENCRYPTION_KEY) são
+# obrigatórios no compose (`${VAR:?...}`); aqui usamos valores descartáveis
+# só para checar SINTAXE, sem exigir os segredos reais.
+step "6/6  Validando sintaxe do $COMPOSE_BASENAME"
 
-if env TUNNEL_TOKEN=placeholder_check docker compose -f "$COMPOSE_FILE" config -q 2>/dev/null; then
+CHECK_ENV=(TUNNEL_TOKEN=placeholder_check)
+if [ "$MOLDE" = "molde2" ]; then
+  CHECK_ENV+=(POSTGRES_PASSWORD=placeholder_check N8N_ENCRYPTION_KEY=placeholder_check)
+fi
+
+if env "${CHECK_ENV[@]}" docker compose -f "$COMPOSE_FILE" config -q 2>/dev/null; then
   ok "sintaxe do compose válida"
 else
   die "docker compose config falhou. Saída completa:
-$(env TUNNEL_TOKEN=placeholder_check docker compose -f "$COMPOSE_FILE" config 2>&1 | tail -20)"
+$(env "${CHECK_ENV[@]}" docker compose -f "$COMPOSE_FILE" config 2>&1 | tail -20)"
 fi
 
 # ---------------------------------------------------------------------
@@ -216,7 +246,7 @@ fi
 cat <<INSTRUCTIONS
 
 ========================================================================
-Bootstrap concluído. Próximos passos (manuais):
+Bootstrap concluído (molde: $MOLDE). Próximos passos (manuais):
 ========================================================================
 
 1. Preencher os segredos do cliente no .env:
@@ -232,6 +262,23 @@ Bootstrap concluído. Próximos passos (manuais):
      - ORCHESTRATOR_OPENROUTER_API_KEY       (https://openrouter.ai/keys)
      - OPENCLAW_GATEWAY_TOKEN                (openssl rand -hex 32)
      - ORCHESTRATOR_API_TOKEN                (openssl rand -hex 32)
+INSTRUCTIONS
+
+if [ "$MOLDE" = "molde2" ]; then
+  cat <<INSTRUCTIONS
+     - POSTGRES_PASSWORD                     (openssl rand -hex 24)
+     - N8N_ENCRYPTION_KEY                    (openssl rand -hex 24 — NUNCA
+                                               troque depois de criar
+                                               credenciais no n8n)
+     - N8N_PUBLIC_DOMAIN                     (2º Public Hostname do
+                                               Cloudflare Tunnel, ex.:
+                                               automacoes.<cliente>.com.br)
+     - ORCHESTRATOR_N8N_API_KEY              (Settings > n8n API, gerada
+                                               depois do 1º boot do n8n)
+INSTRUCTIONS
+fi
+
+cat <<INSTRUCTIONS
 
 2. Ajustar a config do gateway:
 
@@ -246,7 +293,7 @@ if [ "$phone_pending" -eq 1 ]; then
        Diferente dos tokens, este campo não resolve \${VAR}: deixá-lo
        assim faz o agente falhar EM SILÊNCIO (não envia e não recebe).
        Alternativa: preencha o .env e recrie a config com
-         rm $DIR/openclaw/openclaw.json && $DIR/bootstrap.sh
+         rm $DIR/openclaw/openclaw.json && $DIR/bootstrap.sh $MOLDE
 INSTRUCTIONS
 else
   cat <<INSTRUCTIONS
@@ -279,10 +326,10 @@ cat <<INSTRUCTIONS
 
 3. Subir a stack:
 
-     cd $DIR && docker compose -f docker-compose.molde1.yml up -d
+     cd $DIR && docker compose -f $COMPOSE_BASENAME up -d
 
    Acompanhar o boot:
-     docker compose -f docker-compose.molde1.yml logs -f
+     docker compose -f $COMPOSE_BASENAME logs -f
 
 ========================================================================
 INSTRUCTIONS
