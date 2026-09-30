@@ -16,6 +16,16 @@ from orchestrator.config import settings
 from orchestrator.graph.n8n_confirmation import NEEDS_CONFIRMATION_KEY
 from orchestrator.graph.nodes import _run_n8n_tool, specialist_n8n_node
 
+@pytest.fixture(autouse=True)
+def _n8n_fake_credentials_if_missing(monkeypatch):
+    """So preenche fake se estiver vazio - nao mexe em credenciais reais
+    do .env, pra nao quebrar o teste de integracao ao vivo la embaixo."""
+    if not settings.n8n_url:
+        monkeypatch.setattr(settings, "n8n_url", "http://n8n-test.invalid:5678")
+    if not settings.n8n_api_key:
+        monkeypatch.setattr(settings, "n8n_api_key", "test-fake-key")
+
+
 requires_n8n_credentials = pytest.mark.skipif(
     not settings.n8n_url or not settings.n8n_api_key,
     reason="ORCHESTRATOR_N8N_URL/ORCHESTRATOR_N8N_API_KEY nao configurados (.env)",
@@ -352,3 +362,44 @@ async def test_create_and_delete_workflow_against_real_n8n_instance():
     with pytest.raises(httpx.HTTPStatusError) as exc_info:
         await client.get_workflow(workflow_id)
     assert exc_info.value.response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_node_aborts_without_calling_client_when_n8n_not_configured(monkeypatch):
+    monkeypatch.setattr(settings, "n8n_url", None)
+    monkeypatch.setattr(settings, "n8n_api_key", None)
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "lista os workflows"}],
+        "internal_scratchpad": [],
+    }
+    with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
+        result = await specialist_n8n_node(state)
+    mock_client_cls.assert_not_called()
+    assert "nao esta configurada" in result["internal_scratchpad"][0]
+    assert "last_error" not in result
+
+
+@pytest.mark.asyncio
+async def test_node_aborts_when_only_api_key_missing(monkeypatch):
+    monkeypatch.setattr(settings, "n8n_url", "http://n8n:5678")
+    monkeypatch.setattr(settings, "n8n_api_key", None)
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "lista os workflows"}],
+        "internal_scratchpad": [],
+    }
+    with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
+        result = await specialist_n8n_node(state)
+    mock_client_cls.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_node_aborts_when_only_url_missing(monkeypatch):
+    monkeypatch.setattr(settings, "n8n_url", None)
+    monkeypatch.setattr(settings, "n8n_api_key", "test-fake-key")
+    state = {
+        "pending_specialists": [{"specialist": "n8n", "instructions": "lista os workflows"}],
+        "internal_scratchpad": [],
+    }
+    with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
+        result = await specialist_n8n_node(state)
+    mock_client_cls.assert_not_called()

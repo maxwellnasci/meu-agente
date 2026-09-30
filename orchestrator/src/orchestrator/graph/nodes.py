@@ -586,6 +586,18 @@ async def specialist_n8n_node(state: GraphState) -> dict:
         "current_specialist": None,
     }
 
+    if not settings.n8n_url or not settings.n8n_api_key:
+        _logger.info(
+            "specialist_n8n_node: integracao n8n nao configurada (URL/API key "
+            "ausente) - abortando sem chamar N8nClient/LLM"
+        )
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+            "[n8n] A integracao de automacao (n8n) nao esta configurada neste "
+            "ambiente. NAO redespache o especialista n8n - responda ao usuario "
+            "que essa funcionalidade nao esta disponivel aqui."
+        ]
+        return update
+
     client = N8nClient()
 
     # --- Caminho de execucao confirmada -------------------------------------
