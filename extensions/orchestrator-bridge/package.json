@@ -1,0 +1,18 @@
+{
+  "name": "@openclaw/orchestrator-bridge",
+  "version": "2026.8.26",
+  "private": true,
+  "description": "Lets the agent delegate a task to the project's LangGraph orchestrator via its /v1/turn API.",
+  "type": "module",
+  "dependencies": {
+    "typebox": "1.1.39"
+  },
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
