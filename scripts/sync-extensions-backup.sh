@@ -61,10 +61,6 @@ is_known_extension() {
 
 sync_one() {
   local ext="$1"
-  if [ ! -d "$SRC/$ext" ]; then
-    echo "AVISO: $SRC/$ext não existe, pulando." >&2
-    return
-  fi
   rsync -a --delete \
     --exclude node_modules \
     --exclude dist \
@@ -87,6 +83,23 @@ if [ "$1" = "--all" ]; then
     echo "Se é isso que você quer, rode: $0 --all --yes-sync-all" >&2
     exit 1
   fi
+  if [ "$#" -gt 2 ]; then
+    echo "ERRO: argumentos extras não são permitidos após --all --yes-sync-all: ${*:3}" >&2
+    exit 1
+  fi
+  missing=()
+  for ext in "${KNOWN_EXTENSIONS[@]}"; do
+    if [ ! -d "$SRC/$ext" ]; then
+      missing+=("$ext")
+    fi
+  done
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo "ERRO: fonte ausente para extensões conhecidas, nada foi sincronizado:" >&2
+    for ext in "${missing[@]}"; do
+      echo "  - $ext ($SRC/$ext)" >&2
+    done
+    exit 1
+  fi
   echo "Escopo confirmado: sincronizando TODAS as extensões (${KNOWN_EXTENSIONS[*]})."
   for ext in "${KNOWN_EXTENSIONS[@]}"; do
     sync_one "$ext"
@@ -103,6 +116,10 @@ else
     if ! is_known_extension "$ext"; then
       echo "ERRO: '$ext' não é uma extensão conhecida." >&2
       echo "Conhecidas: ${KNOWN_EXTENSIONS[*]}" >&2
+      exit 1
+    fi
+    if [ ! -d "$SRC/$ext" ]; then
+      echo "ERRO: fonte '$SRC/$ext' não existe." >&2
       exit 1
     fi
   done

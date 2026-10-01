@@ -1055,9 +1055,9 @@ com seu próprio `.git` interno.
 Ela está no `.gitignore` intencionalmente para manter separação entre código de terceiros e o projeto pessoal.
 As alterações feitas no `docker-compose.yml` ficam salvas localmente nesta pasta e **devem ser reaplicadas manualmente** caso a pasta seja deletada e reclonada.
 
-**Exceção — as 4 extensões próprias têm backup real desde 2026-07-20:**
-`ask-max`, `whatsapp-cloud`, `response-audit` e `github-repo-report` são
-código nosso, não de terceiros, mas moram dentro de `openclaw/extensions/`
+**Exceção — as 5 extensões próprias têm backup real (desde 2026-07-20, `orchestrator-bridge`
+somado depois):** `ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report` e
+`orchestrator-bridge` são código nosso, não de terceiros, mas moram dentro de `openclaw/extensions/`
 por exigência do Docker build (contexto = `openclaw/`). Git não permite
 rastrear seletivamente uma subpasta de um repo aninhado a partir do repo
 pai, e symlink pra fora quebraria o build da imagem. Solução: cópia de
