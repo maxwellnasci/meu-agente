@@ -7,7 +7,7 @@
 > Este guia cobre três componentes que rodam no mesmo host (Contabo):
 > 1. **Gateway OpenClaw** (`/root/openclaw/`, estado em `/root/.openclaw/`)
 > 2. **Canal WhatsApp + plugins/extensões** (`whatsapp-cloud`, `ask-max`, `response-audit`,
->    `github-repo-report`) — hoje empacotados *dentro* da imagem do gateway
+>    `github-repo-report`, `orchestrator-bridge`) — hoje empacotados *dentro* da imagem do gateway
 > 3. **Orquestrador LangGraph** (`/root/meu-agente-orchestrator/`)
 
 ---
@@ -30,7 +30,7 @@
 | Portas do gateway | `127.0.0.1:18789` (control UI / `healthz`), `3978` (MS Teams, se usado) — restritas a loopback |
 | Canal WhatsApp | Cloudflare Tunnel com **1 único connector**, origem Contabo (`158.220.125.233`). Kali está fisicamente isolado desde o cutover (2026-08-02), `cloudflared` desligado lá |
 | Credencial WhatsApp | `/root/.openclaw/credentials/whatsapp-cloud.json` — token System User, permanente. **Nunca sai do host** |
-| Extensões próprias | `ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report`. Fonte de verdade: `openclaw/extensions/` (ignorado pelo `.gitignore` do repo vendorizado). Cópia de backup versionada: `meu-agente/extensions/` (sync via `scripts/sync-extensions-backup.sh`). **Entram na imagem no momento do build** (fazem parte do contexto Docker) |
+| Extensões próprias | `ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report`, `orchestrator-bridge`. Fonte de verdade: `openclaw/extensions/` (ignorado pelo `.gitignore` do repo vendorizado). Cópia de backup versionada: `meu-agente/extensions/` (sync via `scripts/sync-extensions-backup.sh`). **Entram na imagem no momento do build** (fazem parte do contexto Docker) |
 | Orquestrador no Contabo | `/root/meu-agente-orchestrator/` — repo com `.git` próprio, **sem remote**. Deploy via `scripts/deploy-orchestrator.sh` (rsync + `docker compose build` no servidor) |
 | Orquestrador — imagem | `meu-agente-orchestrator:local` (build local) ou `${ORCHESTRATOR_IMAGE}` apontando pra `ghcr.io/maxwellnasci/meu-agente-orchestrator:<tag>` |
 | Orquestrador — porta | `127.0.0.1:8000`, endpoint `/health` |
@@ -58,7 +58,7 @@ antes de montar o plano definitivo:
    `busy_timeout`, timeouts de hooks) — reaplicar um patch já mesclado causa conflito e/ou regressão.
 5. **Mudanças de schema do `openclaw.json`** entre `2026.6.9` e o alvo. Ler `CHANGELOG.md` do upstream
    e rodar `openclaw doctor` / validação de schema **contra uma cópia** antes de subir.
-6. **Mudanças no Plugin SDK** que afetem as 4 extensões próprias (assinaturas de hook, formato de
+6. **Mudanças no Plugin SDK** que afetem as 5 extensões próprias (assinaturas de hook, formato de
    `openclaw.plugin.json`, APIs de `tool`). Buildar as extensões contra a base nova **num container
    descartável** e rodar os testes `*.test.ts` delas antes.
 7. **Runtime da imagem** (versão de Node/Bun no `Dockerfile` novo) e se `OPENCLAW_INSTALL_DOCKER_CLI`
@@ -207,15 +207,15 @@ cd /root/meu-agente-orchestrator && git log --oneline -5 > /root/backups/pre-upd
 
 ### 3.1 Etapa A — Extensões / plugins (WhatsApp e demais)
 
-> As 4 extensões (`ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report`) vivem em
-> `openclaw/extensions/` e **entram na imagem no build**. Atualizá-las = rebuildar a imagem do
+> As 5 extensões (`ask-max`, `whatsapp-cloud`, `response-audit`, `github-repo-report`,
+> `orchestrator-bridge`) vivem em `openclaw/extensions/` e **entram na imagem no build**. Atualizá-las = rebuildar a imagem do
 > gateway. Portanto, na prática, a Etapa A e a Etapa B acontecem no mesmo build — mas a validação
 > das extensões é feita **antes** de considerar o gateway pronto.
 
 **Pré-requisitos:**
 - Alvo do upstream já escolhido (§0, ponto 3).
 - Branch de trabalho criada: `git switch -c update/<versão-alvo> <tag-alvo>` no `openclaw/` local.
-- Extensões copiadas para a nova árvore: `cp -r` de `openclaw/extensions/{ask-max,whatsapp-cloud,response-audit,github-repo-report}`
+- Extensões copiadas para a nova árvore: `cp -r` de `openclaw/extensions/{ask-max,whatsapp-cloud,response-audit,github-repo-report,orchestrator-bridge}`
   (a fonte de verdade) ou restaurar de `meu-agente/extensions/` via sync reverso.
 
 **Ordem:**
@@ -233,11 +233,11 @@ cd /root/meu-agente-orchestrator && git log --oneline -5 > /root/backups/pre-upd
    ```
    Alvos mínimos: `whatsapp-cloud` (serialização por remetente / `foregroundReplyFence`),
    `response-audit` (heurística `false_action`), `github-repo-report` (policy / bloqueio de repos),
-   `ask-max` (escalonamento).
+   `ask-max` (escalonamento), `orchestrator-bridge` (tool `ask_orchestrator`).
 
 **Validação da Etapa A:**
 - [ ] `docker build` conclui sem erro.
-- [ ] Testes das 4 extensões passam (mesma contagem de antes, ou diferença explicada).
+- [ ] Testes das 5 extensões passam (mesma contagem de antes, ou diferença explicada).
 - [ ] `openclaw.plugin.json` de cada extensão continua válido para o schema da versão nova.
 - [ ] Log de boot da imagem de teste lista **os mesmos plugins** que produção (hoje: 11), sem erro.
 
