@@ -67,10 +67,21 @@ async def lifespan(app: FastAPI):
     grafo sobre ele e guarda tudo em app.state - ver checkpointer.py sobre
     por que essa abertura nao pode acontecer por request."""
     if not settings.api_token:
-        _logger.warning(
-            "ATENÇÃO: ORCHESTRATOR_API_TOKEN não está configurado. "
-            "Endpoints /v1/turn e /tasks/stream estão operando SEM autenticação (modo dev)."
-        )
+        if settings.allow_insecure_dev_auth:
+            _logger.warning(
+                "ATENÇÃO: ORCHESTRATOR_API_TOKEN não está configurado e "
+                "ORCHESTRATOR_ALLOW_INSECURE_DEV_AUTH=true. Endpoints /v1/turn e "
+                "/tasks/stream estão operando SEM autenticação (opt-in explícito de "
+                "modo dev inseguro). NUNCA use isso em produção."
+            )
+        else:
+            _logger.warning(
+                "ORCHESTRATOR_API_TOKEN não está configurado. Por padrão os "
+                "endpoints /v1/turn e /tasks/stream vão FALHAR FECHADO (401 em toda "
+                "requisição) até a variável ser definida. Para religar o modo dev "
+                "inseguro só em desenvolvimento local, defina "
+                "ORCHESTRATOR_ALLOW_INSECURE_DEV_AUTH=true explicitamente."
+            )
     async with checkpointer_context() as checkpointer:
         app.state.checkpointer = checkpointer
         app.state.graph = build_graph(checkpointer)
@@ -81,14 +92,19 @@ def verify_api_token(request: Request) -> None:
     """Dependencia de autenticacao dos endpoints protegidos.
 
     Valida o token via `Authorization: Bearer <token>` ou
-    `X-Orchestrator-Token`. Se `settings.api_token` nao estiver
-    configurado (None/vazio), libera tudo (modo dev) para nao quebrar
-    suites existentes. Caso contrario, sem token ou com token invalido
-    responde 401 Unauthorized.
+    `X-Orchestrator-Token`. FALHA FECHADO por padrao: se
+    `settings.api_token` nao estiver configurado (None/vazio/so espacos -
+    ja normalizado em config.py), toda requisicao e recusada com 401,
+    igual a um token invalido. O unico jeito de liberar acesso sem token e
+    o opt-in explicito `settings.allow_insecure_dev_auth=True`
+    (ORCHESTRATOR_ALLOW_INSECURE_DEV_AUTH=true), pensado so para
+    desenvolvimento local - nunca usar em deploy real.
     """
     expected = settings.api_token
     if not expected:
-        return
+        if settings.allow_insecure_dev_auth:
+            return
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     authorization = request.headers.get("authorization", "")
     token: str | None = None
     if authorization.lower().startswith("bearer "):

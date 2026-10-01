@@ -154,15 +154,21 @@ Em produção, quando o número é restrito ou de uso interno, troque para
 (DDI+DDD+número, só dígitos). Deixar `open` em número público significa
 responder a desconhecidos e gastar LLM com tráfego não autorizado.
 
-### `ORCHESTRATOR_API_TOKEN` é obrigatório, sem token padrão
+### `ORCHESTRATOR_API_TOKEN` é obrigatório, sem token padrão (e falha fechado na aplicação)
 
 Os dois compose declaram `${ORCHESTRATOR_API_TOKEN:?defina ... no .env}`
 tanto no `orchestrator` quanto no `openclaw-gateway` — `docker compose
-up`/`config` aborta se a variável estiver vazia. Isso fecha o modo dev do
-orquestrador (`orchestrator/src/orchestrator/main.py`: token vazio =
-`/v1/turn` e `/tasks/stream` sem autenticação, com apenas um warning no
-log) para qualquer deploy que passe pelo compose. Gere com
-`openssl rand -hex 32` e use o MESMO valor nos dois serviços.
+up`/`config` aborta se a variável estiver vazia. Isso é só a 1ª camada:
+o `:?` do compose só rejeita *unset/vazio*, não um valor só de espaços
+(`"   "` passa pela interpolação). A 2ª camada fecha essa brecha dentro do
+próprio orquestrador (`orchestrator/src/orchestrator/main.py:verify_api_token`):
+token ausente, vazio ou só espaços agora **falha fechado por padrão** — todo
+request a `/v1/turn`/`/tasks/stream` recebe `401`, nunca mais abre sozinho.
+O único jeito de religar o modo dev sem token é o opt-in explícito
+`ORCHESTRATOR_ALLOW_INSECURE_DEV_AUTH=true`, que nenhum dos dois moldes usa
+(e que não adianta nada aqui, já que o `:?` do compose nem deixa a stack
+subir sem o token real). Gere com `openssl rand -hex 32` e use o MESMO
+valor nos dois serviços.
 
 ### `ask-max.config.to` exige valor literal (mesmo padrão do `phoneNumberId`)
 
@@ -175,6 +181,35 @@ que o `bootstrap.sh` substitui pelo número em dígitos de
 "utilizável" aqui seria um destino de escalonamento real por engano — a
 mesma classe de risco documentada acima para o `phoneNumberId`. Se o
 marcador sobreviver, o bootstrap avisa antes de você subir a stack.
+
+O `bootstrap.sh` também detecta o caso de um `openclaw/openclaw.json`
+**gerado antes desta blindagem existir**: se o arquivo preservado
+("integralmente", pela regra de idempotência) ainda tiver o número de
+exemplo antigo (`5541999999999`) gravado literalmente em
+`ask-max.config.to` — não o marcador, o valor cru mesmo —, o bootstrap
+avisa e pede conferência manual, sem sobrescrever (pode coincidir com o
+número real que o operador configurou).
+
+### n8n e PostgreSQL em versão fixa, não `latest`/`16-alpine` flutuante
+
+O Molde 2 fixa `postgres:16.15-alpine` e `n8n:2.26.8` (default de
+`N8N_VERSION`) em vez de tags flutuantes — as duas foram validadas ao vivo
+em teste descartável (boot, healthcheck, persistência, API REST). Com tag
+flutuante, um `pull`/recreate troca a versão por baixo do cliente sem
+aviso — já aconteceu de "latest" subir uma major nova do n8n (1.x → 2.x,
+user management obrigatório substituindo basic auth) sem ninguém escolher
+quando. Trocar de versão aqui é sempre decisão deliberada: edite o
+`.env`/o compose e teste antes de levar a um cliente.
+
+### `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` explícito
+
+A segmentação de rede (seção "Blindagem e Rede" acima) protege o *acesso*
+ao n8n, não o que um workflow *já autorizado* consegue ler de dentro dele.
+Sem este env (default do n8n é `false`), qualquer workflow — inclusive um
+escrito pelo especialista LLM via API — pode usar um nó Code/Function para
+ler `process.env` e exfiltrar `N8N_ENCRYPTION_KEY`/`DB_POSTGRESDB_PASSWORD`
+do próprio container. Setado explicitamente no compose, não deixado no
+default da imagem.
 
 ---
 

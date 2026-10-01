@@ -7,7 +7,9 @@ e `/tasks/stream`, com `/health` publico:
 - token invalido -> 401
 - token valido (Bearer ou X-Orchestrator-Token) -> processamento normal
 - /health sem token -> 200
-- api_token None (modo dev) -> libera sem quebrar suites existentes
+- api_token None e allow_insecure_dev_auth=False (default) -> FALHA FECHADO,
+  401 em toda requisicao (nunca abre por omissao de configuracao)
+- api_token None e allow_insecure_dev_auth=True (opt-in explicito) -> libera
 """
 
 import pytest
@@ -41,6 +43,10 @@ def client():
 
 def _set_token(monkeypatch, token: str | None) -> None:
     monkeypatch.setattr(main_module.settings, "api_token", token)
+
+
+def _set_insecure_dev_auth(monkeypatch, allowed: bool) -> None:
+    monkeypatch.setattr(main_module.settings, "allow_insecure_dev_auth", allowed)
 
 
 def test_turn_sem_token_com_api_token_ativo_retorna_401(client, monkeypatch):
@@ -104,8 +110,35 @@ def test_health_publico_sem_token(client, monkeypatch):
     assert resp.json() == {"status": "ok"}
 
 
-def test_turn_liberado_quando_api_token_nao_configurado(client, monkeypatch):
+def test_turn_falha_fechado_quando_api_token_nao_configurado(client, monkeypatch):
+    """Default (allow_insecure_dev_auth=False): ausencia de token nunca vira
+    acesso liberado - a app recusa com 401, nao processa a tarefa."""
     _set_token(monkeypatch, None)
+    _set_insecure_dev_auth(monkeypatch, False)
+    resp = client.post("/v1/turn", json=_TURN_BODY)
+    assert resp.status_code == 401
+
+
+def test_stream_falha_fechado_quando_api_token_nao_configurado(client, monkeypatch):
+    _set_token(monkeypatch, None)
+    _set_insecure_dev_auth(monkeypatch, False)
+    resp = client.post("/tasks/stream", json=_STREAM_BODY)
+    assert resp.status_code == 401
+
+
+def test_turn_liberado_com_opt_in_explicito_de_modo_dev_inseguro(client, monkeypatch):
+    """Unico jeito de rodar sem token: allow_insecure_dev_auth=True,
+    explicito (ORCHESTRATOR_ALLOW_INSECURE_DEV_AUTH=true)."""
+    _set_token(monkeypatch, None)
+    _set_insecure_dev_auth(monkeypatch, True)
     resp = client.post("/v1/turn", json=_TURN_BODY)
     assert resp.status_code == 200
     assert resp.json() == {"reply_text": "ola"}
+
+
+def test_health_publico_sem_token_mesmo_em_modo_fechado(client, monkeypatch):
+    _set_token(monkeypatch, None)
+    _set_insecure_dev_auth(monkeypatch, False)
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}

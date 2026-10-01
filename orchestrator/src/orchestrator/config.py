@@ -11,8 +11,10 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     # Token de autenticacao dos endpoints protegidos (/v1/turn,
-    # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = modo dev,
-    # sem autenticacao (nao quebrar suites existentes).
+    # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = token ausente;
+    # por padrao isso faz os endpoints protegidos FALHAREM FECHADO (401) -
+    # ver verify_api_token em main.py. So vira modo dev sem autenticacao com
+    # allow_insecure_dev_auth=True (opt-in explicito, abaixo).
     api_token: str | None = None
 
     @field_validator("api_token", mode="before")
@@ -21,13 +23,23 @@ class Settings(BaseSettings):
         """Simetria exata com o cliente TypeScript
         (resolveOrchestratorApiToken em
         extensions/whatsapp-cloud/src/orchestrator-client.ts): trim e
-        string vazia/so espacos vira None (modo dev, sem autenticacao)."""
+        string vazia/so espacos vira None (token ausente)."""
         if v is None:
             return None
         if not isinstance(v, str):
             return v  # type: ignore[return-value]
         stripped = v.strip()
         return stripped or None
+
+    # Opt-in EXPLICITO para religar o modo dev inseguro (endpoints
+    # protegidos liberados sem nenhum token) quando `api_token` nao esta
+    # configurado. Default False: falha fechado por omissao (ver
+    # verify_api_token em main.py) - ausencia de configuracao nunca vira
+    # acesso liberado sozinha. So usar em desenvolvimento local, nunca em
+    # deploy real (os compose de `deployments/servidor-dedicado/` nem
+    # deixam a stack subir sem ORCHESTRATOR_API_TOKEN, independente desta
+    # flag - ver `${ORCHESTRATOR_API_TOKEN:?...}` nos dois moldes).
+    allow_insecure_dev_auth: bool = False
 
     # OpenClaw gateway (Especialista em Programacao) - fala com o endpoint
     # OpenAI-compativel /v1/chat/completions do Gateway (ver
