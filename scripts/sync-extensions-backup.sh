@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$REPO_ROOT/openclaw/extensions"
 DST="$REPO_ROOT/extensions"
 
-EXTENSIONS=(ask-max whatsapp-cloud response-audit github-repo-report)
+EXTENSIONS=(ask-max whatsapp-cloud response-audit github-repo-report orchestrator-bridge)
 
 for ext in "${EXTENSIONS[@]}"; do
   if [ ! -d "$SRC/$ext" ]; then

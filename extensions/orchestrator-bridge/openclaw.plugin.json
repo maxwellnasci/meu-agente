@@ -1,0 +1,32 @@
+{
+  "id": "orchestrator-bridge",
+  "activation": {
+    "onStartup": true
+  },
+  "name": "Orchestrator Bridge",
+  "description": "Lets the agent delegate a task to the project's LangGraph orchestrator (n8n automation specialist, Python/code automation specialist) via its /v1/turn API. Authentication token is read from ORCHESTRATOR_API_TOKEN in the gateway container's environment -- never store it in this plugin's config.",
+  "contracts": {
+    "tools": ["ask_orchestrator"]
+  },
+  "toolMetadata": {
+    "ask_orchestrator": {
+      "optional": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Base URL of the orchestrator's /v1/turn endpoint (e.g. http://meu-agente-orchestrator-orchestrator-1:8000/v1/turn)."
+      },
+      "timeoutSeconds": {
+        "type": "number",
+        "description": "Request timeout in seconds. Should be a bit above the orchestrator's own turn_timeout_sec. Default: 160.",
+        "default": 160
+      }
+    },
+    "required": ["url"]
+  }
+}

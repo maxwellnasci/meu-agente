@@ -1,5 +1,15 @@
 # Próximos Passos (Roadmap)
 
+## Encerramento 30/09/2026 — build do gateway + orchestrator-bridge com token por ambiente
+
+- Build do gateway `openclaw:smoke-test` concluído nesta sessão, sem deploy e sem alteração da produção (só build local, imagem não publicada nem subida).
+- `orchestrator-bridge` já suporta `ORCHESTRATOR_API_TOKEN` configurável por ambiente, envia o header `Bearer` de forma condicional (só quando o token está setado), e os testes da extensão passaram.
+- **Antes de recriar/deployar gateway e orquestrador**: configurar o mesmo `ORCHESTRATOR_API_TOKEN` nos dois serviços. Sem isso, o orquestrador aplica fail-closed e responde `401`, interrompendo o fluxo do WhatsApp.
+- **Não rodar** `scripts/sync-extensions-backup.sh` (sincronização global) até ela ser endurecida — hoje pode alterar extensões divergentes não relacionadas a esta mudança.
+- **Próxima retomada:** preparar a configuração operacional do token (onde/como guardar em cada ambiente) e então fazer o smoke test ponta a ponta isolado, antes de qualquer deploy real.
+
+---
+
 ## FASE ATUAL: Segurança antes de expandir
 
 O agente está vivo (`deepseek/deepseek-chat`, v2026.6.9) mas rodando **sem sandbox**.
