@@ -5,7 +5,7 @@
 - Build do gateway `openclaw:smoke-test` concluído nesta sessão, sem deploy e sem alteração da produção (só build local, imagem não publicada nem subida).
 - `orchestrator-bridge` já suporta `ORCHESTRATOR_API_TOKEN` configurável por ambiente, envia o header `Bearer` de forma condicional (só quando o token está setado), e os testes da extensão passaram.
 - **Antes de recriar/deployar gateway e orquestrador**: configurar o mesmo `ORCHESTRATOR_API_TOKEN` nos dois serviços. Sem isso, o orquestrador aplica fail-closed e responde `401`, interrompendo o fluxo do WhatsApp.
-- **Não rodar** `scripts/sync-extensions-backup.sh` (sincronização global) até ela ser endurecida — hoje pode alterar extensões divergentes não relacionadas a esta mudança.
+- `scripts/sync-extensions-backup.sh` **endurecido em 2026-10-01**: agora exige o nome da(s) extensão(ões) a sincronizar (ex.: `./scripts/sync-extensions-backup.sh orchestrator-bridge`) e só afeta o diretório daquela extensão; o modo global (`--all --yes-sync-all`) existe mas exige confirmação explícita e lista o escopo antes de alterar qualquer coisa. Preferir sempre a forma com extensão explícita.
 - **Próxima retomada:** preparar a configuração operacional do token (onde/como guardar em cada ambiente) e então fazer o smoke test ponta a ponta isolado, antes de qualquer deploy real.
 
 ---

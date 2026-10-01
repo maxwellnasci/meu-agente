@@ -433,8 +433,10 @@ timeout; Meta reclamando de entrega (erro `131047` é **outra coisa** — janela
 - [ ] Rodar o teste real de ponta a ponta do WhatsApp mais uma vez no dia seguinte.
 - [ ] Se estável por 24h+:
   - `git push backup update/<versão>` e mesclar em `production-local-fixes` (ou renomear a branch).
-  - Sincronizar a cópia de backup das extensões: `./scripts/sync-extensions-backup.sh` +
-    `git add extensions/ && git commit`.
+  - Sincronizar a cópia de backup das extensões que de fato mudaram (ex.:
+    `./scripts/sync-extensions-backup.sh ask-max whatsapp-cloud`) + `git add extensions/ && git commit`.
+    Evitar `--all`: ele exige a flag `--yes-sync-all` e sincroniza todas as extensões conhecidas de
+    uma vez, inclusive as que não mudaram nesta atualização.
   - Atualizar `docs/MANUTENCAO.md` (a seção "Update OpenClaw" está com o processo antigo do Kali) e
     `docs/ESTADO_ATUAL.md` com a nova versão em produção.
   - Remover imagens de rollback: `docker rmi openclaw:rollback-$TS meu-agente-orchestrator:rollback-$TS`
