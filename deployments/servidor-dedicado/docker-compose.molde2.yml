@@ -188,7 +188,11 @@ services:
   # PostgreSQL — banco relacional dedicado ao n8n deste cliente.
   # ---------------------------------------------------------------------
   postgres:
-    image: postgres:16-alpine
+    # Versão fixa (não "16-alpine" flutuante): evita que um `pull`/restart
+    # troque a versão real do banco por baixo do cliente sem aviso. Validada
+    # ao vivo em teste descartável (boot + healthcheck + n8n conectando).
+    # Subir a versão aqui exige testar a stack antes de levar a um cliente.
+    image: postgres:16.15-alpine
     container_name: postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-n8n}
@@ -231,7 +235,13 @@ services:
   # n8n — motor de automações dedicado deste cliente.
   # ---------------------------------------------------------------------
   n8n:
-    image: n8nio/n8n:${N8N_VERSION:-latest}
+    # Default fixo (não "latest" flutuante): "latest" muda sozinho a cada
+    # `pull`/recreate e já trocou de major (1.x -> 2.x, user management
+    # obrigatório substituindo basic auth) sem o cliente escolher quando.
+    # 2.26.8 foi validada ao vivo em teste descartável (boot + healthcheck +
+    # API REST + persistência). ${N8N_VERSION} nos deixa fazer upgrade
+    # deliberado por cliente, nunca automático.
+    image: n8nio/n8n:${N8N_VERSION:-2.26.8}
     container_name: n8n
     depends_on:
       postgres:
@@ -257,6 +267,13 @@ services:
       N8N_PROTOCOL: https
       GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
       TZ: ${TZ:-America/Sao_Paulo}
+      # Sem isto (default do n8n é "false"), qualquer workflow — inclusive
+      # um escrito pelo especialista LLM — pode ler `process.env` num nó
+      # Code/Function e exfiltrar N8N_ENCRYPTION_KEY/DB_POSTGRESDB_PASSWORD
+      # deste mesmo container. Explícito aqui porque a segmentação de rede
+      # (ver topo do arquivo) protege o ACESSO ao n8n, não o que um
+      # workflow já autorizado consegue ler de dentro dele.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
     volumes:
       # Bind mount (não volume nomeado): mantém o padrão do Molde 1 de
       # estado inspecionável/backupável direto no host. Exige chown -R

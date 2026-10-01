@@ -240,6 +240,17 @@ if [ -f "$CONFIG_FILE" ]; then
   if grep -q "$ASK_MAX_TO_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null && fill_ask_max_to_placeholder; then
     ok "ask-max.config.to atualizado no openclaw/openclaw.json existente a partir do .env ($ask_max_to)"
   fi
+
+  # Config gerada ANTES desta blindagem (template antigo gravava o número
+  # de exemplo direto, sem marcador) pode ter o valor literal legado
+  # "preservado integralmente" acima sem ninguém perceber. Só avisa — não
+  # sobrescreve, pode coincidir com o número real que o operador definiu.
+  if grep -q "\"to\": *\"$ASK_MAX_TO_EXAMPLE\"" "$CONFIG_FILE" 2>/dev/null; then
+    warn "openclaw/openclaw.json (já existente) tem ask-max.config.to igual"
+    warn "ao número de exemplo antigo do template ($ASK_MAX_TO_EXAMPLE)."
+    warn "Se não for o número real do operador, edite manualmente:"
+    warn "  plugins.entries.ask-max.config.to em $CONFIG_FILE"
+  fi
 else
   cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
 
@@ -270,6 +281,13 @@ if grep -q "$ASK_MAX_TO_PLACEHOLDER" "$CONFIG_FILE" 2>/dev/null; then
   ask_max_to_pending=1
   warn "openclaw/openclaw.json ainda contém o marcador $ASK_MAX_TO_PLACEHOLDER."
   warn "Preencha ORCHESTRATOR_ATTENDANT_OPERATOR_TO no .env antes de subir."
+fi
+
+# Idem para o caso "openclaw.json preexistente" de antes desta blindagem:
+# valor literal legado sobrevivendo num arquivo "preservado integralmente".
+ask_max_to_legacy_default=0
+if grep -q "\"to\": *\"$ASK_MAX_TO_EXAMPLE\"" "$CONFIG_FILE" 2>/dev/null; then
+  ask_max_to_legacy_default=1
 fi
 
 # ---------------------------------------------------------------------
@@ -391,6 +409,15 @@ if [ "$ask_max_to_pending" -eq 1 ]; then
        humano tentar enviar para um contato inexistente.
        Alternativa: preencha o .env e recrie a config com
          rm $DIR/openclaw/openclaw.json && $DIR/bootstrap.sh $MOLDE
+INSTRUCTIONS
+elif [ "$ask_max_to_legacy_default" -eq 1 ]; then
+  cat <<INSTRUCTIONS
+
+   >>> ATENÇÃO: openclaw/openclaw.json já existia e ask-max.config.to está
+       igual ao número de exemplo antigo do template ($ASK_MAX_TO_EXAMPLE).
+       Se não for o número real do operador (provável — é o valor legado
+       de antes desta blindagem), edite manualmente:
+         plugins.entries.ask-max.config.to em $DIR/openclaw/openclaw.json
 INSTRUCTIONS
 else
   cat <<INSTRUCTIONS
