@@ -3,10 +3,17 @@
 ## Encerramento 30/09/2026 — build do gateway + orchestrator-bridge com token por ambiente
 
 - Build do gateway `openclaw:smoke-test` concluído nesta sessão, sem deploy e sem alteração da produção (só build local, imagem não publicada nem subida).
-- `orchestrator-bridge` já suporta `ORCHESTRATOR_API_TOKEN` configurável por ambiente, envia o header `Bearer` de forma condicional (só quando o token está setado), e os testes da extensão passaram.
+- `orchestrator-bridge` já suporta `ORCHESTRATOR_API_TOKEN` configurável por ambiente, envia o header `Bearer` de forma condicional (só quando o token está setado), e os testes da extensão passaram (no código; a imagem v4 em produção ainda não tem esse suporte — ver pendências).
 - **Antes de recriar/deployar gateway e orquestrador**: configurar o mesmo `ORCHESTRATOR_API_TOKEN` nos dois serviços. Sem isso, o orquestrador aplica fail-closed e responde `401`, interrompendo o fluxo do WhatsApp.
 - `scripts/sync-extensions-backup.sh` **endurecido em 2026-10-01**: agora exige o nome da(s) extensão(ões) a sincronizar (ex.: `./scripts/sync-extensions-backup.sh orchestrator-bridge`) e só afeta o diretório daquela extensão; o modo global (`--all --yes-sync-all`) existe mas exige confirmação explícita e lista o escopo antes de alterar qualquer coisa. Preferir sempre a forma com extensão explícita.
-- **Próxima retomada:** preparar a configuração operacional do token (onde/como guardar em cada ambiente) e então fazer o smoke test ponta a ponta isolado, antes de qualquer deploy real.
+- [x] **Token ativado em produção (02/10/2026):** mesmo `ORCHESTRATOR_API_TOKEN` no gateway e no orquestrador do Contabo, deploy fail-closed feito e validado (sem token → 401, WhatsApp → 200). Detalhes: [producao-contabo-token.md](producao-contabo-token.md).
+
+### Pendências pós-token (02/10)
+
+- [ ] Imagem nova do gateway com token no `orchestrator-bridge` (hoje `ask_orchestrator` deve receber 401 — SUPOSIÇÃO, não testado em produção).
+- [ ] Apagar o backup datado do servidor depois de alguns dias estáveis.
+- [ ] Verificar se existe webhook ou pull agendado no servidor.
+- [ ] Validar os valores de n8n do orquestrador em produção (hoje só se sabe que estão preenchidos).
 
 ---
 

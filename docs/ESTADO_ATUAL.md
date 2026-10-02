@@ -1,5 +1,13 @@
 # Estado Atual do Projeto
 
+## ✅ MARCO — Autenticação por token ativa em produção no Contabo (2026-10-02)
+
+Mesmo `ORCHESTRATOR_API_TOKEN` configurado no gateway e no orquestrador do Contabo; deploy do orquestrador fail-closed feito e validado (sem token → 401, mensagem real do WhatsApp → 200).
+Incidente no caminho: um 2º connector do túnel rodando no Kali (unit de usuário) respondia com fallback; foi desabilitado.
+Detalhes, hipóteses e pendências: [producao-contabo-token.md](producao-contabo-token.md).
+
+---
+
 ## ✅ MARCO — Molde 1 (Kit Agente Essencial em Servidor Dedicado) 100% implementado e homologado em laboratório, incluindo subida real de containers (2026-09-25, runtime validado em 2026-09-29)
 
 Linha de **Servidor Dedicado por cliente** com seus artefatos de
@@ -557,7 +565,8 @@ Cutover do túnel Cloudflare feito às 22:51 UTC de 2026-08-02, entrega
 ponta a ponta confirmada via Contabo às 22:56 UTC. **Etapa 8 concluída
 em 2026-08-04**: container antigo do Kali parado (`docker compose
 stop`, não deletado, reversível), cloudflared do Kali confirmado
-inativo/desabilitado. Checkpoint de verificação (achado sobre boot do
+inativo/desabilitado (serviço de sistema; um 2º connector via unit de
+usuário foi achado e desabilitado em 2026-10-02). Checkpoint de verificação (achado sobre boot do
 Kali fora do previsto, fix de segurança de portas, falso positivo do
 response-audit) em
 [SESSAO_2026-08-04_checkpoint-etapa8.md](SESSAO_2026-08-04_checkpoint-etapa8.md).
@@ -586,6 +595,7 @@ Detalhes do cutover original: [SESSAO_2026-08-02.md](SESSAO_2026-08-02.md).
 - **Canal ativo:** whatsapp-cloud (extensão customizada). O canal oficial é **exclusivamente** a WhatsApp Cloud API.
 - **Baileys/Evolution/Chatwoot:** Desativados e removidos fisicamente do servidor Contabo (RAM recuperada).
 - **Túnel público:** Cloudflare Tunnel (whatsapp.mxos.com.br → localhost:18789), serviço systemd permanente, reconexão automática. **Conector ativo: Contabo** (desde 2026-08-02 22:51 UTC; antes era o Kali). Portas 18789/18790 do Kali restritas a `127.0.0.1` desde 2026-08-04 (config antiga expunha em `0.0.0.0`, sem exploração confirmada). Porta 18790 (bridge legacy, sem uso) removida por completo do docker-compose tanto no Contabo (produção, host) quanto no Kali (fallback) em 2026-08-04
+  - Contabo é o **único connector conhecido** desde 2026-10-02 (um 2º connector no Kali, via unit de usuário, foi desabilitado).
 - Docker socket removido do container do gateway (Contabo) em
   2026-08-04 - fechava rota RCE→root. Secrets DEEPSEEK_API_KEY e
   OPENCLAW_GATEWAY_TOKEN migrados de env cru pra SecretRef em arquivo
