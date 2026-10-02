@@ -390,7 +390,7 @@ cat <<INSTRUCTIONS
        em channels.whatsapp-cloud para allowlist explícita:
 
          "dmPolicy": "allowlist",
-         "allowFrom": ["5541999999999", "5511988887777"]
+         "allowFrom": ["5541999999999", "12025550142"]
 
        (DDI+DDD+número, só dígitos, um item por contato autorizado.)
        Mantendo "open" em um número público, o agente responde a
@@ -434,6 +434,9 @@ cat <<INSTRUCTIONS
 
    Acompanhar o boot:
      docker compose -f $COMPOSE_BASENAME logs -f
+
+   Validar a saúde da instância:
+     ./check-instancia.sh
 INSTRUCTIONS
 
 if [ "$MOLDE" = "molde2" ]; then
