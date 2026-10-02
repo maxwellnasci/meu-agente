@@ -68,9 +68,9 @@ Padronização da autenticação entre o gateway OpenClaw e o Orchestrator (Fast
 
 - **CONFIRMADO:** uma chamada originada do gateway (IP interno `172.20.0.3`) retornou `200 OK`, registrada nos logs do Orchestrator.
 
-### 3.6 Esclarecimento do Smoke Test via CLI
+### 3.6 Smoke Test via CLI (causa não confirmada)
 
-- **CONFIRMADO/ESCLARECIDO:** o `401` observado durante o smoke test via `docker exec ... agent` (CLI) decorreu do comportamento de "embedded fallback" — um processo avulso executado fora do escopo de pareamento aprovado do runtime de produção. Esse `401` não reflete o comportamento do runtime contínuo de produção (que usa o token corretamente, conforme item 3.5).
+- **HIPÓTESE (NÃO CONFIRMADA):** o smoke test via `docker exec ... agent` (CLI) recebeu `401`. Observado: a CLI não conseguiu parear com o gateway (`pairing required`) e caiu em "embedded fallback", um processo avulso. Não explicado: por que esse processo enviou a requisição sem `Authorization`, já que um `curl` de dentro do mesmo container, com a mesma variável, retornou 200. O fluxo contínuo de produção foi validado separadamente na seção 3.5.
 
 ---
 
