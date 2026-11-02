@@ -6,11 +6,11 @@ Atualizado em **2026-11-02** (após o deploy na Contabo).
 
 | Item | Situação |
 |---|---|
-| GitHub (`origin/master`) | histórico **reescrito e limpo** (IP de produção, 2º IP e telefone do operador removidos) + auditoria de segurança integrada; último commit publicado: `cceadd2` |
-| CI | **100% verde** em `cceadd2`: orchestrator (ruff, pytest, bandit, pip-audit), gitleaks e shellcheck |
+| GitHub (`origin/master`) | histórico **reescrito e limpo** (IP de produção, 2º IP e telefone do operador removidos) + auditoria de segurança integrada; tudo publicado, sem commits locais pendentes |
+| CI | **100% verde** nas execuções de 2026-11-02 (`cceadd2` e `361b49b`): orchestrator (ruff, pytest, bandit, pip-audit), gitleaks e shellcheck |
 | Testes | **359 passam, 1 pulado** (o teste live do n8n exige `RUN_LIVE_N8N_TESTS=1`) |
 | Produção (Contabo) | **deploy feito em 2026-11-02**: orquestrador com as correções da auditoria; verificado ao vivo (ver abaixo) |
-| Commits locais ainda NÃO publicados | o fix do script de deploy e esta atualização do `WORKFLOW.md` (ver `git log origin/master..master`) |
+| Teste real pelo WhatsApp | **OK** — o Max enviou uma mensagem e o Amigão respondeu normal; no log do servidor, 2× `POST /v1/turn` → 200, 0 erros |
 
 Relatório da auditoria: [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md)
 · modelo de ameaças: [SECURITY.md](SECURITY.md).
@@ -37,7 +37,7 @@ container nas duas redes (`openclaw_default` e `agencia_ia_n8n-internal`) · `se
 Conferência só de leitura do n8n: 19 workflows, **nenhum resíduo** (`pytest-teste-orchestrator-*`),
 nenhum atualizado depois de 21/10.
 
-**Falta (só você consegue):** mandar uma mensagem real pelo WhatsApp e confirmar a resposta.
+**Teste real:** mensagem enviada pelo WhatsApp e respondida normalmente (confirmado em 2026-11-02).
 
 ### Rollback (se algo estranho aparecer)
 
@@ -57,16 +57,16 @@ Quem tiver clone antigo deve refazê-lo (`git clone`), não dar `pull`.
 
 ## Pendências
 
-1. **Teste real pelo WhatsApp** após o deploy (acima).
-2. **Testes TypeScript de `extensions/ask-max` nunca foram executados** (dependem do SDK do OpenClaw);
+1. **Testes TypeScript de `extensions/ask-max` nunca foram executados** (dependem do SDK do OpenClaw);
    `resolve-hook.test.ts` teve números de telefone trocados pela limpeza — rode `pnpm vitest` na extensão.
-3. **Deriva repo ↔ servidor:** o `docker-compose.yml` de produção (rede do n8n) só existe no servidor.
+2. **Deriva repo ↔ servidor:** o `docker-compose.yml` de produção (rede do n8n) só existe no servidor.
    Versionar como override (ex.: `docker-compose.prod.yml`) para o deploy não depender de memória.
-4. Imagem nova do **gateway** com token no `orchestrator-bridge` (pendência de 02/10; fora deste deploy).
-5. Achados abertos da auditoria: S-10 (rate limit do webhook antes da assinatura), Dockerfile roda como root,
+3. Imagem nova do **gateway** com token no `orchestrator-bridge` (pendência de 02/10; fora deste deploy).
+4. Achados abertos da auditoria: S-10 (rate limit do webhook antes da assinatura), Dockerfile roda como root,
    lockfiles das extensões, confirmação para disparo de webhook n8n em produção, allowlist de alvos para o
    especialista de cibersegurança.
-6. O padrão `mxos.com.br` em `ORCHESTRATOR_PROTECTED_TARGETS` também bloqueia varrer o próprio site da empresa.
+5. O padrão `mxos.com.br` em `ORCHESTRATOR_PROTECTED_TARGETS` também bloqueia varrer o próprio site da empresa.
+6. Apagar os dois `.bundle` de backup quando não forem mais necessários (contêm os dados originais).
 
 ## Como verificar a qualquer momento
 
