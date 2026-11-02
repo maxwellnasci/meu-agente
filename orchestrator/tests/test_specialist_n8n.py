@@ -4,6 +4,7 @@ scratchpad do loop ReAct manual do node com o LLM e o N8nClient mockados
 integracao real (create+delete isolado, nao mexe nos workflows existentes)
 contra a API da instancia de producao quando ha credenciais em .env."""
 
+import os
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -26,9 +27,13 @@ def _n8n_fake_credentials_if_missing(monkeypatch):
         monkeypatch.setattr(settings, "n8n_api_key", "test-fake-key")
 
 
+# Teste de INTEGRACAO que cria/apaga um workflow numa instancia n8n REAL. Antes
+# rodava sozinho sempre que o `.env` local tinha credenciais - ou seja, um
+# `pytest` comum disparava escrita na instancia de PRODUCAO. Agora exige
+# opt-in explicito (RUN_LIVE_N8N_TESTS=1) alem das credenciais.
 requires_n8n_credentials = pytest.mark.skipif(
-    not settings.n8n_url or not settings.n8n_api_key,
-    reason="ORCHESTRATOR_N8N_URL/ORCHESTRATOR_N8N_API_KEY nao configurados (.env)",
+    os.environ.get("RUN_LIVE_N8N_TESTS") != "1" or not settings.n8n_url or not settings.n8n_api_key,
+    reason="teste live contra n8n real: exige RUN_LIVE_N8N_TESTS=1 + ORCHESTRATOR_N8N_URL/API_KEY",
 )
 
 
