@@ -17,6 +17,7 @@ from orchestrator.config import settings
 from orchestrator.graph.n8n_confirmation import NEEDS_CONFIRMATION_KEY
 from orchestrator.graph.nodes import _run_n8n_tool, specialist_n8n_node
 
+
 @pytest.fixture(autouse=True)
 def _n8n_fake_credentials_if_missing(monkeypatch):
     """So preenche fake se estiver vazio - nao mexe em credenciais reais
@@ -393,7 +394,7 @@ async def test_node_aborts_when_only_api_key_missing(monkeypatch):
         "internal_scratchpad": [],
     }
     with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
-        result = await specialist_n8n_node(state)
+        await specialist_n8n_node(state)
     mock_client_cls.assert_not_called()
 
 
@@ -406,5 +407,5 @@ async def test_node_aborts_when_only_url_missing(monkeypatch):
         "internal_scratchpad": [],
     }
     with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
-        result = await specialist_n8n_node(state)
+        await specialist_n8n_node(state)
     mock_client_cls.assert_not_called()

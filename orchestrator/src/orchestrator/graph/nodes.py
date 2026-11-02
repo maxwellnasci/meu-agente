@@ -611,9 +611,11 @@ async def specialist_n8n_node(state: GraphState) -> dict:
             "ausente) - abortando sem chamar N8nClient/LLM"
         )
         update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
-            "[n8n] A integracao de automacao (n8n) nao esta configurada neste "
-            "ambiente. NAO redespache o especialista n8n - responda ao usuario "
-            "que essa funcionalidade nao esta disponivel aqui."
+            (
+                "[n8n] A integracao de automacao (n8n) nao esta configurada neste "
+                "ambiente. NAO redespache o especialista n8n - responda ao usuario "
+                "que essa funcionalidade nao esta disponivel aqui."
+            )
         ]
         return update
 
@@ -681,6 +683,7 @@ async def specialist_n8n_node(state: GraphState) -> dict:
         try:
             response = await llm.ainvoke(conversation)
         except Exception as exc:
+            _logger.warning("specialist_n8n_node: falha ao invocar o LLM", exc_info=True)
             error = f"falha ao invocar o LLM do especialista n8n: {exc}"
             break
 

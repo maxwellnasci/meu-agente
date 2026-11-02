@@ -48,7 +48,7 @@ MUST_BLOCK = [
     "escaneie o c0ntabo",
     "escaneie o con-tabo",
     "escaneie o con.tabo",
-    "escaneie o cont​abo",  # zero-width space
+    "escaneie o cont\u200babo",  # zero-width space
     "escaneie o ch4twoot",
     "escaneie a evolution_api",
 ]

@@ -1,7 +1,12 @@
 import re
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from orchestrator.config import settings
 
@@ -56,7 +61,7 @@ def validate_webhook_request(path: object, method: object = "POST") -> tuple[str
     """Devolve (path_normalizado_sem_barra_inicial, METODO) ou levanta InvalidN8nInput."""
     if not isinstance(path, str) or not isinstance(method, str):
         raise InvalidN8nInput("path e method do webhook devem ser texto")
-    relative = path[1:] if path.startswith("/") else path
+    relative = path.removeprefix("/")
     segments = relative.split("/")
     if len(segments) > _WEBHOOK_MAX_SEGMENTS or not all(_WEBHOOK_SEGMENT_RE.fullmatch(seg) for seg in segments):
         raise InvalidN8nInput("path de webhook invalido: segmentos de letras, numeros, '_', '-', '.', '~' (sem '..')")
