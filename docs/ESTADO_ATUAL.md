@@ -1,5 +1,26 @@
 # Estado Atual do Projeto
 
+## 🔒 MARCO — Auditoria de segurança e endurecimento (2026-11-02) — em branch, NÃO implantado
+
+Auditoria completa (código, dependências, histórico git, CI, scripts) com 17 achados;
+as correções de severidade alta/média estão na branch `worktree-security-hardening-2026-11`
+(333 testes, ruff/bandit/pip-audit limpos) e **só valem em produção depois de rebuild + deploy**.
+Corrigidos: path traversal controlado pelo LLM no cliente n8n, bypass do `cybersec_guard`,
+confirmação fraca de ações n8n, injeção de shell no workflow de publicação, suíte de testes
+não hermética (um teste criava/apagava workflow no n8n real), vazamento de `str(exc)` no SSE,
+falta de limites de entrada, 7 CVEs em dependências.
+Abertos: repo público com IP/telefone em docs (S-06, decisão sobre reescrever histórico),
+rate limit do webhook antes da assinatura (S-10), Dockerfile como root, lockfiles das
+extensões, confirmação para disparo de webhook n8n em produção.
+Relatório: [SEGURANCA_AUDITORIA_2026-11-02.md](SEGURANCA_AUDITORIA_2026-11-02.md) ·
+modelo de ameaças: [../SECURITY.md](../SECURITY.md).
+
+**Para aplicar em produção:** rebuild da imagem do orquestrador; definir
+`ORCHESTRATOR_PROTECTED_TARGETS` (com o IP de produção) no `.env` do servidor; recriar
+com `docker compose up -d`; conferir o n8n por workflows residuais.
+
+---
+
 ## ✅ MARCO — Autenticação por token ativa em produção no Contabo (2026-10-02)
 
 Mesmo `ORCHESTRATOR_API_TOKEN` configurado no gateway e no orquestrador do Contabo; deploy do orquestrador fail-closed feito e validado (sem token → 401, mensagem real do WhatsApp → 200).

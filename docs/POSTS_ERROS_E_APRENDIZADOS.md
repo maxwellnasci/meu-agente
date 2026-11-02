@@ -7,8 +7,8 @@
 > publicação.
 >
 > Fontes primárias: `docs/RESOLUCAO_BUG_COMA_ETERNO.md`,
-> `docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md`, `P0_CONTENCAO_N8N_2026-09-06.md`,
-> `ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md`, `docs/SESSAO_2026-09-23.md`.
+> `docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md`, `docs/archive/P0_CONTENCAO_N8N_2026-09-06.md`,
+> `docs/archive/ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md`, `docs/SESSAO_2026-09-23.md`.
 >
 > **Antes de publicar:** os posts abaixo foram escritos para não expor hosts,
 > tokens, números de telefone, nomes de clientes ou topologia de rede real.

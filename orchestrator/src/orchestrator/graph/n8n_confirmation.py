@@ -1,6 +1,6 @@
 """Gate de confirmacao explicita para acoes n8n que MUDAM producao.
 
-Contexto (incidente 2026-09-05, ver ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md):
+Contexto (incidente 2026-09-05, ver docs/archive/ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md):
 o especialista n8n criou E ativou um workflow em producao a partir de uma
 mensagem de 4 palavras ("Me avisa quando apagar"), sem ninguem aprovar. O
 `n8n_guard.py` so cobre delete/deactivate por heuristica de verbo; create e

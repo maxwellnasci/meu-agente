@@ -1,121 +1,99 @@
-# Meu Agente — Laboratório de Agentes Autônomos Seguros
+# Meu Agente — Agentes de IA autônomos, com segurança desde o desenho
 
-> Construindo e validando agentes de IA com isolamento real, 
-> defense in depth e arquitetura pronta para produção.
+Plataforma de agentes de IA para PMEs brasileiras (atendimento no WhatsApp,
+automação de processos e análise de segurança), construída como um **sistema
+multi-agente com controles de segurança determinísticos** em volta do LLM — e em
+**produção real**, não só em demo.
 
-## 🛡️ Status
+[![CI](https://github.com/maxwellnasci/meu-agente/actions/workflows/ci.yml/badge.svg)](https://github.com/maxwellnasci/meu-agente/actions/workflows/ci.yml)
 
-- ✅ Agente operacional em sandbox Docker isolado
-- ✅ DeepSeek V4-pro como cérebro
-- ✅ 8 camadas de defense in depth validadas
-- ✅ Documentação viva e auditoria multi-IA
-- ✅ Nível 3 testado — cenário MXOS-like com aprendizados críticos documentados
-- ✅ Treinamento por cliente — AGENTS.md customizado resolve alucinação estrutural (validado)
-- 🚧 Próxima fase: integrações reais (Supabase + WhatsApp Business)
+> A tese do projeto: um agente que *age* (cria workflows, executa varreduras,
+> responde clientes) precisa tratar a saída do modelo como **entrada não
+> confiável**. Os controles críticos vivem em código Python/TypeScript testado,
+> não em instruções de prompt.
 
-## 📌 O que é
+## O que há de interessante aqui
 
-Um laboratório técnico para construir, isolar e validar agentes autônomos de IA — usando OpenClaw, Docker e DeepSeek — com foco em segurança aplicada (defense in depth) antes de produção.
+| Tema | O que foi feito | Evidência |
+|---|---|---|
+| **Orquestração multi-agente** | Supervisor em **LangGraph** roteia por intenção para especialistas (programação, cibersegurança, automação n8n); estado e memória por sessão em checkpointer SQLite; streaming SSE | [`orchestrator/`](orchestrator/), [docs/ARQUITETURA_ORQUESTRADOR.md](docs/ARQUITETURA_ORQUESTRADOR.md) |
+| **Segurança de agentes (OWASP LLM Top 10)** | Gate de confirmação com TTL e uso único para ações em produção; allowlist de argumentos vindos do LLM; gate de alvos protegidos; limites de entrada | [SECURITY.md](SECURITY.md) |
+| **Auditoria com provas** | 17 achados, cada um com PoC offline e correção guiada por teste (red → green): path traversal controlado pelo LLM, bypass de guardrail, confirmação fraca, injeção em CI | [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md) |
+| **Engenharia de produção** | Webhook com HMAC, anti-replay, fila por remetente; deploy via imagem publicada (GHCR); provisionamento multi-cliente; moldes de servidor dedicado sem portas expostas | [`extensions/`](extensions/), [`deployments/`](deployments/servidor-dedicado/), [`scripts/provision-client.sh`](scripts/provision-client.sh) |
+| **Qualidade e supply chain** | 333 testes herméticos, ruff, bandit, pip-audit, gitleaks no histórico completo, shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Pós-incidentes documentados** | Cada falha real virou documento (deadlock de fila, loop do supervisor, criação indevida de workflow, vazamento de credencial) | [docs/](docs/), [docs/archive/](docs/archive/) |
 
-## 🎯 Por que existe
+## Arquitetura
 
-Estudo de caso para arquitetura segura de agentes autônomos voltados para PMEs brasileiras. Validar tecnicamente o conceito antes de aplicar em soluções comerciais de "funcionários digitais" (atendimento, agendamento, cobrança automatizados).
+```
+ WhatsApp ──► Gateway OpenClaw ──► Orquestrador (FastAPI + LangGraph) ──► Especialistas
+              plugin whatsapp-cloud   supervisor → roteia → sintetiza        • programação / cibersegurança (sandbox Docker)
+              HMAC · anti-replay      /v1/turn · /tasks/stream (SSE)         • automação n8n (API REST + webhooks)
+              allowlist de remetentes token Bearer, fail-closed              • transbordo humano (ask-max)
+```
 
-## 🏰 Arquitetura de Segurança — 8 Camadas
+O LLM decide *o quê* fazer; **código determinístico decide se pode**. Detalhes das
+fronteiras de confiança e do mapeamento OWASP em [SECURITY.md](SECURITY.md).
 
-1. **Container Docker isolado** — Sub-container efêmero por sessão
-2. **Drop de privilégio** — Roda como usuário `sandbox`, nunca root
-3. **Hash pinning** — Imagens com SHA256 fixo (anti supply-chain)
-4. **Tool policy** — Sistema de allow/deny: bloqueia `cron`, `gateway`, `nodes` (deny) E filtra ferramentas não autorizadas via allowlist (allow) — só skills explicitamente liberadas chegam ao agente
-5. **Cache de sessão** — Sandbox isolado por sessão, destruído no fim
-6. **workspaceAccess: none** — Agente cego para o filesystem do host
-7. **NetworkMode: none** — Sandbox sem internet (anti-exfiltração)
-8. **Workspace read-only** — Volume montado em modo somente leitura
+## Stack
 
-## 🛠️ Stack
+**Python 3.11+** · FastAPI · LangGraph · LangChain · Pydantic · httpx · tenacity ·
+SQLite (checkpointer) · LangSmith (tracing opcional) — **TypeScript** (plugins) ·
+**Docker/Compose** · GitHub Actions · GHCR — **OpenClaw** (gateway de agentes),
+**n8n**, **WhatsApp Cloud API**, LLMs via OpenRouter (DeepSeek por padrão).
 
-- **OpenClaw** v2026.6.9 (agente autônomo open-source)
-- **Docker** + docker-compose (isolamento)
-- **DeepSeek V4-pro / V4-flash** (LLM)
-- **Kali Linux** (host)
-- **Node.js** + pnpm (runtime)
+## Estrutura
 
-## 🤖 Workflow Multi-IA
+```
+orchestrator/            cérebro LangGraph (FastAPI) + 333 testes
+extensions/              plugins TypeScript do gateway
+  whatsapp-cloud/          canal WhatsApp oficial (webhook assinado)
+  orchestrator-bridge/     ferramenta ask_orchestrator
+  ask-max/                 escalonamento humano
+  response-audit/          auditoria de respostas (ação declarada vs. executada)
+  github-repo-report/      relatórios de repositório
+deployments/servidor-dedicado/   moldes de servidor por cliente (zero portas publicadas)
+scripts/                 provisionamento multi-cliente, deploy, heartbeat
+templates/nichos/        AGENTS.md por nicho (clínica, suporte de TI)
+docs/                    arquitetura, sessões, post-mortems  (docs/archive: relatórios históricos)
+SECURITY.md              modelo de ameaças e mapa OWASP LLM Top 10
+```
 
-Este projeto usa um protocolo de múltiplas IAs trabalhando em papéis distintos:
+## Rodando os testes
 
-- **Claude (chat)** — Orquestrador / parceiro de estratégia
-- **Antigravity Sonnet** — Auditor / analista de segurança
-- **Antigravity Gemini** — Executor de tarefas validadas
-- **Claude Code (terminal)** — Auditor local com acesso aos arquivos
+```bash
+cd orchestrator
+python -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev,security]"
+ruff check . && python -m pytest -q      # hermético: não precisa de .env nem de rede
+bandit -r src -ll -q && pip-audit --skip-editable
+```
 
-Detalhes em [docs/FLUXO_MULTI_IA.md](docs/FLUXO_MULTI_IA.md).
+Os testes não falam com rede. O único teste de integração contra um n8n real exige
+opt-in explícito (`RUN_LIVE_N8N_TESTS=1`) e nunca roda no CI.
 
-## 🧠 Orquestrador (LangGraph)
+## Status
 
-Em `orchestrator/` mora um orquestrador LangGraph (o "cérebro") que delega
-tarefas de programação ao OpenClaw (o "especialista") via API. O roteador
-desse cérebro usa **OpenRouter** (via `langchain_openai`), com o modelo
-padrão `deepseek/deepseek-chat` e a chave configurada em
-`ORCHESTRATOR_OPENROUTER_API_KEY`. Detalhes de setup em
-[orchestrator/README.md](orchestrator/README.md) e
-[docs/ARQUITETURA_ORQUESTRADOR.md](docs/ARQUITETURA_ORQUESTRADOR.md).
+Em produção (conforme [docs/ESTADO_ATUAL.md](docs/ESTADO_ATUAL.md), posição de
+02/10/2026): canal WhatsApp Cloud, orquestrador com autenticação por token
+(fail-closed) e especialistas de automação e cibersegurança. Em evolução: add-on
+de automação n8n para o servidor dedicado, allowlist de alvos para o especialista
+de segurança e correção do rate limit do webhook (ver auditoria).
+Estado detalhado: [docs/ESTADO_ATUAL.md](docs/ESTADO_ATUAL.md) · roadmap:
+[docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md).
 
-## 📁 Estrutura
-meu-agente/
+## Aprendizados-chave
 
-├── docs/
+- **Sem prova, sem aprovação.** Toda correção nasce de um teste que falhava, e todo
+  achado de segurança tem uma PoC reproduzível.
+- **Guardrail em prompt não é guardrail.** O que importa é o que roda *antes* da ação.
+- **Heurística de texto tem limite.** Cada gate documenta o que não cobre e aponta
+  para o controle de rede que realmente fecha a porta.
+- **Alucinação elegante é mais perigosa que erro óbvio** — por isso a auditoria de
+  respostas e o "não sei" como resposta profissional.
+- **Documentar o incidente vale mais que escondê-lo.**
 
-│   ├── ESTADO_ATUAL.md          # Status atual do projeto
+## Sobre
 
-│   ├── ARQUITETURA_SEGURANCA.md # Detalhes das 8 camadas
-
-│   ├── FLUXO_MULTI_IA.md        # Protocolo multi-IA
-
-│   ├── PROXIMOS_PASSOS.md       # Roadmap
-
-│   ├── SESSAO_2026-06-23.md     # Log da sessão de setup
-
-│   ├── SESSAO_2026-06-24.md     # Log da sessão de refinamento
-
-│   ├── TESTE_NIVEL_1.md         # Validação capacidades básicas
-
-│   ├── TESTE_NIVEL_2.md         # Sub-agentes paralelos + auth
-
-│   ├── TESTE_NIVEL_3.md         # Cenário MXOS-like + aprendizados críticos
-
-│   └── TESTE_SANDBOX.md         # Validação do isolamento
-
-├── ANALISE.md                   # Auditoria inicial de segurança
-
-├── .gitignore                   # Protege .env e código de terceiros
-
-└── README.md                    # Este arquivo
-
-## 🎓 Aprendizados-chave
-
-- **"Sem prova, sem aprovação"** — Toda config crítica validada com schema/doc oficial antes de aplicar
-- **Defense in depth funciona** — Validado em produção com teste `whoami` retornando `sandbox` (não host, não root)
-- **Auditoria multi-IA pega o que IA única não pega** — Sonnet encontrou 2 campos inventados que Gemini não percebeu
-- **Documentação viva** — Cada sessão registrada permite retomar contexto e onboard de outras IAs
-- **Sandbox sem rede externa** — `NetworkMode: none` impede exfiltração de dados, comunicação com C2 e download de malware
-- **Alucinação elegante é mais perigosa que erro óbvio** — Resposta bem formatada com dado inventado passa pela revisão humana; erro grosseiro não passa
-- **O moat do MXOS é EXECUÇÃO, não análise** — Qualquer LLM produz texto bonito; integrar com sistemas reais do cliente é o diferencial
-- **AGENTS.md é o sistema nativo de treinamento** — Bootstrap files do OpenClaw foram projetados para isso; editar markdown treina o agente sem fine-tuning, sem código, sem restart
-- **"Não sei" é resposta profissional** — Treinar o agente a admitir ignorância elimina alucinação na raiz, mais eficaz que guardrails complexos
-- **Auditor vira Coach** — Mudar de "julgar o agente" para "treinar o agente" é a virada de mindset que transforma falha em produto
-
-## 🚧 Próximos passos
-
-- Criar `references/politicas-arbo.md` como skill para base de conhecimento real
-- Integrações reais: n8n + Supabase (WhatsApp Cloud API oficial já é o canal exclusivo em produção; Evolution API e Chatwoot desativados e removidos da VPS)
-- Testar reusabilidade do template AGENTS.md Parte A em outros segmentos (clínica, oficina)
-- Aplicação do blueprint no projeto MXOS (funcionários digitais para PMEs)
-
-## 👤 Sobre
-
-Construído por **Max** — consultor de automação e IA em Curitiba (BR).
-
-Foco: construir agentes autônomos seguros para pequenas e médias empresas brasileiras (clínicas, oficinas, escritórios). Atualmente estudando cibersegurança e validando arquiteturas de produção com isolamento real.
-
-Outros projetos: Arbo — PWA para coaching esportivo (Hyrox/CrossFit).
+Construído por **Max** — consultor de automação e IA em Curitiba (BR), com foco em
+agentes autônomos seguros para pequenas e médias empresas.
