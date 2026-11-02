@@ -90,6 +90,65 @@ def test_classify_unclear(text):
     assert classify_confirmation_reply(text) == "unclear"
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # achado da auditoria 2026-11-02: UM token afirmativo + qualquer
+        # outra coisa liberava uma acao em producao
+        "ok mas espera",
+        "talvez ok",
+        "ok mas muda o nome",
+        "pode apagar outro",
+        "sim depois",
+        "vai la mas antes confirma",
+        "ok nao sei",  # contem negacao -> deny (ver abaixo), nunca affirm
+    ],
+)
+def test_classify_never_affirms_when_extra_content_present(text):
+    assert classify_confirmation_reply(text) != "affirm"
+
+
+@pytest.mark.parametrize("text", ["ok nao sei", "sim mas nao", "pode nao", "ok para"])
+def test_classify_negation_token_wins_over_affirmation(text):
+    assert classify_confirmation_reply(text) == "deny"
+
+
+@pytest.mark.parametrize("text", ["sim obrigado", "pode sim por favor", "ok valeu", "isso mesmo", "com certeza", "manda ver"])
+def test_classify_polite_affirmations_still_work(text):
+    assert classify_confirmation_reply(text) == "affirm"
+
+
+@pytest.mark.parametrize(
+    "action, text",
+    [
+        ("activate", "pode ativar sim"),
+        ("activate", "sim ativa"),
+        ("create", "pode criar"),
+        ("delete", "pode apagar"),
+        ("delete", "sim pode excluir"),
+        ("deactivate", "ok pode pausar"),
+    ],
+)
+def test_classify_action_verb_confirms_only_the_pending_action(action, text):
+    assert classify_confirmation_reply(text, action=action) == "affirm"
+
+
+@pytest.mark.parametrize(
+    "action, text",
+    [
+        ("create", "pode apagar"),  # verbo de OUTRA acao nao confirma
+        ("activate", "pode apagar"),
+        ("delete", "pode ativar"),
+        ("activate", "pode ativar sim e apaga"),
+        ("delete", "pode apagar outro"),
+        ("activate", "ativa"),  # so o verbo, sem afirmacao real
+        ("create", "cria"),
+    ],
+)
+def test_classify_action_verb_of_another_action_or_alone_is_not_affirm(action, text):
+    assert classify_confirmation_reply(text, action=action) != "affirm"
+
+
 def test_describe_action_create_mentions_inactive():
     txt = describe_action("create", None, "meu-fluxo")
     assert "INATIVO" in txt and "meu-fluxo" in txt

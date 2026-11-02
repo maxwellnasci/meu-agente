@@ -296,7 +296,7 @@ async def supervisor_node(state: GraphState) -> dict:
             + ["[n8n] A confirmacao pendente expirou sem resposta - a acao foi descartada e nada foi executado."],
         }
     if iteration_count == 1 and stored is not None:
-        verdict = classify_confirmation_reply(task_description)
+        verdict = classify_confirmation_reply(task_description, action=stored.get("action"))
         if verdict == "affirm":
             _logger.info("supervisor_node: usuario confirmou acao n8n pendente '%s'", stored["action"])
             return {

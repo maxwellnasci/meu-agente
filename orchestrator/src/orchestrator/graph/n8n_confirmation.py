@@ -70,6 +70,24 @@ _NEGATIVE = {
 }
 
 
+# Vocabulario permitido numa resposta curta de confirmacao: as palavras das
+# afirmacoes acima + cortesia. Sem isto uma resposta com conteudo extra
+# ("ok mas espera") era lida como confirmacao.
+_POLITE_TOKENS = {"por", "favor", "pfv", "pf", "obrigado", "obrigada", "valeu", "brigado", "vlw", "tmj"}
+_AFFIRMATIVE_TOKENS = {tok for phrase in _AFFIRMATIVE for tok in phrase.split()} | _POLITE_TOKENS
+_MAX_SHORT_REPLY_TOKENS = 4
+
+# Verbos que o usuario pode usar para confirmar ESPECIFICAMENTE a acao pendente
+# ("pode ativar sim"). Amarrado a acao: "pode apagar" nao confirma uma proposta
+# de criar/ativar - so a de apagar.
+_ACTION_CONFIRM_TOKENS: dict[str, set[str]] = {
+    "create": {"criar", "cria", "crie"},
+    "activate": {"ativar", "ativa", "ative"},
+    "deactivate": {"desativar", "desativa", "desative", "pausar", "pausa", "pause"},
+    "delete": {"apagar", "apaga", "apague", "deletar", "deleta", "delete", "excluir", "exclui", "exclua", "remover", "remove"},
+}
+
+
 def _now() -> float:
     return time.time()
 
@@ -140,7 +158,7 @@ def get_valid_pending_confirmation(pending: object, now: float | None = None) ->
     return pending
 
 
-def classify_confirmation_reply(text: str) -> str:
+def classify_confirmation_reply(text: str, action: str | None = None) -> str:
     """Classifica a mensagem do usuario como resposta a uma pendencia:
     "affirm", "deny" ou "unclear".
 
@@ -157,15 +175,21 @@ def classify_confirmation_reply(text: str) -> str:
         return "deny"
     if norm in _AFFIRMATIVE:
         return "affirm"
-    # tolera pontuacao/educacao minima: ate 3 tokens, ex. "sim por favor",
-    # "pode sim", "nao obrigado".
+    # tolera pontuacao/educacao minima: ate 4 tokens, ex. "sim por favor",
+    # "pode sim por favor", "nao obrigado".
     tokens = norm.split()
-    if len(tokens) <= 3:
+    if len(tokens) <= _MAX_SHORT_REPLY_TOKENS:
         joined = " ".join(tokens)
         if joined in _NEGATIVE or any(t in _NEGATIVE for t in tokens):
             return "deny"
-        if joined in _AFFIRMATIVE or (
-            any(t in _AFFIRMATIVE for t in tokens) and not any(t in _NEGATIVE for t in tokens)
-        ):
+        # TODOS os tokens precisam ser afirmacao/cortesia (nao basta UM).
+        # Achado da auditoria de 2026-11-02: com "qualquer token afirmativo e
+        # nenhum negativo", "ok mas espera", "talvez ok" e "pode apagar
+        # outro" confirmavam uma acao em producao. Qualquer palavra fora do
+        # vocabulario de afirmacao deixa a resposta "unclear" (lado seguro: o
+        # usuario so precisa responder "sim").
+        allowed = _AFFIRMATIVE_TOKENS | _ACTION_CONFIRM_TOKENS.get(action or "", set())
+        has_real_affirmation = any(t in _AFFIRMATIVE_TOKENS and t not in _POLITE_TOKENS for t in tokens)
+        if joined in _AFFIRMATIVE or (has_real_affirmation and all(t in allowed for t in tokens)):
             return "affirm"
     return "unclear"
