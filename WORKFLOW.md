@@ -1,80 +1,72 @@
-# WORKFLOW — estado do projeto e fluxo de revisão/publicação
+# WORKFLOW — estado do projeto e fluxo de publicação
 
-Atualizado em **2026-11-02**. Este arquivo registra o ponto em que o projeto foi
-deixado pronto para revisão humana: tudo está **local**, **nada foi enviado ao GitHub**.
+Atualizado em **2026-11-02** (após o deploy na Contabo).
 
-## Estado atual (limpo, local)
+## Estado atual
 
 | Item | Situação |
 |---|---|
-| Branch `master` (local) | contém a auditoria de segurança integrada (merge) + histórico **reescrito** |
-| Histórico git | IP do servidor de produção, um segundo IP e o telefone do operador **removidos de todos os commits** das branches locais (substituídos por `203.0.113.x` e número zerado) |
+| GitHub (`origin/master`) | histórico **reescrito e limpo** (IP de produção, 2º IP e telefone do operador removidos) + auditoria de segurança integrada; último commit publicado: `cceadd2` |
+| CI | **100% verde** em `cceadd2`: orchestrator (ruff, pytest, bandit, pip-audit), gitleaks e shellcheck |
 | Testes | **359 passam, 1 pulado** (o teste live do n8n exige `RUN_LIVE_N8N_TESTS=1`) |
-| Lint / SAST / deps | `ruff` limpo · `bandit -ll` sem achados · `pip-audit` sem CVEs |
-| Ambientes verificados | `orchestrator/.venv` (Python 3.14) e venv novo (resolução do zero); em Python 3.11 (CI/imagem) a versão pré-limpeza passou com 359 testes |
-| `git push` | **NÃO executado** |
-| Produção (Contabo) | **não alterada** — ainda roda o código anterior |
+| Produção (Contabo) | **deploy feito em 2026-11-02**: orquestrador com as correções da auditoria; verificado ao vivo (ver abaixo) |
+| Commits locais ainda NÃO publicados | o fix do script de deploy e esta atualização do `WORKFLOW.md` (ver `git log origin/master..master`) |
 
-Relatório completo da auditoria: [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md)
+Relatório da auditoria: [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md)
 · modelo de ameaças: [SECURITY.md](SECURITY.md).
 
-### Atenção: a `master` local divergiu do `origin/master`
+## Deploy na Contabo (2026-11-02)
 
-A reescrita do histórico muda **todos os SHAs**. O `origin/master` (cópia da última
-posição conhecida do remoto) ainda tem o histórico antigo, com IP e telefone. Isso é
-esperado e é o que permite o `--force-with-lease` abaixo.
+Feito com o fluxo de `scripts/deploy-orchestrator.sh`, **com proteções que o script original não tinha**
+(ele agora as inclui). O dry-run do `rsync` antes do deploy mostrou dois riscos reais:
 
-## Backups (contêm os dados sensíveis — apague depois de revisar)
+- o `docker-compose.yml` **do servidor** tem a rede extra `agencia_ia_n8n-internal` (é por ela que o
+  orquestrador alcança o n8n) e **não está no repo** — sobrescrevê-lo quebraria o especialista n8n;
+- o `rsync --delete` apagaria os backups soltos `.env.bak-*` / `docker-compose.yml.bak-*`, e o `git add -A`
+  do snapshot comitaria o `.env.bak-*` (chaves de API) no histórico git do servidor.
 
-Em `/home/max/Documentos/Kali Linux/`:
+Sequência executada: backup do `.env` e do compose (`/root/backups/pre-deploy-orchestrator-20261102`, pasta `700`)
+→ tag da imagem anterior `meu-agente-orchestrator:rollback-pre-20261102` → `ORCHESTRATOR_PROTECTED_TARGETS`
+acrescentado ao `.env` do servidor (`mxos.com.br` + IP de produção) → `rsync` (0 arquivos apagados, compose intocado)
+→ snapshot no repo do servidor (`b27d840`) → `docker compose build` → `up -d`.
 
-- `meu-agente-BACKUP-pre-limpeza-2026-11-02.bundle` — **todas** as refs antes da limpeza (inclui o merge de segurança)
-- `meu-agente-security-hardening-2026-11.bundle` — só a branch de segurança, antes do merge
+Verificação ao vivo (dentro do container): `/health` 200 · `/v1/turn` sem token 401 e com token errado 401 ·
+com token e texto > 32000 → 422 (autenticação passou, limite novo ativo) · 2 alvos protegidos carregados ·
+guard bloqueia "escaneie o Contabo e não pare" e libera "nunca testar o Contabo" · 0 erros no log ·
+container nas duas redes (`openclaw_default` e `agencia_ia_n8n-internal`) · `setuptools 84.2.1`.
+Conferência só de leitura do n8n: 19 workflows, **nenhum resíduo** (`pytest-teste-orchestrator-*`),
+nenhum atualizado depois de 21/10.
 
-Para voltar ao estado anterior à limpeza: `git clone <bundle> pasta-restaurada` (ou, enquanto
-o reflog existir, `git reset --hard 3eda69c`).
+**Falta (só você consegue):** mandar uma mensagem real pelo WhatsApp e confirmar a resposta.
 
-## O que revisar antes de subir
-
-1. `git log --oneline -13` — os 13 commits **novos de conteúdo** (11 da auditoria, o merge e
-   este). Atenção: `git log origin/master..master` mostrará ~160 commits, porque a reescrita
-   mudou os SHAs de praticamente todo o histórico — isso é esperado, não são 160 mudanças.
-2. `git diff origin/master master --stat` compara o **conteúdo** (árvores), então funciona
-   mesmo com SHAs diferentes: deve mostrar a auditoria (arquivos novos/alterados) mais os
-   poucos arquivos em que IP/telefone foram trocados. É a melhor forma de revisar.
-3. **Testes TypeScript de `extensions/ask-max` NÃO foram executados** (dependem do SDK do
-   OpenClaw). `resolve-hook.test.ts` teve números de telefone trocados pela limpeza — rode
-   `pnpm vitest` na extensão antes do push.
-4. Confirme que nenhum servidor faz `git pull` agendado deste repositório (quebraria com o
-   histórico reescrito) e que nenhum outro clone tem trabalho não enviado.
-5. O **gitleaks nunca foi executado** localmente; a primeira execução do CI pode apontar falso
-   positivo (ver `.gitleaks.toml`).
-
-## Subir (quando você decidir) — manual
+### Rollback (se algo estranho aparecer)
 
 ```bash
-cd "/home/max/Documentos/Kali Linux/meu-agente"
-git diff origin/master master --stat             # confira o conteúdo que vai
-git push --force-with-lease origin master        # reescreve o histórico do remoto (todos os SHAs mudam)
+ssh contabo
+cd /root/meu-agente-orchestrator
+ORCHESTRATOR_IMAGE=meu-agente-orchestrator:rollback-pre-20261102 docker compose up -d   # volta à imagem anterior, sem rebuild
+# o .env anterior está em /root/backups/pre-deploy-orchestrator-20261102/ (para remover PROTECTED_TARGETS, se necessário)
 ```
 
-`--force-with-lease` só sobrescreve se o remoto ainda estiver onde o seu `origin/master`
-diz — não apaga trabalho de terceiros por engano. **É irreversível no remoto**: faça o backup
-acima antes. O GitHub pode manter os commits antigos acessíveis por SHA (forks, PRs, caches);
-para remoção total, peça ao suporte. Se preferir, torne o repositório privado antes.
+## Backups (contêm os dados sensíveis — apague quando não precisar mais)
 
-Depois do push, quem tiver clone antigo deve refazê-lo (`git clone`), não dar `pull`.
+Em `/home/max/Documentos/Kali Linux/`: `meu-agente-BACKUP-pre-limpeza-2026-11-02.bundle` (todas as refs antes da
+limpeza do histórico) e `meu-agente-security-hardening-2026-11.bundle`. O commit antigo `a901da4` continua
+acessível por SHA no GitHub (caches/forks); para remoção total, suporte do GitHub ou repositório privado.
+Quem tiver clone antigo deve refazê-lo (`git clone`), não dar `pull`.
 
-## Pendências de produção (nada disto foi feito)
+## Pendências
 
-1. Rebuild da imagem do orquestrador e deploy — as correções só valem depois.
-2. `.env` do servidor: definir `ORCHESTRATOR_PROTECTED_TARGETS` **com o IP real de produção**
-   e recriar o container com `docker compose up -d` (`restart` não relê o `.env`).
-   O padrão `mxos.com.br` também bloqueia varrer o próprio site da empresa.
-3. Conferir o n8n de produção por workflows residuais (um teste live rodou uma vez contra ele
-   durante a auditoria, antes de passar a exigir opt-in).
-4. Achados abertos: S-10 (rate limit do webhook antes da assinatura), Dockerfile como root,
-   lockfiles das extensões, confirmação para disparo de webhook n8n em produção.
+1. **Teste real pelo WhatsApp** após o deploy (acima).
+2. **Testes TypeScript de `extensions/ask-max` nunca foram executados** (dependem do SDK do OpenClaw);
+   `resolve-hook.test.ts` teve números de telefone trocados pela limpeza — rode `pnpm vitest` na extensão.
+3. **Deriva repo ↔ servidor:** o `docker-compose.yml` de produção (rede do n8n) só existe no servidor.
+   Versionar como override (ex.: `docker-compose.prod.yml`) para o deploy não depender de memória.
+4. Imagem nova do **gateway** com token no `orchestrator-bridge` (pendência de 02/10; fora deste deploy).
+5. Achados abertos da auditoria: S-10 (rate limit do webhook antes da assinatura), Dockerfile roda como root,
+   lockfiles das extensões, confirmação para disparo de webhook n8n em produção, allowlist de alvos para o
+   especialista de cibersegurança.
+6. O padrão `mxos.com.br` em `ORCHESTRATOR_PROTECTED_TARGETS` também bloqueia varrer o próprio site da empresa.
 
 ## Como verificar a qualquer momento
 
