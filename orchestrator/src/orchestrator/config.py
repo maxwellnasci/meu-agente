@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="ORCHESTRATOR_")
 
     # API
-    host: str = "0.0.0.0"
+    # Bind em todas as interfaces DENTRO do container (necessario para o
+    # publish do Docker); a exposicao real e controlada pelo compose, que so
+    # publica em 127.0.0.1 (ou em rede interna, nos moldes de servidor dedicado).
+    host: str = "0.0.0.0"  # nosec B104
     port: int = 8000
     # Token de autenticacao dos endpoints protegidos (/v1/turn,
     # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = token ausente;
