@@ -23,12 +23,21 @@ REMOTE_DIR="/root/meu-agente-orchestrator"
 echo "==> Rodando testes locais antes de sincronizar..."
 (cd "$REPO_ROOT/orchestrator" && source .venv/bin/activate 2>/dev/null; python -m pytest -q)
 
+# ATENCAO (aprendido no deploy de 2026-11-02): o servidor tem coisas que NAO
+# existem no repo e que o rsync --delete destruiria:
+#   - docker-compose.yml com a rede extra "agencia_ia_n8n-internal" (e por ela
+#     que o orquestrador alcanca o n8n) - sobrescreve-lo quebra o especialista n8n;
+#   - backups soltos (.env.bak-*, docker-compose.yml.bak-*), que o --delete apagaria.
+# Por isso eles ficam excluidos do rsync (e, abaixo, do snapshot git).
 echo "==> Sincronizando código para $REMOTE_HOST:$REMOTE_DIR ..."
 rsync -a --delete \
   --exclude ".venv" \
   --exclude ".git" \
   --exclude "data" \
   --exclude ".env" \
+  --exclude ".env.bak-*" \
+  --exclude "docker-compose.yml" \
+  --exclude "docker-compose.yml.bak-*" \
   --exclude ".pytest_cache" \
   --exclude ".ruff_cache" \
   --exclude "__pycache__" \
@@ -37,7 +46,9 @@ rsync -a --delete \
   "$SRC" "$REMOTE_HOST:$REMOTE_DIR/"
 
 echo "==> Commitando snapshot no repo do servidor (rastreabilidade local)..."
-ssh "$REMOTE_HOST" "cd $REMOTE_DIR && git add -A && (git diff --cached --quiet || git commit -m 'deploy: sync a partir do repo local meu-agente/orchestrator')"
+# O .gitignore do servidor ignora so ".env" exato: um "git add -A" comitaria os
+# backups ".env.bak-*" (com chaves de API) no historico git do servidor.
+ssh "$REMOTE_HOST" "cd $REMOTE_DIR && git add -A -- . ':!.env.bak-*' ':!docker-compose.yml.bak-*' && (git diff --cached --quiet || git commit -m 'deploy: sync a partir do repo local meu-agente/orchestrator')"
 
 echo "==> Rebuild da imagem Docker..."
 ssh "$REMOTE_HOST" "cd $REMOTE_DIR && docker compose build"
@@ -45,9 +56,8 @@ ssh "$REMOTE_HOST" "cd $REMOTE_DIR && docker compose build"
 echo "==> Recriando container..."
 ssh "$REMOTE_HOST" "cd $REMOTE_DIR && docker compose up -d"
 
-echo "==> Healthcheck..."
-sleep 3
-ssh "$REMOTE_HOST" "curl -sf http://127.0.0.1:8000/health && echo" || {
+echo "==> Healthcheck (ate ~30s: a recriacao do container levou ~10s no deploy de 2026-11-02)..."
+ssh "$REMOTE_HOST" 'for i in $(seq 1 15); do curl -sf http://127.0.0.1:8000/health && echo && exit 0; sleep 2; done; exit 1' || {
   echo "FALHA no healthcheck - verifique 'docker logs meu-agente-orchestrator-orchestrator-1' no servidor." >&2
   exit 1
 }
