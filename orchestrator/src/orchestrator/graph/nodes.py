@@ -11,7 +11,12 @@ from langchain_core.messages import (
 )
 from langchain_openai import ChatOpenAI
 
-from orchestrator.clients.n8n_client import N8nClient
+from orchestrator.clients.n8n_client import (
+    InvalidN8nInput,
+    N8nClient,
+    validate_webhook_request,
+    validate_workflow_id,
+)
 from orchestrator.clients.openclaw_client import OpenClawClient
 from orchestrator.config import settings
 from orchestrator.graph.cybersec_guard import check_production_infra_block
@@ -512,6 +517,18 @@ async def _run_n8n_tool(
     `supervisor` ja validou a resposta afirmativa do usuario contra o token
     da pendencia persistida (ver `specialist_n8n_node`).
     """
+    # Validacao de entrada ANTES de tudo (inclusive antes de propor uma
+    # confirmacao): o usuario nunca deve ser convidado a "confirmar" uma acao
+    # sobre um workflow_id/path forjado por prompt injection (ver
+    # tests/test_n8n_client_validation.py).
+    try:
+        if "workflow_id" in args:
+            validate_workflow_id(args["workflow_id"])
+        if name == N8nTriggerWebhook.__name__:
+            validate_webhook_request(args.get("path"), args.get("method", "POST"))
+    except InvalidN8nInput as exc:
+        return {"error": f"entrada recusada: {exc}"}
+
     if is_write_action(name) and not bypass_confirmation:
         pendencia = build_pending_confirmation(name, args, settings.n8n_confirmation_ttl_sec)
         return {NEEDS_CONFIRMATION_KEY: pendencia}
@@ -547,6 +564,8 @@ async def _run_n8n_tool(
                 args["path"], method=args.get("method", "POST"), body=args.get("body"), test=args.get("test", False)
             )
         return {"error": f"tool desconhecida: {name}"}
+    except InvalidN8nInput as exc:
+        return {"error": f"entrada recusada: {exc}"}
     except httpx.HTTPStatusError as exc:
         return {"error": f"n8n retornou {exc.response.status_code}: {exc.response.text}"}
     except httpx.RequestError as exc:

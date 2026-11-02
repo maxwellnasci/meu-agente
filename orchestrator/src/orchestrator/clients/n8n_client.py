@@ -1,3 +1,5 @@
+import re
+
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -20,6 +22,48 @@ _CONNECT_FAILURE_EXCEPTIONS = (httpx.ConnectError, httpx.ConnectTimeout)
 # workflow, por isso o metodo trigger_webhook chama /webhook(-test)/<path>
 # em vez de /api/v1/...
 _API_PREFIX = "/api/v1"
+
+
+class InvalidN8nInput(ValueError):
+    """Entrada vinda do LLM (workflow_id, path de webhook, metodo) recusada
+    ANTES de qualquer requisicao. Ver `validate_*` abaixo."""
+
+
+# Allowlist (nao blocklist de ".."): o httpx normaliza segmentos "." e ".."
+# e preserva o header X-N8N-API-KEY, entao um workflow_id como
+# "../executions/1" redirecionava a chave de API para qualquer endpoint da
+# API publica (execucoes, credenciais...). Ids do n8n sao alfanumericos
+# (nanoid) ou numericos; so isso passa.
+_WORKFLOW_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+# Segmento de path de webhook: nao pode comecar com "." (barra "." / ".." /
+# dotfiles) e nao admite "%", "?", "#", "\\" ou espaco (sem encoding tricks).
+_WEBHOOK_SEGMENT_RE = re.compile(r"[A-Za-z0-9_~-][A-Za-z0-9_.~-]{0,99}")
+_WEBHOOK_MAX_SEGMENTS = 8
+_ALLOWED_WEBHOOK_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE"})
+
+
+def validate_workflow_id(workflow_id: object) -> str:
+    """Devolve o id como str ou levanta InvalidN8nInput."""
+    if isinstance(workflow_id, bool) or not isinstance(workflow_id, (str, int)):
+        raise InvalidN8nInput("workflow_id deve ser texto ou numero")
+    value = str(workflow_id)
+    if not _WORKFLOW_ID_RE.fullmatch(value):
+        raise InvalidN8nInput("workflow_id invalido: so letras, numeros, '_' e '-' (ate 64 caracteres)")
+    return value
+
+
+def validate_webhook_request(path: object, method: object = "POST") -> tuple[str, str]:
+    """Devolve (path_normalizado_sem_barra_inicial, METODO) ou levanta InvalidN8nInput."""
+    if not isinstance(path, str) or not isinstance(method, str):
+        raise InvalidN8nInput("path e method do webhook devem ser texto")
+    relative = path[1:] if path.startswith("/") else path
+    segments = relative.split("/")
+    if len(segments) > _WEBHOOK_MAX_SEGMENTS or not all(_WEBHOOK_SEGMENT_RE.fullmatch(seg) for seg in segments):
+        raise InvalidN8nInput("path de webhook invalido: segmentos de letras, numeros, '_', '-', '.', '~' (sem '..')")
+    verb = method.upper()
+    if verb not in _ALLOWED_WEBHOOK_METHODS:
+        raise InvalidN8nInput(f"metodo HTTP de webhook fora da allowlist: {sorted(_ALLOWED_WEBHOOK_METHODS)}")
+    return "/".join(segments), verb
 
 
 class N8nClient:
@@ -64,6 +108,7 @@ class N8nClient:
         return await self._request("GET", f"{_API_PREFIX}/workflows", params=params)
 
     async def get_workflow(self, workflow_id: str) -> dict:
+        workflow_id = validate_workflow_id(workflow_id)
         return await self._request("GET", f"{_API_PREFIX}/workflows/{workflow_id}")
 
     async def create_workflow(self, name: str, nodes: list, connections: dict, workflow_settings: dict | None = None) -> dict:
@@ -73,16 +118,20 @@ class N8nClient:
     async def update_workflow(
         self, workflow_id: str, name: str, nodes: list, connections: dict, workflow_settings: dict | None = None
     ) -> dict:
+        workflow_id = validate_workflow_id(workflow_id)
         body = {"name": name, "nodes": nodes, "connections": connections, "settings": workflow_settings or {}}
         return await self._request("PUT", f"{_API_PREFIX}/workflows/{workflow_id}", json=body)
 
     async def delete_workflow(self, workflow_id: str) -> dict:
+        workflow_id = validate_workflow_id(workflow_id)
         return await self._request("DELETE", f"{_API_PREFIX}/workflows/{workflow_id}")
 
     async def activate_workflow(self, workflow_id: str) -> dict:
+        workflow_id = validate_workflow_id(workflow_id)
         return await self._request("POST", f"{_API_PREFIX}/workflows/{workflow_id}/activate")
 
     async def deactivate_workflow(self, workflow_id: str) -> dict:
+        workflow_id = validate_workflow_id(workflow_id)
         return await self._request("POST", f"{_API_PREFIX}/workflows/{workflow_id}/deactivate")
 
     async def trigger_webhook(self, path: str, method: str = "POST", body: dict | None = None, test: bool = False) -> dict:
@@ -92,9 +141,10 @@ class N8nClient:
         arquivo). `test` usa /webhook-test (execucao unica, exige o editor
         de workflow "escutando", modo usado durante desenvolvimento) em vez
         de /webhook (producao, workflow precisa estar ativo)."""
+        safe_path, verb = validate_webhook_request(path, method)
         prefix = "/webhook-test" if test else "/webhook"
-        full_path = f"{prefix}/{path.lstrip('/')}"
-        response = await self._request_webhook(method.upper(), full_path, body)
+        full_path = f"{prefix}/{safe_path}"
+        response = await self._request_webhook(verb, full_path, body)
         if not response.content:
             return {}
         try:
