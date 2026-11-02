@@ -3,7 +3,7 @@ thread_id - como `/v1/turn` faz de verdade) do gate de confirmacao de acoes
 n8n que mudam producao.
 
 Cobre os requisitos da etapa P0 (ver
-ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md, secao "Revisao independente"):
+docs/archive/ANALISE_CEREBRO_AGENTE_CONTABO_2026-09-06.md, secao "Revisao independente"):
   - acao de escrita sem confirmacao e BLOQUEADA (vira proposta pendente);
   - confirmacao valida ("sim") executa a acao exatamente uma vez;
   - "nao" cancela sem executar nada;

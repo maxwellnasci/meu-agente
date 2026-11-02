@@ -1,0 +1,91 @@
+name: CI
+
+# Portao de qualidade e seguranca em todo push na master e em todo PR.
+# Principio: permissao minima (so leitura), actions fixadas por commit SHA e
+# nenhum segredo necessario. Para publicar imagem ver
+# docker-publish-orchestrator.yml (so por tag/manual).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  # Varredura de segredos do HISTORICO COMPLETO: a gitleaks-action so varre o
+  # historico inteiro em `schedule`/`workflow_dispatch`; em push/PR ela varre
+  # apenas os commits novos do evento.
+  schedule:
+    - cron: "17 6 * * 1" # segundas, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orchestrator:
+    name: orchestrator (lint, testes, SAST, deps)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: orchestrator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: orchestrator/pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev,security]"
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # Suite hermetica: nao depende de .env nem de rede (ver tests/conftest.py).
+      # O teste live contra n8n real so roda com RUN_LIVE_N8N_TESTS=1 (nunca no CI).
+      - name: Tests (pytest)
+        run: python -m pytest -q
+
+      - name: SAST (bandit, severidade media ou maior)
+        run: bandit -r src -ll -q
+
+      - name: Dependencias vulneraveis (pip-audit)
+        run: pip-audit --skip-editable --progress-spinner off
+
+  secrets:
+    name: varredura de segredos (commits novos; historico completo semanal/manual)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (historico completo)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  shell:
+    name: shellcheck (scripts de deploy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # shellcheck ja vem instalado nos runners ubuntu-latest.
+      - name: Shellcheck
+        run: shellcheck -S warning scripts/*.sh deployments/servidor-dedicado/*.sh

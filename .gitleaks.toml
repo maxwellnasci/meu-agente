@@ -1,0 +1,15 @@
+title = "meu-agente"
+
+[extend]
+# regras padrao do gitleaks + o allowlist abaixo
+useDefault = true
+
+[allowlist]
+description = "Documentacao upstream do OpenClaw importada no commit inicial (2026-06-23, c0324b0) e removida depois: so exemplos/placeholders de configuracao."
+# Restrito a CAMINHOS (nao ao commit inteiro): so os subdiretorios de docs/ que esse
+# commit trouxe do projeto de terceiros. Nenhum arquivo atual do repo vive neles
+# (docs/*.md proprios e docs/archive/ nao estao na lista), entao segredos reais
+# em arquivos atuais continuam sendo detectados.
+paths = [
+  '''^docs/(announcements|assets|automation|channels|clawhub|cli|concepts|debug|diagnostics|gateway|\.generated|help|\.i18n|images|install|maturity|nodes|plan|platforms|plugins|providers|refactor|reference|security|snippets|specs|start|tools|web)/''',
+]

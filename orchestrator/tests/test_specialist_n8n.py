@@ -4,6 +4,7 @@ scratchpad do loop ReAct manual do node com o LLM e o N8nClient mockados
 integracao real (create+delete isolado, nao mexe nos workflows existentes)
 contra a API da instancia de producao quando ha credenciais em .env."""
 
+import os
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,6 +17,7 @@ from orchestrator.config import settings
 from orchestrator.graph.n8n_confirmation import NEEDS_CONFIRMATION_KEY
 from orchestrator.graph.nodes import _run_n8n_tool, specialist_n8n_node
 
+
 @pytest.fixture(autouse=True)
 def _n8n_fake_credentials_if_missing(monkeypatch):
     """So preenche fake se estiver vazio - nao mexe em credenciais reais
@@ -26,9 +28,13 @@ def _n8n_fake_credentials_if_missing(monkeypatch):
         monkeypatch.setattr(settings, "n8n_api_key", "test-fake-key")
 
 
+# Teste de INTEGRACAO que cria/apaga um workflow numa instancia n8n REAL. Antes
+# rodava sozinho sempre que o `.env` local tinha credenciais - ou seja, um
+# `pytest` comum disparava escrita na instancia de PRODUCAO. Agora exige
+# opt-in explicito (RUN_LIVE_N8N_TESTS=1) alem das credenciais.
 requires_n8n_credentials = pytest.mark.skipif(
-    not settings.n8n_url or not settings.n8n_api_key,
-    reason="ORCHESTRATOR_N8N_URL/ORCHESTRATOR_N8N_API_KEY nao configurados (.env)",
+    os.environ.get("RUN_LIVE_N8N_TESTS") != "1" or not settings.n8n_url or not settings.n8n_api_key,
+    reason="teste live contra n8n real: exige RUN_LIVE_N8N_TESTS=1 + ORCHESTRATOR_N8N_URL/API_KEY",
 )
 
 
@@ -388,7 +394,7 @@ async def test_node_aborts_when_only_api_key_missing(monkeypatch):
         "internal_scratchpad": [],
     }
     with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
-        result = await specialist_n8n_node(state)
+        await specialist_n8n_node(state)
     mock_client_cls.assert_not_called()
 
 
@@ -401,5 +407,5 @@ async def test_node_aborts_when_only_url_missing(monkeypatch):
         "internal_scratchpad": [],
     }
     with patch("orchestrator.graph.nodes.N8nClient") as mock_client_cls:
-        result = await specialist_n8n_node(state)
+        await specialist_n8n_node(state)
     mock_client_cls.assert_not_called()

@@ -1,11 +1,19 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+# Limites de entrada (OWASP LLM10 - consumo ilimitado). Generosos de
+# proposito: ha DOIS consumidores de /v1/turn - o webhook do WhatsApp (ate 4096
+# caracteres) e a ferramenta ask_orchestrator do gateway, que envia texto
+# GERADO POR LLM (tarefas com codigo/contexto, mais longas). 32000 nao corta
+# uso legitimo, mas impede mandar megabytes ao LLM pago.
+MAX_TEXT_CHARS = 32000
+MAX_ID_CHARS = 256
+
 
 class TaskRequest(BaseModel):
     """Contrato de entrada: uma nova tarefa (ou continuacao) enviada a API."""
 
-    thread_id: str = Field(..., description="ID da conversa/tarefa, usado pelo checkpointer")
-    message: str = Field(..., description="Instrucao do usuario em linguagem natural")
+    thread_id: str = Field(..., min_length=1, max_length=MAX_ID_CHARS, description="ID da conversa/tarefa, usado pelo checkpointer")
+    message: str = Field(..., max_length=MAX_TEXT_CHARS, description="Instrucao do usuario em linguagem natural")
 
 
 class TaskResponse(BaseModel):
@@ -28,9 +36,11 @@ class TurnRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    session_key: str = Field(..., description="Chave da sessao/conversa, usada como thread_id do checkpointer")
-    text: str = Field(..., description="Texto da mensagem recebida do usuario")
-    from_: str = Field(..., alias="from", description="Identificador do remetente (ex.: numero de telefone)")
+    session_key: str = Field(
+        ..., min_length=1, max_length=MAX_ID_CHARS, description="Chave da sessao/conversa, usada como thread_id do checkpointer"
+    )
+    text: str = Field(..., max_length=MAX_TEXT_CHARS, description="Texto da mensagem recebida do usuario")
+    from_: str = Field(..., alias="from", max_length=64, description="Identificador do remetente (ex.: numero de telefone)")
 
 
 class TurnResponse(BaseModel):

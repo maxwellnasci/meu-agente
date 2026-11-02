@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="ORCHESTRATOR_")
 
     # API
-    host: str = "0.0.0.0"
+    # Bind em todas as interfaces DENTRO do container (necessario para o
+    # publish do Docker); a exposicao real e controlada pelo compose, que so
+    # publica em 127.0.0.1 (ou em rede interna, nos moldes de servidor dedicado).
+    host: str = "0.0.0.0"  # nosec B104
     port: int = 8000
     # Token de autenticacao dos endpoints protegidos (/v1/turn,
     # /tasks/stream) - lido de ORCHESTRATOR_API_TOKEN. None = token ausente;
@@ -77,6 +80,14 @@ class Settings(BaseSettings):
     # conversa de WhatsApp com idas e vindas sem deixar uma acao "armada"
     # indefinidamente.
     n8n_confirmation_ttl_sec: int = 900
+
+    # Alvos de producao PROPRIA (IPs e dominios, separados por virgula) que o
+    # Especialista de Ciberseguranca nunca pode escanear/testar - bloqueio
+    # incondicional em graph/cybersec_guard.py (nao tem a excecao de negacao
+    # dos nomes de servico). Configuracao e nao codigo de proposito: o IP real
+    # do servidor nao deve estar versionado. Defina o IP/dominios reais em
+    # ORCHESTRATOR_PROTECTED_TARGETS no .env de cada ambiente.
+    protected_targets: str = "mxos.com.br"
 
     # Roteador do Cerebro (no `reason`) - via OpenRouter (padrao OpenAI,
     # base_url apontando pro OpenRouter). A chave fica em
