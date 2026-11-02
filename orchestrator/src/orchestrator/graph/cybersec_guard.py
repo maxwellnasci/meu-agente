@@ -37,12 +37,27 @@ Duas camadas:
 
    - a negacao precisa PRECEDER a keyword, na mesma frase (; : e
      conjuncoes adversativas como "mas" encerram o escopo);
-   - todo verbo de acao entre a negacao e a keyword precisa estar no
-     infinitivo/participio ("nunca testar, escanear ou tocar em ...",
-     que e o formato real dos prompts). Um imperativo so e aceito
-     IMEDIATAMENTE apos a negacao ("nao escaneie o Contabo"); um
-     imperativo mais adiante ("nao precisa de relatorio, escaneie o
-     Contabo") quebra o escopo e bloqueia.
+   - o trecho entre a negacao e a keyword so pode conter vocabulario
+     OFENSIVO (scan, teste, ataque, explorar...), verbos LEVES (faca,
+     realize, execute...) e palavras FUNCIONAIS ou do dominio de
+     infraestrutura (o, contra, servidor, producao...). Isso cobre os ecos
+     reais ("nunca testar, escanear ou tocar em infraestrutura de
+     producao (Contabo, ...)", "nao faca scan no Contabo", "nao teste,
+     escaneie ou explore o Contabo"). Qualquer outra palavra ("precisa",
+     "relatorio", "site", "pare"...) encerra o escopo: "nao precisa de
+     relatorio, faca um scan no Contabo" bloqueia;
+   - termo ofensivo DEPOIS de outra keyword tambem encerra o escopo
+     ("nunca testar o Amigao e escaneie o Contabo" bloqueia), a menos que
+     um novo marcador ("nem") reabra a negacao;
+   - virgula/parentese colado logo apos a negacao ("..., nao, escaneie o
+     Contabo") e verbo copulativo ("nao e um teste, escaneie...") nao
+     abrem escopo.
+
+   Trade-off assumido: uma palavra fora do vocabulario conhecido num eco
+   ("nao faca scan AGRESSIVO no Contabo") bloqueia, e o supervisor pode
+   repetir ate o limite de iteracoes; o oposto (liberar por engano) seria
+   pior. Casos como "nao e um teste, escaneie..." sao tratados, mas nenhuma
+   heuristica de texto fecha todas as formas - ver o aviso no topo.
 
    - negacao POSPOSTA so vale como participio que qualifica a keyword
      ("o alvo Contabo deve ser ignorado") e desde que a keyword nao seja
@@ -67,7 +82,7 @@ _CONTRAST_RE = re.compile(r"\s+(?:mas|porem|contudo|entao|depois|so que)\s+")
 
 # Marcadores de negacao/proibicao (ja sem acento, ver `_fold`).
 _NEGATION_RE = re.compile(
-    r"\b(?:nunca|jamais|nao|evite|evitar|proibid[oa]s?|ignorad[oa]s?|ignorar|"
+    r"\b(?:nunca|jamais|nao|nem|evite|evitar|proibid[oa]s?|ignorad[oa]s?|ignorar|"
     r"excluir|excluid[oa]s?|desconsidere|desconsiderar|sem autorizacao)\b"
 )
 
@@ -96,13 +111,32 @@ _PRODUCTION_INFRA_KEYWORDS = (
 )
 _KEYWORD_RE = re.compile("|".join(re.escape(k) for k in _PRODUCTION_INFRA_KEYWORDS))
 
-# Verbos/termos de acao ofensiva. Infinitivo/participio sao aceitos dentro
-# do escopo de uma negacao; formas finitas/imperativas, so logo apos ela.
-_ACTION_STEM_RE = re.compile(
-    r"^(?:escan|scan|nmap|pentest|test|explor|exploit|ataq|varr|fuzz|hack|invad|"
-    r"brute|toc|mex|acess|rod|execut|enumer|sond|ping)\w*$"
-)
+# Vocabulario OFENSIVO (radicais; qualquer flexao): verbos e substantivos de
+# acao contra um alvo. Dentro do escopo de uma negacao eles sao esperados
+# ("nao faca SCAN", "nunca realize TESTES"); depois de outra keyword, nao.
+_OFFENSIVE_STEMS = (
+    "escan", "scan", "nmap", "pentest", "test", "explor", "exploit", "ataq", "atac",
+    "varr", "vasculh", "fuzz", "hack", "invad", "invas", "intrus", "brut", "sond",
+    "enumer", "ping", "sniff", "injet", "inject", "derrub", "toc", "toq", "mex", "acess",
+    "rod", "execut", "tent", "avali", "analis", "verific", "audit", "investig",
+    "mape", "util", "usar", "use", "usando",
+)  # fmt: skip
+# Verbos LEVES que carregam o substantivo de acao ("faca um scan", "realize testes").
+_LIGHT_VERB_STEMS = ("fac", "faz", "realiz", "efetu", "inici", "lanc", "aplic", "conduz", "peca", "pedi", "solicit", "mand", "instru", "autoriz", "permit", "deix", "inclu")  # fmt: skip
+# Substantivos de infraestrutura: sao OBJETO. Depois de um deles, um termo
+# ofensivo finito abre uma nova oracao ("nao teste o servidor, escaneie o
+# Contabo") e encerra o escopo da negacao.
+_DOMAIN_NOUNS = frozenset(
+    ["projeto", "projetos", "servidor", "servidores", "infraestrutura", "infraestruturas", "producao", "rede", "redes", "sistema", "sistemas", "host", "hosts", "alvo", "alvos", "dominio", "dominios", "ip", "ips", "servico", "servicos", "gateway", "openclaw", "n8n"]
+)  # fmt: skip
+# Palavras FUNCIONAIS e do dominio de infraestrutura que podem aparecer no meio
+# de um eco legitimo. Qualquer palavra fora de OFENSIVO/LEVE/FUNCIONAL encerra o escopo.
+_FUNCTION_WORDS = frozenset(
+    ["o", "a", "os", "as", "um", "uma", "uns", "umas", "no", "na", "nos", "nas", "ao", "aos", "do", "da", "dos", "das", "de", "em", "contra", "sobre", "para", "por", "com", "pelo", "pela", "pelos", "pelas", "que", "se", "qualquer", "nenhum", "nenhuma", "algum", "alguma", "todo", "toda", "todos", "todas", "ativo", "ativos", "ativa", "ativas", "passivo", "remoto", "real", "reais", "direto", "neste", "nesta", "deste", "desta", "desse", "dessa", "esse", "essa", "este", "esta", "isso", "isto", "proprio", "propria", "proprios", "proprias", "nosso", "nossa", "nossos", "nossas", "ele", "ela", "eles", "elas", "lhe", "voce", "voces", "tambem", "mais", "menos", "deve", "devem", "pode", "podem", "poderia", "deveria", "ser", "estar", "sao", "sera", "fica", "ficam", "ficar", "tipo", "tipos", "forma", "formas", "como", "nessa", "nesse", "nessas", "nesses", "dessas", "desses", "seja", "sejam", "ou", "e"]
+) | _DOMAIN_NOUNS  # fmt: skip
 _NON_FINITE_SUFFIX_RE = re.compile(r"(?:ar|er|ir|or|ando|endo|indo|ado|ados|ada|adas|ido|idos)$")
+# Primeira palavra apos a negacao que NAO abre escopo ofensivo (copula: "nao e um teste, ...").
+_COPULAS = frozenset({"e", "eh", "sao", "foi", "era", "sera", "ha"})
 
 _LEET_TABLE = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"})
 _SEPARATORS_RE = re.compile(r"(?<=[a-z0-9])[._\-*](?=[a-z0-9])")
@@ -144,10 +178,19 @@ def _mentions_protected_target(folded: str) -> bool:
     return False
 
 
+def _is_offensive(word: str) -> bool:
+    return word.startswith(_OFFENSIVE_STEMS)
+
+
+def _is_light_verb(word: str) -> bool:
+    return word.startswith(_LIGHT_VERB_STEMS)
+
+
 def _has_finite_action_verb(text: str) -> bool:
-    """True se `text` tem verbo/termo de acao em forma finita/imperativa."""
+    """True se `text` tem termo ofensivo em forma finita/imperativa (nao
+    infinitivo/participio)."""
     for word in re.findall(r"[a-z0-9]+", text):
-        if _ACTION_STEM_RE.match(word) and not _NON_FINITE_SUFFIX_RE.search(word):
+        if _is_offensive(word) and not _NON_FINITE_SUFFIX_RE.search(word):
             return True
     return False
 
@@ -165,15 +208,30 @@ def _qualified_by_post_negation(part: str, hit: "re.Match[str]") -> bool:
 def _is_governed_by_negation(between: str) -> bool:
     """`between` = trecho entre o fim do marcador de negacao e o inicio da
     keyword. True se a negacao realmente governa a keyword (ver docstring do
-    modulo): nenhum verbo de acao em forma finita fora da posicao imediata."""
-    for match in re.finditer(r"[a-z0-9]+", between):
-        word = match.group(0)
-        if not _ACTION_STEM_RE.match(word) or _NON_FINITE_SUFFIX_RE.search(word):
+    modulo): so vocabulario ofensivo/leve/funcional no meio, nada ofensivo
+    depois de outra keyword, e a negacao nao termina em virgula/copula."""
+    if re.match(r"\s*[,;:()]", between):
+        return False  # "nao, escaneie o Contabo": a negacao nao governa nada
+    first = re.match(r"\s*([a-z0-9]+)", between)
+    if first and first.group(1) in _COPULAS:
+        return False  # "nao e um teste, escaneie o Contabo"
+
+    keyword_hits = list(_KEYWORD_RE.finditer(between))
+    if keyword_hits:
+        tail = between[keyword_hits[-1].end() :]
+        if any(_is_offensive(w) for w in re.findall(r"[a-z0-9]+", tail)):
+            return False  # "nunca testar o Amigao e escaneie o Contabo"
+
+    vocabulary_only = _KEYWORD_RE.sub(" ", between)
+    object_seen = False
+    for word in re.findall(r"[a-z0-9]+", vocabulary_only):
+        if object_seen and _is_offensive(word) and not _NON_FINITE_SUFFIX_RE.search(word):
+            return False  # "nao teste o servidor, escaneie o Contabo": nova oracao
+        if word in _DOMAIN_NOUNS:
+            object_seen = True
+        if _is_offensive(word) or _is_light_verb(word) or word in _FUNCTION_WORDS:
             continue
-        # forma finita/imperativa/substantivo de acao: so vale se vier
-        # imediatamente apos a negacao (so espacos entre os dois).
-        if between[: match.start()].strip():
-            return False
+        return False  # palavra fora do vocabulario: encerra o escopo
     return True
 
 

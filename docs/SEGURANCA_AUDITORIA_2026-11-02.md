@@ -15,12 +15,12 @@ nasceu de um teste que falhava antes (red → green).
 
 | Resultado | Antes | Depois |
 |---|---|---|
-| Testes | 157 (passavam só com `.env` local) | **333** hermético, 1 live opt-in |
+| Testes | 157 (passavam só com `.env` local) | **359** hermético, 1 live opt-in |
 | Lint (ruff) | 10 avisos | 0 |
 | SAST (bandit, severidade ≥ média) | 1 | 0 |
 | CVEs em dependências (pip-audit) | 7 em 3 pacotes | 0 |
 | Segredos no histórico git (202 mil linhas adicionadas) | 0 | 0 |
-| Entradas ofensivas que passavam no `cybersec_guard` | 13 de 17 | 0 de 17 |
+| Entradas ofensivas que passavam no `cybersec_guard` | 26 de 31 | 0 de 31 |
 
 ## Achados
 
@@ -31,13 +31,13 @@ higiene/defesa em profundidade.
 | ID | Sev. | Onde | Achado | Status |
 |---|---|---|---|---|
 | S-01 | **Alta** | `clients/n8n_client.py` | **Path traversal controlado pelo LLM.** `workflow_id` e `path` de webhook entravam na URL sem validação; o httpx normaliza `..` e mantém o header `X-N8N-API-KEY`. PoC: `get_workflow("../executions/1")` → `GET /api/v1/executions/1` **com a chave**; `x/../../credentials` → `/api/v1/credentials`. Prompt injection (LLM01) conseguia apontar a chave de API do n8n para qualquer endpoint. | **Corrigido** — allowlist (`[A-Za-z0-9_-]{1,64}`; segmentos de webhook sem `..`; métodos GET/POST/PUT/PATCH/DELETE), recusa antes de qualquer requisição **e antes de propor a confirmação** ao usuário. 99 testes. |
-| S-02 | **Alta** | `graph/cybersec_guard.py` | **Bypass do gate de produção.** Qualquer `"nao "` na frase, antes *ou depois* da keyword, liberava: "escaneie o Contabo e não pare" passava. Também não cobria IP/domínio, nem variações de acento, leetspeak, separadores ou caracteres invisíveis. 13 de 17 entradas ofensivas passavam. | **Corrigido** — negação só vale se *precede* a keyword e *governa* o verbo (infinitivo/particípio; imperativo só imediatamente após a negação); `;` `:` e adversativas encerram o escopo; alvos protegidos configuráveis (`ORCHESTRATOR_PROTECTED_TARGETS`) bloqueiam sempre. A exceção que evita o loop do supervisor foi **preservada** (os 5 testes existentes de eco/loop do supervisor seguem verdes). |
+| S-02 | **Alta** | `graph/cybersec_guard.py` | **Bypass do gate de produção.** Qualquer `"nao "` na frase, antes *ou depois* da keyword, liberava: "escaneie o Contabo e não pare" passava. Também não cobria IP/domínio, nem variações de acento, leetspeak, separadores ou caracteres invisíveis. 26 de 31 entradas ofensivas passavam. | **Corrigido** — negação só vale se *precede* a keyword e *governa* o verbo (infinitivo/particípio; imperativo só imediatamente após a negação); `;` `:` e adversativas encerram o escopo; alvos protegidos configuráveis (`ORCHESTRATOR_PROTECTED_TARGETS`) bloqueiam sempre. A exceção que evita o loop do supervisor foi **preservada**: os 5 testes existentes de eco/loop seguem verdes, 14 ecos realistas e o **texto integral dos prompts reais** (supervisor e cybersec) passam no guard. Vocabulário fora da lista conhecida num eco (ex.: "não faça scan *agressivo* no Contabo") ainda bloqueia — falso positivo assumido, pior caso = o supervisor repete até o limite de iterações. **Mudança de produto:** o padrão `protected_targets="mxos.com.br"` também recusa varrer o próprio site/domínio da empresa; para liberar, ajuste `ORCHESTRATOR_PROTECTED_TARGETS`. |
 | S-03 | Média | `graph/n8n_confirmation.py` | **Confirmação fraca de ação em produção.** Até 3 tokens, bastava *um* token afirmativo e nenhum negativo: "ok mas espera", "talvez ok", "pode apagar outro" confirmavam create/activate/deactivate/delete. | **Corrigido** — todos os tokens precisam ser afirmação/cortesia; verbo de ação só vale para a ação **pendente** ("pode ativar sim" confirma ativar, "pode apagar" não confirma criar). |
 | S-04 | Média | `.github/workflows/docker-publish-orchestrator.yml` | **Injeção de shell** via `github.event.inputs.tag` interpolado dentro de `run:` num job com `packages: write`. Actions por tag mutável. | **Corrigido** — entrada via `env` + validação por regex; actions fixadas por commit SHA; `persist-credentials: false`. |
 | S-05 | Média | `tests/` | **Suíte não hermética e teste live em produção.** 5 testes dependiam do `orchestrator/.env`; um teste de integração criava/apagava workflow no n8n **real** sempre que o `.env` tinha credenciais. Um CI limpo falharia (inclusive o job que publica a imagem). | **Corrigido** — `tests/conftest.py` fixa valores falsos; teste live exige `RUN_LIVE_N8N_TESTS=1`. |
 | S-06 | Média | repo público | **Reconhecimento/PII no repositório público.** O IP do servidor de produção aparece em 6 arquivos versionados (docs e relatórios), um segundo IP (provavelmente do operador) em 2 docs de sessão, e um telefone real em docs e em testes. Não são segredos de autenticação, mas são PII e informação de reconhecimento. Corrigir o HEAD **não remove** do histórico. | **Aberto — depende de decisão** (ver "Pendências"). |
 | S-07 | Baixa | `main.py` | `/tasks/stream` devolvia `str(exc)` ao cliente (caminhos, URLs internas, trechos de upstream). | **Corrigido** — mensagem genérica; detalhe só no log do servidor. |
-| S-08 | Baixa | `schemas/requests.py` | Sem limite de tamanho em `text`/`message`/ids (OWASP LLM10, consumo ilimitado). | **Corrigido** — `text`/`message` ≤ 8000, ids 1–256, `from` ≤ 64 → 422 antes do grafo. |
+| S-08 | Baixa | `schemas/requests.py` | Sem limite de tamanho em `text`/`message`/ids (OWASP LLM10, consumo ilimitado). | **Corrigido** — `text`/`message` ≤ 32000 (o `orchestrator-bridge` envia texto gerado por LLM, mais longo que o WhatsApp), ids 1–256, `from` ≤ 64 → 422 antes do grafo. |
 | S-09 | Baixa | `pyproject.toml` | 7 CVEs em dependências transitivas (certifi, urllib3, langgraph-sdk). | **Corrigido** — pisos de versão; `pip-audit` limpo. Sem lockfile (ver S-12). |
 | S-10 | Média (disp.) | `extensions/whatsapp-cloud/src/webhook.ts` | O rate limit roda **antes** da verificação de assinatura e usa `remoteAddress`. Atrás de proxy/túnel todos caem no mesmo balde: um flood não autenticado pode esgotar a cota e devolver 429 à Meta (negação de serviço do canal). | **Aberto** — não alterado: depende do SDK do OpenClaw (fora do repo) e não pôde ser testado aqui. Correção recomendada: verificar a assinatura primeiro (HMAC é barato) e limitar por conta/IP real (`CF-Connecting-IP`/`X-Forwarded-For` confiável). |
 | S-11 | Baixa | `orchestrator/Dockerfile` | Container roda como root; imagem base sem digest; sem `HEALTHCHECK`. | **Aberto, mitigado** nos moldes de servidor dedicado (`user: 1000:1000`, zero portas publicadas, sem `docker.sock`). Mudar o default da imagem quebraria ambientes existentes cujo `data/` pertence ao root. |
@@ -97,10 +97,20 @@ do n8n. A correção do S-05 impede que isso se repita.
 cd orchestrator
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev,security]"
-ruff check . && python -m pytest -q           # 333 passed, 1 skipped
+ruff check . && python -m pytest -q           # 359 passed, 1 skipped
 bandit -r src -ll -q                           # sem achados >= média
 pip-audit --skip-editable                      # sem CVEs nas dependências
 ```
 
-O CI (`.github/workflows/ci.yml`) roda os mesmos passos, mais *gitleaks* no
-histórico completo e *shellcheck* nos scripts de deploy.
+O CI (`.github/workflows/ci.yml`) roda os mesmos passos, mais *gitleaks* (commits
+novos em push/PR; histórico completo semanal e sob demanda) e *shellcheck* nos
+scripts de deploy. Validado também em **Python 3.11** (a versão do CI e da imagem
+de produção): 359 testes, ruff, bandit e pip-audit limpos, e `docker build` da
+imagem do orquestrador concluído.
+
+**Não verificado localmente:** a execução do *gitleaks* (o download do binário foi
+negado pelo ambiente). A varredura de segredos do histórico desta auditoria foi
+feita com scanner próprio (regex) e não equivale às regras de entropia do gitleaks;
+o `.gitleaks.toml` libera apenas os caminhos da documentação do OpenClaw importada
+no commit inicial. Se a primeira execução do job apontar falso positivo, ajuste o
+allowlist.

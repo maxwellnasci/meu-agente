@@ -1,9 +1,11 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 # Limites de entrada (OWASP LLM10 - consumo ilimitado). Generosos de
-# proposito: o WhatsApp limita texto a 4096 caracteres, entao 8000 nunca corta
-# uma mensagem legitima, mas impede mandar megabytes ao LLM pago.
-MAX_TEXT_CHARS = 8000
+# proposito: ha DOIS consumidores de /v1/turn - o webhook do WhatsApp (ate 4096
+# caracteres) e a ferramenta ask_orchestrator do gateway, que envia texto
+# GERADO POR LLM (tarefas com codigo/contexto, mais longas). 32000 nao corta
+# uso legitimo, mas impede mandar megabytes ao LLM pago.
+MAX_TEXT_CHARS = 32000
 MAX_ID_CHARS = 256
 
 

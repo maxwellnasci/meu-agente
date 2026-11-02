@@ -4,7 +4,7 @@
 
 Auditoria completa (código, dependências, histórico git, CI, scripts) com 17 achados;
 as correções de severidade alta/média estão na branch `worktree-security-hardening-2026-11`
-(333 testes, ruff/bandit/pip-audit limpos) e **só valem em produção depois de rebuild + deploy**.
+(359 testes, ruff/bandit/pip-audit limpos) e **só valem em produção depois de rebuild + deploy**.
 Corrigidos: path traversal controlado pelo LLM no cliente n8n, bypass do `cybersec_guard`,
 confirmação fraca de ações n8n, injeção de shell no workflow de publicação, suíte de testes
 não hermética (um teste criava/apagava workflow no n8n real), vazamento de `str(exc)` no SSE,

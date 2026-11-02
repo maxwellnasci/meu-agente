@@ -9,6 +9,12 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Varredura de segredos do HISTORICO COMPLETO: a gitleaks-action so varre o
+  # historico inteiro em `schedule`/`workflow_dispatch`; em push/PR ela varre
+  # apenas os commits novos do evento.
+  schedule:
+    - cron: "17 6 * * 1" # segundas, 06:17 UTC
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -57,7 +63,7 @@ jobs:
         run: pip-audit --skip-editable --progress-spinner off
 
   secrets:
-    name: varredura de segredos (historico completo)
+    name: varredura de segredos (commits novos; historico completo semanal/manual)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (historico completo)

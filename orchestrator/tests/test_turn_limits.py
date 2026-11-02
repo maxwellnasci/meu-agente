@@ -57,13 +57,13 @@ def test_turn_normal_continua_200(client):
 
 
 def test_turn_texto_no_limite_ainda_passa(client):
-    assert client.post("/v1/turn", json=_turn(text="a" * 8000), headers=_AUTH).status_code == 200
+    assert client.post("/v1/turn", json=_turn(text="a" * 32000), headers=_AUTH).status_code == 200
 
 
 @pytest.mark.parametrize(
     "over",
     [
-        {"text": "a" * 8001},
+        {"text": "a" * 32001},
         {"text": "a" * 2_000_000},
         {"session_key": "s" * 257},
         {"session_key": ""},
@@ -75,7 +75,7 @@ def test_turn_acima_do_limite_retorna_422_sem_tocar_no_grafo(client, over):
     assert client.post("/v1/turn", json=_turn(**over), headers=_AUTH).status_code == 422
 
 
-@pytest.mark.parametrize("body", [{"thread_id": "t", "message": "a" * 8001}, {"thread_id": "t" * 257, "message": "oi"}])
+@pytest.mark.parametrize("body", [{"thread_id": "t", "message": "a" * 32001}, {"thread_id": "t" * 257, "message": "oi"}])
 def test_stream_acima_do_limite_retorna_422(client, body):
     assert client.post("/tasks/stream", json=body, headers=_AUTH).status_code == 422
 

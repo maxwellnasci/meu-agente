@@ -100,7 +100,8 @@ Os moldes de servidor dedicado não publicam portas no host, não montam
 `docker.sock` e não usam `privileged` (verificado nesta auditoria).
 
 **Pipeline.** CI com permissão mínima, ruff + pytest hermético + bandit +
-pip-audit + gitleaks (histórico completo) + shellcheck; publicação de imagem só
+pip-audit + gitleaks (commits novos a cada push/PR; histórico completo
+semanalmente e sob demanda) + shellcheck; publicação de imagem só
 por tag, com entrada validada.
 
 ## Riscos aceitos e limites (honestidade técnica)

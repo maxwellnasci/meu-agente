@@ -18,10 +18,10 @@ multi-agente com controles de segurança determinísticos** em volta do LLM — 
 |---|---|---|
 | **Orquestração multi-agente** | Supervisor em **LangGraph** roteia por intenção para especialistas (programação, cibersegurança, automação n8n); estado e memória por sessão em checkpointer SQLite; streaming SSE | [`orchestrator/`](orchestrator/), [docs/ARQUITETURA_ORQUESTRADOR.md](docs/ARQUITETURA_ORQUESTRADOR.md) |
 | **Segurança de agentes (OWASP LLM Top 10)** | Gate de confirmação com TTL e uso único para ações em produção; allowlist de argumentos vindos do LLM; gate de alvos protegidos; limites de entrada | [SECURITY.md](SECURITY.md) |
-| **Auditoria com provas** | 17 achados, cada um com PoC offline e correção guiada por teste (red → green): path traversal controlado pelo LLM, bypass de guardrail, confirmação fraca, injeção em CI | [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md) |
+| **Auditoria com provas** | 17 achados registrados (severidade, evidência, status — inclusive os que seguem abertos). Os de maior severidade têm PoC offline e correção guiada por teste (red → green): path traversal controlado pelo LLM, bypass de guardrail, confirmação fraca de ações em produção, injeção de shell no CI | [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md) |
 | **Engenharia de produção** | Webhook com HMAC, anti-replay, fila por remetente; deploy via imagem publicada (GHCR); provisionamento multi-cliente; moldes de servidor dedicado sem portas expostas | [`extensions/`](extensions/), [`deployments/`](deployments/servidor-dedicado/), [`scripts/provision-client.sh`](scripts/provision-client.sh) |
-| **Qualidade e supply chain** | 333 testes herméticos, ruff, bandit, pip-audit, gitleaks no histórico completo, shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| **Pós-incidentes documentados** | Cada falha real virou documento (deadlock de fila, loop do supervisor, criação indevida de workflow, vazamento de credencial) | [docs/](docs/), [docs/archive/](docs/archive/) |
+| **Qualidade e supply chain** | 359 testes herméticos (Python 3.11 e 3.14), ruff, bandit, pip-audit, gitleaks (histórico completo semanal), shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Pós-incidentes documentados** | Falhas reais viraram documentos: o bug do "coma eterno", a investigação de travamento de hooks e a criação indevida de workflow no n8n | [docs/RESOLUCAO_BUG_COMA_ETERNO.md](docs/RESOLUCAO_BUG_COMA_ETERNO.md), [docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md), [docs/archive/P0_CONTENCAO_N8N_2026-09-06.md](docs/archive/P0_CONTENCAO_N8N_2026-09-06.md) |
 
 ## Arquitetura
 
@@ -45,7 +45,7 @@ SQLite (checkpointer) · LangSmith (tracing opcional) — **TypeScript** (plugin
 ## Estrutura
 
 ```
-orchestrator/            cérebro LangGraph (FastAPI) + 333 testes
+orchestrator/            cérebro LangGraph (FastAPI) + 359 testes
 extensions/              plugins TypeScript do gateway
   whatsapp-cloud/          canal WhatsApp oficial (webhook assinado)
   orchestrator-bridge/     ferramenta ask_orchestrator
