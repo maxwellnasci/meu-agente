@@ -78,6 +78,14 @@ class Settings(BaseSettings):
     # indefinidamente.
     n8n_confirmation_ttl_sec: int = 900
 
+    # Alvos de producao PROPRIA (IPs e dominios, separados por virgula) que o
+    # Especialista de Ciberseguranca nunca pode escanear/testar - bloqueio
+    # incondicional em graph/cybersec_guard.py (nao tem a excecao de negacao
+    # dos nomes de servico). Configuracao e nao codigo de proposito: o IP real
+    # do servidor nao deve estar versionado. Defina o IP/dominios reais em
+    # ORCHESTRATOR_PROTECTED_TARGETS no .env de cada ambiente.
+    protected_targets: str = "mxos.com.br"
+
     # Roteador do Cerebro (no `reason`) - via OpenRouter (padrao OpenAI,
     # base_url apontando pro OpenRouter). A chave fica em
     # ORCHESTRATOR_OPENROUTER_API_KEY.
