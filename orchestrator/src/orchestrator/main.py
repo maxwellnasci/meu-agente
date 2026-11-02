@@ -25,6 +25,10 @@ _SSE_HEARTBEAT_SEC = 15
 # uma resposta que nunca chega.
 _TURN_FALLBACK_REPLY = "Desculpa, tive um problema para processar sua mensagem agora. Tenta de novo em instantes."
 
+# Mensagem publica dos eventos de erro do SSE. O detalhe da excecao vai so para
+# o log do servidor (vazamento de informacao: caminhos, URLs, respostas de upstream).
+_STREAM_ERROR_PUBLIC_MESSAGE = "falha interna ao processar a tarefa"
+
 # Sem isto, o nivel padrao da raiz e WARNING - os logs de observabilidade
 # em nivel INFO adicionados em graph/nodes.py (decisao do supervisor,
 # duracao/resultado de cada chamada a especialista) ficariam invisiveis no
@@ -175,15 +179,19 @@ async def stream_task(request: TaskRequest, http_request: Request) -> EventSourc
 
                 try:
                     mapped = map_langgraph_event(raw_event)
-                except Exception as exc:
-                    error_event = ErrorEvent(message=f"falha ao mapear evento do grafo: {exc}")
+                except Exception:
+                    # Detalhe so no log do servidor: o texto da excecao pode ter
+                    # caminhos, URLs internas e trechos de respostas de upstream.
+                    _logger.exception("stream: falha ao mapear evento do grafo (thread_id=%s)", request.thread_id)
+                    error_event = ErrorEvent(message=_STREAM_ERROR_PUBLIC_MESSAGE)
                     yield {"event": error_event.type, "data": error_event.model_dump_json()}
                     continue
 
                 if mapped is not None:
                     yield {"event": mapped.type, "data": mapped.model_dump_json()}
-        except Exception as exc:
-            failed_event = TaskFailedEvent(error=str(exc))
+        except Exception:
+            _logger.exception("stream: falha ao executar o grafo (thread_id=%s)", request.thread_id)
+            failed_event = TaskFailedEvent(error=_STREAM_ERROR_PUBLIC_MESSAGE)
             yield {"event": failed_event.type, "data": failed_event.model_dump_json()}
 
     return EventSourceResponse(event_generator(), ping=_SSE_HEARTBEAT_SEC)
