@@ -25,13 +25,17 @@ mínima garantida.
    verso do canhoto.
 3. Divergência acima de 2%, produto trocado ou preço diferente do pedido:
    a carga do item é **recusada** e o conferente preenche o
-   **Formulário F-07 (Divergência de Recebimento)**.
+   **Formulário F-07 (Divergência de Recebimento)**. É o mesmo formulário em
+   que ficam as leituras de temperatura da carga (seção 4).
 4. O canhoto só é assinado depois da conferência física completa.
 
 ## 4. Temperatura na chegada
 
 Medir com o termômetro tipo espeto em **3 volumes por lote** (início, meio e
-fim do caminhão) e anotar no F-07 mesmo quando estiver tudo certo.
+fim do caminhão). O F-07 também é o **registro de temperatura** do
+recebimento: as três leituras são anotadas nele em toda entrega de
+congelados, resfriados, laticínios e frios, mesmo quando estiver tudo certo e
+não houver divergência nenhuma.
 
 | Categoria            | Aceitar até | Recusar acima de |
 |----------------------|-------------|------------------|

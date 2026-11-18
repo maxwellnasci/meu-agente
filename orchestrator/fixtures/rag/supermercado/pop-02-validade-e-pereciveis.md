@@ -33,7 +33,7 @@ amarela "Oferta do Dia".
 | Dia do vencimento | retirar da área de venda | retirar | retirar |
 
 Pão francês e produtos de padaria feitos na loja **não** entram na tabela de
-dias: o que sobra no fim do dia vai para a doação (ver seção 6).
+dias: o destino da sobra do fim do dia (doação ou quebra) está na seção 6.
 
 ## 4. Retirada de vencidos
 
@@ -52,9 +52,13 @@ validade.
 
 ## 6. Doação de excedentes
 
-- Produtos de padaria do dia e hortifrúti com aparência imperfeita (mas
-  próprios para consumo) são doados ao banco de alimentos parceiro.
+- Hortifrúti com aparência imperfeita (mas próprio para consumo) é separado
+  ao longo da semana e doado ao banco de alimentos parceiro.
 - A coleta acontece **terças e sextas às 18h**.
+- A sobra de padaria feita na loja só é doada **no dia da coleta** (terça e
+  sexta), porque não pode ser guardada para o dia seguinte. Nos outros dias,
+  a sobra do fim do dia é descartada e lançada como quebra com o código
+  **Q-23 (Sobra de produção)**.
 - Nunca doar produto vencido ou com embalagem violada.
 - Cada doação é registrada no **Formulário F-15 (Termo de Doação)**, assinado
   pelo gerente de loja.

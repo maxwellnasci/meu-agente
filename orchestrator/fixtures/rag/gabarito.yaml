@@ -10,10 +10,17 @@
 #   secao_fonte      LISTA paralela a arquivo_fonte, com o texto exato do
 #                    cabecalho Markdown (sem os "#") onde esta a resposta
 #   armadilha        (opcional) o que torna a pergunta dificil para a busca
+#   trecho_exclusivo (so multi_secao) LISTA paralela a secao_fonte: um trecho
+#                    que so aquela secao contem e que a resposta esperada
+#                    exige - com uma secao so, a resposta fica incompleta
+#   criterio_acerto  (so sem_resposta) o que conta como acerto
+#   aceita_tambem    (opcional, sem_resposta) outra resposta que tambem vale
 #
 # Recall@5 (docs/RAG.md): acerto quando TODAS as secoes de secao_fonte
 # aparecem entre os 5 primeiros trechos recuperados. Itens "sem_resposta" nao
-# entram no recall - avaliam se a resposta final diz "nao sei".
+# entram no recall - sao julgados pelo criterio_acerto de cada um. Regra
+# geral: vale dizer "nao sei" OU dizer que o manual nao preve aquilo citando a
+# regra relacionada, desde que a resposta NAO invente valor, prazo ou numero.
 # A consistencia deste arquivo com o corpus e checada em
 # tests/test_rag_fixtures.py.
 
@@ -79,14 +86,17 @@ perguntas:
 
   - id: q07
     tipo: direta
-    pergunta: "pra que serve o F-07?"
+    pergunta: "a nota fiscal veio com o arroz mais caro que no pedido, isso é caso de F-07 ou recebo assim mesmo?"
     resposta_esperada: >-
-      É o Formulário de Divergência de Recebimento: usado quando a nota diverge
-      do pedido acima de 2%, produto trocado ou preço diferente, e a carga do
-      item é recusada.
+      Não recebe: preço diferente do pedido faz a carga do item ser recusada,
+      e o conferente preenche o Formulário F-07 (Divergência de Recebimento).
+      A tolerância de 2% vale só para quantidade, não para preço.
     arquivo_fonte: [pop-01-recebimento-de-mercadorias.md]
     secao_fonte: ["3. Conferência da nota fiscal"]
-    armadilha: "código exato - busca semântica tende a errar; F-07 também aparece nas seções 4, 5 e 6"
+    armadilha: >-
+      código exato (busca semântica tende a errar), mas o F-07 também aparece
+      nas seções 4, 5 e 6 (temperatura, validade, avaria): só a seção 3 trata
+      de divergência da nota; e os 2% de tolerância parecem valer para tudo
 
   - id: q08
     tipo: direta
@@ -158,32 +168,42 @@ perguntas:
   # ----------------------------------------------------------- multi_secao
   - id: q15
     tipo: multi_secao
-    pergunta: "cliente voltou aqui reclamando que levou ontem um leite que ja tava vencido, o que eu faço?"
+    pergunta: "cliente pegou um leite vencido da prateleira, pagou e voltou aqui reclamando. o que ele ganha e o que o fiscal precisa fazer?"
     resposta_esperada: >-
-      Como o cliente já pagou e voltou, segue o POP-03: troca ou reembolso
-      imediato em qualquer prazo, mais um vale-compras de R$ 20,00; registrar
-      no F-09 e avisar a Gerência de Perecíveis.
+      O cliente recebe troca ou reembolso imediato em qualquer prazo, mais um
+      vale-compras de R$ 20,00; o atendente lança no F-09 e avisa a Gerência
+      de Perecíveis (POP-03). Além disso, o fiscal abre um registro de não
+      conformidade e avisa o encarregado de perecíveis no mesmo turno (POP-02).
     arquivo_fonte:
       - pop-02-validade-e-pereciveis.md
       - pop-03-troca-e-devolucao.md
     secao_fonte:
       - "7. Cliente encontrou produto vencido na gôndola"
       - "5. Produto vencido vendido pela loja"
-    armadilha: "a regra de 24 h dos perecíveis NÃO se aplica"
+    trecho_exclusivo:
+      - "registro de não conformidade"
+      - "vale-compras de R$ 20,00"
+    armadilha: >-
+      a regra de 24 h dos perecíveis NÃO se aplica; a troca na hora sem nota
+      do POP-02 só vale antes de pagar
 
   - id: q16
     tipo: multi_secao
-    pergunta: "etiqueta amarela é o que mesmo? qualquer um pode colocar?"
+    pergunta: "qual a diferença da etiqueta amarela pra vermelha? a amarela qualquer repositor pode colar?"
     resposta_esperada: >-
-      É a "Oferta do Dia", rebaixa de preço por proximidade do vencimento. Só o
-      encarregado de perecíveis pode aplicar, seguindo a tabela de descontos
-      por dias até vencer.
+      A vermelha é promoção do encarte semanal; a amarela é a "Oferta do Dia",
+      rebaixa por validade (POP-07). A amarela não é qualquer um: só o
+      encarregado de perecíveis aplica, com o desconto da tabela de dias até
+      vencer (POP-02).
     arquivo_fonte:
       - pop-07-precos-e-promocoes.md
       - pop-02-validade-e-pereciveis.md
     secao_fonte:
       - "2. Cores das etiquetas"
       - "3. Rebaixa de preço por proximidade do vencimento"
+    trecho_exclusivo:
+      - "promoção do encarte semanal"
+      - "encarregado de perecíveis"
 
   - id: q17
     tipo: multi_secao
@@ -199,6 +219,9 @@ perguntas:
     secao_fonte:
       - "2. Documento obrigatório"
       - "6. Forma de reembolso"
+    trecho_exclusivo:
+      - "CPF"
+      - "2 dias úteis"
 
   # ---------------------------------------------------------- sem_resposta
   - id: q18
@@ -207,6 +230,9 @@ perguntas:
     resposta_esperada: "Não sei — o manual de procedimentos não trata de férias."
     arquivo_fonte: []
     secao_fonte: []
+    criterio_acerto: >-
+      Acerto se disser "não sei" ou que o manual não trata de férias. Erro se
+      inventar qualquer número de dias.
     armadilha: "fora do tema do corpus"
 
   - id: q19
@@ -215,6 +241,14 @@ perguntas:
     resposta_esperada: "Não sei — o manual não define multa para fornecedor atrasado."
     arquivo_fonte: []
     secao_fonte: []
+    criterio_acerto: >-
+      Acerto se disser "não sei" OU se disser que o manual não prevê multa
+      citando a regra relacionada (horário da doca / 40 minutos de doca do
+      POP-01). Erro se inventar valor, percentual ou prazo de multa.
+    aceita_tambem: >-
+      O manual não prevê multa para fornecedor. O POP-01 só diz que a doca
+      recebe das 6h às 14h e que cada caminhão tem até 40 minutos; passou
+      disso, vai para o fim da fila.
     armadilha: "quase-acerto: o POP-01 fala de horário e de 40 min de doca, mas não de multa"
 
   - id: q20
@@ -223,4 +257,12 @@ perguntas:
     resposta_esperada: "Não sei — o manual não fala em demissão por diferença de caixa."
     arquivo_fonte: []
     secao_fonte: []
-    armadilha: "quase-acerto: o POP-04 prevê reciclagem de 4 h após 3 diferenças no mês, não demissão"
+    criterio_acerto: >-
+      Acerto se disser "não sei" OU se disser que o manual não prevê demissão
+      citando a regra relacionada (reciclagem de 4 h após três diferenças acima
+      de R$ 5,00 no mesmo mês, do POP-04). Erro se inventar um número de diferenças que leva à
+      demissão.
+    aceita_tambem: >-
+      O manual não fala em demissão. O POP-04 só prevê que, com três diferenças
+      acima de R$ 5,00 no mesmo mês, o operador faz uma reciclagem de 4 horas.
+    armadilha: "quase-acerto: o POP-04 prevê reciclagem de 4 h após três diferenças acima de R$ 5,00 no mês, não demissão"

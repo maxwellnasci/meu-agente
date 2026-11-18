@@ -8,9 +8,20 @@ nao tinha efeito nenhum. Estes testes confirmam a logica da ponte em si
 import os
 from unittest.mock import patch
 
+import pytest
+
 from orchestrator.main import _configure_langsmith_tracing
 
 _ENV_KEYS = ("LANGCHAIN_TRACING_V2", "LANGCHAIN_API_KEY", "LANGCHAIN_PROJECT")
+
+
+@pytest.fixture(autouse=True)
+def _isolated_environ():
+    """`_configure_langsmith_tracing` escreve direto em `os.environ`; sem isto
+    o `finally: _clear_env()` apagava o LANGCHAIN_TRACING_V2="false" fixado
+    pelo conftest e o resto da suite rodava sem essa neutralizacao."""
+    with patch.dict(os.environ):
+        yield
 
 
 def _clear_env():

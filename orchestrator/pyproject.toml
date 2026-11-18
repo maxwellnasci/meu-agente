@@ -31,6 +31,11 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    # Usado como BIBLIOTECA pelo tests/conftest.py para bloquear rede no nivel
+    # de socket na suite inteira; o plugin dele fica desligado em addopts.
+    # Faixa travada: hermetic_support.loopback_socket usa a API privada
+    # `_true_socket` e o bloqueio de getaddrinfo, verificados na 0.8.1.
+    "pytest-socket>=0.8.1,<0.9",
     "ruff>=0.7",
 ]
 # Ferramentas de analise de seguranca usadas no CI (.github/workflows/ci.yml).
@@ -41,6 +46,11 @@ security = [
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+# -p no:socket: o teardown do plugin pytest-socket RELIGA a rede depois de cada
+# teste (e deixa coleta/fixtures de sessao abertas); o conftest faz o bloqueio
+# sozinho, para o processo inteiro. -p no:langsmith_plugin: o plugin do
+# LangSmith importa o SDK antes do conftest limpar o ambiente.
+addopts = "-p no:socket -p no:langsmith_plugin"
 
 [build-system]
 requires = ["hatchling"]

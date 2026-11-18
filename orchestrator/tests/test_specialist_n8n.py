@@ -4,7 +4,6 @@ scratchpad do loop ReAct manual do node com o LLM e o N8nClient mockados
 integracao real (create+delete isolado, nao mexe nos workflows existentes)
 contra a API da instancia de producao quando ha credenciais em .env."""
 
-import os
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,25 +16,12 @@ from orchestrator.config import settings
 from orchestrator.graph.n8n_confirmation import NEEDS_CONFIRMATION_KEY
 from orchestrator.graph.nodes import _run_n8n_tool, specialist_n8n_node
 
-
-@pytest.fixture(autouse=True)
-def _n8n_fake_credentials_if_missing(monkeypatch):
-    """So preenche fake se estiver vazio - nao mexe em credenciais reais
-    do .env, pra nao quebrar o teste de integracao ao vivo la embaixo."""
-    if not settings.n8n_url:
-        monkeypatch.setattr(settings, "n8n_url", "http://n8n-test.invalid:5678")
-    if not settings.n8n_api_key:
-        monkeypatch.setattr(settings, "n8n_api_key", "test-fake-key")
-
-
 # Teste de INTEGRACAO que cria/apaga um workflow numa instancia n8n REAL. Antes
 # rodava sozinho sempre que o `.env` local tinha credenciais - ou seja, um
-# `pytest` comum disparava escrita na instancia de PRODUCAO. Agora exige
-# opt-in explicito (RUN_LIVE_N8N_TESTS=1) alem das credenciais.
-requires_n8n_credentials = pytest.mark.skipif(
-    os.environ.get("RUN_LIVE_N8N_TESTS") != "1" or not settings.n8n_url or not settings.n8n_api_key,
-    reason="teste live contra n8n real: exige RUN_LIVE_N8N_TESTS=1 + ORCHESTRATOR_N8N_URL/API_KEY",
-)
+# `pytest` comum disparava escrita na instancia de PRODUCAO. Agora so roda com
+# opt-in explicito (RUN_LIVE_N8N_TESTS=1), e as credenciais reais + a rede so
+# existem dentro da fixture `live_n8n_credentials` (tests/conftest.py); no
+# resto da suite o settings aponta para um n8n `.invalid` com chave falsa.
 
 
 def _mock_llm(responses):
@@ -337,9 +323,8 @@ async def test_node_blocks_llm_initiated_deactivate_without_confirmation():
     assert "PROPOSTA" in result["internal_scratchpad"][0]
 
 
-@requires_n8n_credentials
 @pytest.mark.asyncio
-async def test_create_and_delete_workflow_against_real_n8n_instance():
+async def test_create_and_delete_workflow_against_real_n8n_instance(live_n8n_credentials):
     """Integracao real (sem mock): cria um workflow trivial isolado (nome
     unico via uuid4, nao colide com nenhum workflow existente) direto contra
     a instancia de producao configurada em .env via N8nClient (sem passar
