@@ -28,11 +28,13 @@ from hermetic_support import (
     FAKE_SECRET,
     SDK_ENV_VARS_REMOVED,
     SDK_TRACING_VARS_FORCED_OFF,
+    STDLIB_SOCKET,
     RealLLMCallBlocked,
     loopback_socket,
 )
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from pydantic import ValidationError
 from pytest_socket import SocketBlockedError
 
 from orchestrator.config import Settings, settings
@@ -59,7 +61,13 @@ sys.exit(int(rc))
 """
 
 
-def _run_probe(tmp_path: Path, extra_env: dict[str, str], tests=("test_probe_estado",), cwd: Path | None = None):
+def _run_probe(
+    tmp_path: Path,
+    extra_env: dict[str, str],
+    tests=("test_probe_estado",),
+    cwd: Path | None = None,
+    pytest_args: tuple[str, ...] = (),
+):
     """Roda a sonda num pytest filho e devolve (returncode, dump, .env abertos, saida)."""
     out = tmp_path / "probe.json"
     log = tmp_path / "dotenv_opens.json"
@@ -68,7 +76,7 @@ def _run_probe(tmp_path: Path, extra_env: dict[str, str], tests=("test_probe_est
     env.update(extra_env)
     env["HERMETIC_PROBE_OUT"] = str(out)
     env["HERMETIC_DOTENV_LOG"] = str(log)
-    cmd = [sys.executable, "-c", _AUDIT_BOOTSTRAP, "-q", "-p", "no:cacheprovider", *(f"{PROBE}::{t}" for t in tests)]
+    cmd = [sys.executable, "-c", _AUDIT_BOOTSTRAP, "-q", "-p", "no:cacheprovider", *pytest_args, *(f"{PROBE}::{t}" for t in tests)]
     proc = subprocess.run(cmd, cwd=cwd or tmp_path, env=env, capture_output=True, text=True, timeout=180, check=False)
     dump = json.loads(out.read_text()) if out.exists() else {}
     opens = json.loads(log.read_text()) if log.exists() else None
@@ -122,13 +130,28 @@ def test_loopback_socket_so_reserva_porta_local():
         s.bind(("0.0.0.0", 0))
 
 
-def test_plugin_pytest_socket_desligado(pytestconfig):
-    """O teardown do plugin (`_remove_restrictions`) RELIGA a rede depois de
-    cada teste. Por isso ele e usado so como biblioteca (`-p no:socket`) e o
-    bloqueio fica a cargo do conftest - se o plugin voltar a ser carregado,
-    o intervalo entre testes e as fixtures de modulo/sessao ficam com rede."""
-    assert pytestconfig.pluginmanager.is_blocked("socket")
-    assert pytestconfig.pluginmanager.is_blocked("langsmith_plugin")
+@pytest.mark.parametrize(
+    ("addopts", "plugin"),
+    [("-p no:langsmith_plugin", "socket"), ("-p no:socket", "langsmith_plugin")],
+)
+def test_suite_recusa_subir_com_plugin_proibido_ligado(tmp_path, addopts, plugin):
+    """O teardown do plugin do pytest-socket (`_remove_restrictions`) RELIGA a
+    rede depois de cada teste, e o do LangSmith importa o SDK antes do
+    conftest. Os dois ficam desligados no `addopts`; se alguem tirar o
+    `-p no:...`, a guarda do `pytest_configure` precisa derrubar a sessao.
+    (A versao anterior so conferia `is_blocked` DENTRO da suite - onde, com a
+    guarda funcionando, ele nunca podia ser falso: o teste nunca falhava.)"""
+    rc, dump, _, saida = _run_probe(tmp_path, {}, pytest_args=("-o", f"addopts={addopts}"))
+    assert rc != 0, saida
+    assert f"o plugin '{plugin}' precisa ficar desligado" in saida
+    assert "estado" not in dump  # a sonda nem chegou a rodar
+
+
+def test_stdlib_socket_guardado_antes_do_bloqueio():
+    """`loopback_socket` herda deste objeto: tem de ser a classe da stdlib
+    (capturada no import do hermetic_support), nao o GuardedSocket atual."""
+    assert STDLIB_SOCKET is not socket.socket
+    assert STDLIB_SOCKET.__module__ == "socket" and STDLIB_SOCKET.__qualname__ == "socket"
 
 
 @pytest.fixture(scope="module")
@@ -319,7 +342,7 @@ async def test_erro_engolido_pelo_supervisor_ainda_e_registrado(blocked_llm_call
 # --- Achado 5: o .env nao e lido nem na importacao --------------------------
 
 
-def test_dotenv_nao_e_lido_na_importacao(tmp_path):
+def test_dotenv_nao_e_lido_na_importacao(tmp_path, monkeypatch):
     """`orchestrator.config` faz `settings = Settings()` no import, e o
     pydantic-settings le `.env` relativo ao cwd. Antes, o conftest importava o
     modulo (lendo o `.env`) e SO DEPOIS trocava o settings - o arquivo ja
@@ -330,22 +353,19 @@ def test_dotenv_nao_e_lido_na_importacao(tmp_path):
     (work / ".env").write_text(
         "ORCHESTRATOR_PORT=canario-nao-numerico\nORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=vazou-do-dotenv\n"
     )
+    # Controle positivo: o canario DERRUBA o Settings de producao quando ele
+    # le o `.env` do cwd. Sem isto, se o config deixasse de ler `.env` (ou o
+    # canario parasse de ser invalido), o teste abaixo passaria sem provar nada.
+    monkeypatch.chdir(work)
+    with pytest.raises(ValidationError, match="port"):
+        Settings()
+    monkeypatch.undo()
+
     rc, dump, opens, saida = _run_probe(tmp_path, {}, cwd=work)
     assert rc == 0, saida
     assert opens == [], f".env aberto durante a suite: {opens}"
     assert dump["estado"]["settings"]["openclaw_gateway_token"] is None
     assert dump["estado"]["settings"]["port"] == 8000
-
-
-def test_settings_ignora_dotenv(tmp_path, monkeypatch):
-    """Controle: a CLASSE continua lendo `.env` (producao nao mudou); so a
-    instancia global da suite e montada sem ele."""
-    (tmp_path / ".env").write_text("ORCHESTRATOR_OPENCLAW_GATEWAY_TOKEN=vazou\n")
-    monkeypatch.chdir(tmp_path)
-
-    assert Settings().openclaw_gateway_token == "vazou"  # controle: com .env, vazaria
-    assert Settings(_env_file=None).openclaw_gateway_token is None
-    assert settings.model_config.get("env_file") == ".env"
 
 
 def test_nenhum_teste_importa_o_conftest_como_modulo():
@@ -397,14 +417,25 @@ def test_modo_live_credenciais_so_na_fixture(tmp_path):
         "ORCHESTRATOR_N8N_URL": "https://n8n.canario-live.invalid",
         "ORCHESTRATOR_N8N_API_KEY": "canario-live-key",
     }
-    rc, dump, _, saida = _run_probe(tmp_path, canario, tests=("test_probe_estado", "test_probe_live"))
+    rc, dump, _, saida = _run_probe(
+        tmp_path, canario, tests=("test_probe_estado", "test_probe_live", "test_probe_depois_do_live")
+    )
     assert rc == 0, saida
     estado = dump["estado"]
     assert estado["orchestrator_env"] == _FAKES_DO_CONFTEST  # nem no ambiente do processo
     assert estado["settings"]["n8n_url"] == FAKE_N8N_URL
     assert estado["settings"]["n8n_api_key"] == FAKE_SECRET
+    # DURANTE a fixture: credenciais canario e rede liberada (sem isto, o
+    # "depois" abaixo passaria trivialmente mesmo se a fixture nao fizesse nada).
     assert dump["live"]["settings"]["n8n_url"] == "https://n8n.canario-live.invalid"
     assert dump["live"]["settings"]["n8n_api_key"] == "canario-live-key"
+    assert dump["live"]["socket_inet"] == "LIBERADO"
+    # DEPOIS da fixture: rede bloqueada de novo e credenciais falsas de volta.
+    depois = dump["depois_do_live"]
+    assert depois["socket_inet"] == "SocketBlockedError"
+    assert depois["settings"]["n8n_url"] == FAKE_N8N_URL
+    assert depois["settings"]["n8n_api_key"] == FAKE_SECRET
+    assert depois["orchestrator_env"] == _FAKES_DO_CONFTEST
 
 
 def test_fixture_live_sem_opt_in_pula(tmp_path):

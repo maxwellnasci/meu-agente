@@ -33,10 +33,22 @@ dev = [
     "pytest-asyncio>=0.24",
     # Usado como BIBLIOTECA pelo tests/conftest.py para bloquear rede no nivel
     # de socket na suite inteira; o plugin dele fica desligado em addopts.
-    # Faixa travada: hermetic_support.loopback_socket usa a API privada
-    # `_true_socket` e o bloqueio de getaddrinfo, verificados na 0.8.1.
+    # Faixa travada: o conftest depende do comportamento de disable_socket/
+    # enable_socket (bloqueio de socket.socket E de getaddrinfo), verificado
+    # na 0.8.1. Nenhuma API privada e usada (o loopback_socket herda do
+    # socket.socket da stdlib guardado em hermetic_support).
     "pytest-socket>=0.8.1,<0.9",
+    # Testes do indice do RAG (tests/test_rag_engine.py) usam o sqlite-vec de
+    # verdade, com embedder falso; o fastembed NAO entra aqui.
+    "sqlite-vec>=0.1.9,<0.2",
     "ruff>=0.7",
+]
+# RAG MVP (docs/RAG.md): ingestao e avaliacao offline. Ainda fora das
+# dependencias principais: nada no grafo usa RAG ate a Missao 4, e o fastembed
+# traz o onnxruntime (pesado) para a imagem. Testado no Python 3.14.
+rag = [
+    "fastembed>=0.9.1,<0.10",
+    "sqlite-vec>=0.1.9,<0.2",
 ]
 # Ferramentas de analise de seguranca usadas no CI (.github/workflows/ci.yml).
 security = [

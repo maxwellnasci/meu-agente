@@ -43,13 +43,19 @@ def _normalizar(texto: str) -> str:
 
 
 def _secoes(path: Path) -> dict[str, str]:
-    """Titulo -> texto da secao (do cabecalho ate o proximo de nivel igual ou maior)."""
+    """Titulo -> texto da secao.
+
+    Uma secao `##` vai do cabecalho ate o proximo `#`/`##`. O titulo `#` vai
+    so ate a PRIMEIRA `##` (o preambulo), e nao ate o fim do arquivo: antes,
+    "POP-07 — ..." continha o arquivo inteiro, e qualquer codigo de qualquer
+    secao do POP-07 passava como "presente na secao-fonte" da q13. Mesmo
+    recorte do chunker (`orchestrator.rag.chunking`)."""
     texto = path.read_text(encoding="utf-8")
     cabecalhos = list(_HEADING.finditer(texto))
     secoes = {}
     for i, m in enumerate(cabecalhos):
-        nivel = len(m.group(1))
-        fim = next((c.start() for c in cabecalhos[i + 1 :] if len(c.group(1)) <= nivel), len(texto))
+        corte = max(len(m.group(1)), 2)  # "#" e "##" param no proximo "#"/"##"
+        fim = next((c.start() for c in cabecalhos[i + 1 :] if len(c.group(1)) <= corte), len(texto))
         secoes[m.group(2)] = texto[m.start() : fim]
     return secoes
 
@@ -122,6 +128,21 @@ def test_fontes_existem_no_corpus(perguntas):
             caminho = CORPUS / arquivo
             assert caminho.is_file(), f"{p['id']}: arquivo inexistente {arquivo}"
             assert secao in _secoes(caminho), f"{p['id']}: secao '{secao}' nao existe em {arquivo}"
+
+
+def test_titulo_do_documento_vai_so_ate_a_primeira_secao(tmp_path):
+    preambulo = _secoes(CORPUS / "pop-07-precos-e-promocoes.md")["POP-07 — Preços, Etiquetas e Promoções"]
+    assert "POP-06" in preambulo
+    assert "## " not in preambulo and "F-18" not in preambulo  # F-18 mora na secao 3
+
+    md = tmp_path / "x.md"
+    md.write_text("# T\npre\n## 1. A\na\n### 1.1 sub\ns\n## 2. B\nb\n", encoding="utf-8")
+    assert _secoes(md) == {
+        "T": "# T\npre\n",
+        "1. A": "## 1. A\na\n### 1.1 sub\ns\n",  # a ### fica dentro da ##
+        "1.1 sub": "### 1.1 sub\ns\n",
+        "2. B": "## 2. B\nb\n",
+    }
 
 
 def test_multi_secao_junta_duas_secoes_distintas(perguntas):

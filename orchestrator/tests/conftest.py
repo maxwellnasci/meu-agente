@@ -34,6 +34,7 @@ fixture `live_n8n_credentials`, que recusa qualquer teste alem do live.
 """
 
 import os
+import socket
 import sys
 import tempfile
 from pathlib import Path
@@ -47,6 +48,7 @@ from hermetic_support import (
     LIVE_N8N_TEST,
     SDK_ENV_VARS_REMOVED,
     SDK_TRACING_VARS_FORCED_OFF,
+    STDLIB_SOCKET,
     RealLLMCallBlocked,
 )
 
@@ -79,6 +81,19 @@ os.environ["ORCHESTRATOR_OPENCLAW_GATEWAY_URL"] = FAKE_GATEWAY_URL
 
 # --- Camada 2: rede ----------------------------------------------------------
 pytest_socket.disable_socket(allow_unix_socket=True)
+if socket.socket is STDLIB_SOCKET or STDLIB_SOCKET.__module__ != "socket":
+    raise RuntimeError(
+        "hermetic_support.STDLIB_SOCKET precisa ser o socket.socket da stdlib, capturado ANTES do disable_socket()"
+    )
+
+# --- Camada 2b: embedder real do RAG bloqueado ------------------------------
+# O modelo pode estar em cache (data/fastembed_cache): um teste que usasse o
+# FastEmbedEmbedder por engano rodaria OFFLINE e passaria escondido. Com o
+# modulo marcado como None em sys.modules, `import fastembed` vira ImportError.
+for _mod in ("fastembed", "onnxruntime"):
+    if _mod in sys.modules:
+        raise RuntimeError(f"{_mod} ja foi importado antes do conftest")
+    sys.modules[_mod] = None
 
 # --- Camada 3: settings sem .env (nem no import) ----------------------------
 # Os modulos fazem `from orchestrator.config import settings`; como o conftest

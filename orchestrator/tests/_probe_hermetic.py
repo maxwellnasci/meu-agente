@@ -37,6 +37,15 @@ if os.environ.get("HERMETIC_PROBE_LLM_AT_IMPORT") == "1":
         _dump("llm_na_coleta", type(exc).__name__)
 
 
+def _socket_inet() -> str:
+    """So cria/fecha o objeto: nada e conectado."""
+    try:
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).close()
+        return "LIBERADO"
+    except Exception as exc:  # noqa: BLE001
+        return type(exc).__name__
+
+
 def _settings_snapshot() -> dict:
     from orchestrator.config import settings
 
@@ -56,11 +65,7 @@ def _settings_snapshot() -> dict:
 
 def test_probe_estado():
     sdk = set(SDK_ENV_VARS_REMOVED) | set(SDK_TRACING_VARS_FORCED_OFF)
-    try:
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).close()
-        sock = "LIBERADO"
-    except Exception as exc:  # noqa: BLE001
-        sock = type(exc).__name__
+    sock = _socket_inet()
     _dump(
         "estado",
         {
@@ -73,7 +78,19 @@ def test_probe_estado():
 
 
 def test_probe_live(live_n8n_credentials):
-    _dump("live", {"settings": _settings_snapshot()})
+    _dump("live", {"settings": _settings_snapshot(), "socket_inet": _socket_inet()})
+
+
+def test_probe_depois_do_live():
+    """Roda DEPOIS de test_probe_live: a fixture ja desmontou (rede e settings)."""
+    _dump(
+        "depois_do_live",
+        {
+            "settings": _settings_snapshot(),
+            "socket_inet": _socket_inet(),
+            "orchestrator_env": {k: v for k, v in os.environ.items() if k.startswith("ORCHESTRATOR_")},
+        },
+    )
 
 
 def test_probe_suja_o_ambiente():

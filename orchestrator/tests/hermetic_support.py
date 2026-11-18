@@ -6,6 +6,14 @@ conftest como modulo comum o executa de novo (outra copia, fora do controle do
 pytest), o que reaplicaria a blindagem num momento arbitrario.
 """
 
+import socket as _socket
+
+# `socket.socket` da STDLIB, guardado no import deste modulo. O conftest
+# importa este modulo ANTES do `disable_socket()` e confere logo depois que
+# isto nao e o socket bloqueado do pytest-socket. Substitui o
+# `pytest_socket._true_socket` (API privada) no `loopback_socket` abaixo.
+STDLIB_SOCKET = _socket.socket
+
 FAKE_SECRET = "test-only-not-a-real-key"
 
 # Hosts sob o TLD reservado `.invalid` (RFC 6761): nunca resolvem. Mesmo que o
@@ -52,11 +60,7 @@ def loopback_socket():
     `socket.socket` (conftest). Este socket so aceita `bind` em 127.0.0.1 e
     recusa qualquer conexao/envio: ocupa porta no loopback, nunca fala com
     rede nenhuma."""
-    import socket
-
-    from pytest_socket import _true_socket
-
-    class _LoopbackOnlySocket(_true_socket):
+    class _LoopbackOnlySocket(STDLIB_SOCKET):
         def bind(self, address):
             if address[0] not in _LOOPBACK_HOSTS:
                 raise RuntimeError(f"loopback_socket so aceita bind em 127.0.0.1, nao em {address!r}")
@@ -67,4 +71,4 @@ def loopback_socket():
 
         connect = connect_ex = sendto = sendmsg = _no_traffic
 
-    return _LoopbackOnlySocket(socket.AF_INET, socket.SOCK_STREAM)
+    return _LoopbackOnlySocket(_socket.AF_INET, _socket.SOCK_STREAM)
