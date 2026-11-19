@@ -182,6 +182,16 @@ class Settings(BaseSettings):
     rag_colecao: str = "supermercado"
     # Cache do modelo de embedding (so usado nos modos hibrido/vetorial).
     rag_embedding_cache_dir: str = "./data/fastembed_cache"
+    # Reranking (Missao 7): cross-encoder que reordena `rag_rerank_candidatos`
+    # trechos e devolve os `rag_top_k`. None/vazio = sem rerank. Se o modelo
+    # nao carregar (ou falhar), a busca cai para o modo acima, com log.
+    rag_rerank_model: str | None = None
+    rag_rerank_candidatos: int = Field(default=20, ge=1, le=50)
+
+    @field_validator("rag_rerank_model", mode="before")
+    @classmethod
+    def _normalizar_rerank_model(cls, v: object) -> object:
+        return v.strip() or None if isinstance(v, str) else v
 
     # Observabilidade (LangSmith)
     langchain_tracing_v2: bool = False

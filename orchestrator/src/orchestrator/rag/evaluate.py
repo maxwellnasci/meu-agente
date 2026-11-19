@@ -213,6 +213,114 @@ def _contador_minilm(model: str, cache_dir: Path):
     return lambda texto: len(tok.encode(texto).ids)
 
 
+# --- Missao 7: reranking ------------------------------------------------------------
+
+
+def posicao_de_todas(ranking: Sequence[tuple[str, str]], esperadas: set[tuple[str, str]]) -> int | None:
+    """Posicao (1-based) em que a ULTIMA fonte esperada aparece - so ai a
+    pergunta esta respondivel. None se alguma faltar no ranking."""
+    if not esperadas <= set(ranking):
+        return None
+    return max(ranking.index(f) + 1 for f in esperadas)
+
+
+def metricas(posicoes: Sequence[int | None]) -> dict[str, float]:
+    """recall@1/3/5 e MRR (sobre a profundidade do ranking; ausente = 0)."""
+    n = len(posicoes)
+    out = {f"recall@{k}": sum(p is not None and p <= k for p in posicoes) for k in (1, 3, 5)}
+    out["mrr"] = sum(1 / p for p in posicoes if p) / n
+    out["n"] = n
+    return out
+
+
+def percentil(valores: Sequence[float], q: float) -> float:
+    """Nearest-rank (sem interpolacao)."""
+    import math
+
+    ordenados = sorted(valores)
+    return ordenados[max(0, math.ceil(q * len(ordenados)) - 1)]
+
+
+def comparar_rerank(conn, perguntas, embedder, reranker, *, candidatos: int = 20, repeticoes: int = 3,
+                    colecao: str = DEFAULT_COLECAO, relogio=None) -> dict:
+    """Para cada pergunta: o hibrido traz `candidatos`; o reranker reordena OS
+    MESMOS candidatos. Metricas sobre os 20 (com e sem rerank, mesma
+    profundidade). Latencia: so o `reranker.score` dos 20, 1 aquecimento
+    descartado, `repeticoes` por pergunta."""
+    import time
+
+    from orchestrator.rag.rerank import reordenar
+
+    relogio = relogio or time.perf_counter
+    if perguntas:
+        reranker.score(perguntas[0]["pergunta"], ["aquecimento"] * candidatos)
+    sem, com, lat, por_pergunta = [], [], [], []
+    for p in perguntas:
+        hits = search(conn, p["pergunta"], modo="hibrido", embedder=embedder, k=candidatos, colecao=colecao)
+        esperadas = fontes(p)
+        for _ in range(repeticoes):
+            t0 = relogio()
+            reranker.score(p["pergunta"], [h.texto for h in hits])
+            lat.append(relogio() - t0)
+        reordenados = reordenar(p["pergunta"], hits, reranker, k=candidatos)
+        a = posicao_de_todas([h.chave for h in hits], esperadas)
+        b = posicao_de_todas([h.chave for h in reordenados], esperadas)
+        sem.append(a)
+        com.append(b)
+        por_pergunta.append({"id": p["id"], "tipo": p["tipo"], "sem": a, "com": b,
+                             "top5_com": [h.chave for h in reordenados[:5]]})
+    return {"sem": metricas(sem), "com": metricas(com), "latencias_s": lat,
+            "p50_s": percentil(lat, 0.50) if lat else 0.0, "p95_s": percentil(lat, 0.95) if lat else 0.0,
+            "por_pergunta": por_pergunta, "candidatos": candidatos}
+
+
+# Pre-registro da Missao 7 (docs/RAG.md): TODAS precisam ser verdadeiras.
+LIMITE_P95_S = 1.5
+LIMITE_RAM_MB = 2048
+
+
+def veredito_rerank(r: dict, ram_mb: float) -> dict[str, bool]:
+    return {
+        "a) MRR estritamente maior": r["com"]["mrr"] > r["sem"]["mrr"],
+        "b) recall@5 nao cai (>= 16/17)": r["com"]["recall@5"] >= max(16, r["sem"]["recall@5"]),
+        f"c) p95 <= {LIMITE_P95_S} s": r["p95_s"] <= LIMITE_P95_S,
+        f"d) RAM <= {LIMITE_RAM_MB} MB": ram_mb <= LIMITE_RAM_MB,
+    }
+
+
+def relatorio_rerank(r: dict, ram_mb: float, modelo: str) -> str:
+    n = r["sem"]["n"]
+
+    def linha(nome, m, lat="—", ram="—"):
+        return (f"| {nome} | {m['recall@1']}/{n} | {m['recall@3']}/{n} | {m['recall@5']}/{n} | {m['mrr']:.3f} | "
+                f"{lat} | {ram} |")
+
+    out = [
+        f"| Configuracao | recall@1 | recall@3 | recall@5 | MRR@{r['candidatos']} | latencia rerank p50 / p95 | RAM do reranker |",
+        "|---|---|---|---|---|---|---|",
+        linha("hibrido + contexto (sem rerank)", r["sem"]),
+        linha(f"+ rerank {modelo}", r["com"], f"{r['p50_s']:.2f} s / {r['p95_s']:.2f} s", f"{ram_mb:.0f} MB"),
+        "",
+        f"Latencia: {len(r['latencias_s'])} medicoes ({n} perguntas x repeticoes) do score de {r['candidatos']} candidatos.",
+        "",
+        "Veredito (regra pre-registrada; TODAS precisam ser verdadeiras):",
+    ]
+    v = veredito_rerank(r, ram_mb)
+    out += [f"- {'OK   ' if ok else 'FALHA'} {crit}" for crit, ok in v.items()]
+    out += [f"=> rerank {'VIRA' if all(v.values()) else 'NAO vira'} padrao", "", "Posicao (todas as fontes) que mudou:"]
+    mud = [x for x in r["por_pergunta"] if x["sem"] != x["com"]]
+    out += [f"- {x['id']} ({x['tipo']}): {x['sem'] or '—'} -> {x['com'] or '—'}" for x in mud] or ["- nenhuma"]
+    return "\n".join(out)
+
+
+def _rss_mb() -> float:
+    with open("/proc/self/status") as fh:
+        for linha in fh:
+            if linha.startswith("VmRSS"):
+                return int(linha.split()[1]) / 1024
+    return 0.0
+
+
 def relatorio_variantes(por_variante: dict[str, list[ResultadoPergunta]], k: int = 5,
                         titulo: str = "Variante do BM25") -> str:
     modos = list(MODOS)
@@ -253,11 +361,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--comparar-contexto", action="store_true",
                    help="ignora --db: sem contexto x contexto so no BM25 x contexto no BM25 + embedding")
     p.add_argument("--contextos", type=Path, default=DEFAULT_CONTEXTOS)
+    p.add_argument("--comparar-rerank", metavar="MODELO_RERANKER",
+                   help="indice padrao (hibrido + contexto em ambos) sem x com rerank deste cross-encoder")
+    p.add_argument("--repeticoes", type=int, default=3)
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.comparar_rerank:
+        import resource
+
+        from orchestrator.rag.rerank import FastEmbedReranker
+
+        chunks = chunk_corpus(args.corpus, args.colecao)
+        contextos = carregar_contextos(args.contextos, args.corpus, args.colecao)
+        embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
+        perguntas = carregar_perguntas(args.gabarito)
+        with tempfile.TemporaryDirectory(prefix="rag-rerank-") as d:
+            db = Path(d) / "padrao.sqlite"
+            build_index(chunks, embedder, db, DEFAULT_BM25, contextos, "ambos")
+            conn = open_index(db)
+            try:
+                antes = _rss_mb()
+                reranker = FastEmbedReranker(args.comparar_rerank, cache_dir=args.cache_dir)
+                r = comparar_rerank(conn, perguntas, embedder, reranker, repeticoes=args.repeticoes,
+                                    colecao=args.colecao)
+                pico = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+            finally:
+                conn.close()
+        ram = max(0.0, pico - antes)
+        print(f"indice padrao (hibrido + contexto em ambos, bm25 {DEFAULT_BM25.nome}) | reranker {args.comparar_rerank}")
+        print(f"RAM: RSS antes de carregar o reranker {antes:.0f} MB, pico do processo {pico:.0f} MB\n")
+        print(relatorio_rerank(r, ram, args.comparar_rerank))
+        if args.json:
+            args.json.write_text(json.dumps({**r, "ram_mb": ram}, ensure_ascii=False, indent=2, default=list),
+                                 encoding="utf-8")
+        return 0
     if args.comparar_contexto:
         chunks = chunk_corpus(args.corpus, args.colecao)
         contextos = carregar_contextos(args.contextos, args.corpus, args.colecao)

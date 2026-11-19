@@ -47,6 +47,7 @@ from pathlib import Path
 
 from orchestrator.config import settings
 from orchestrator.rag.embeddings import Embedder
+from orchestrator.rag.rerank import Reranker, reordenar
 from orchestrator.rag.search import SearchHit, search
 from orchestrator.rag.store import open_index, read_meta
 
@@ -106,22 +107,61 @@ def _embedder_do_indice(meta: dict[str, str]) -> Embedder:
     return _embedders[chave]
 
 
+def _fastembed_reranker_factory(model_name: str, cache_dir: Path) -> Reranker:
+    from orchestrator.rag.rerank import FastEmbedReranker
+
+    return FastEmbedReranker(model_name, cache_dir=cache_dir)
+
+
+# Ponto de injecao dos testes (reranker falso); em producao, fastembed.
+reranker_factory: Callable[[str, Path], Reranker] = _fastembed_reranker_factory
+_rerankers: dict[tuple[str, str], Reranker] = {}
+
+
+def _reranker() -> Reranker | None:
+    """Reranker configurado, carregado 1 vez. Falha ao carregar -> None (o
+    chamador cai para a busca sem rerank). Nao memoriza a falha: tenta de novo
+    na proxima consulta."""
+    nome = settings.rag_rerank_model
+    if not nome:
+        return None
+    chave = (nome, settings.rag_embedding_cache_dir)
+    if chave not in _rerankers:
+        try:
+            _rerankers[chave] = reranker_factory(nome, Path(chave[1]))
+        except Exception as exc:  # noqa: BLE001 - fallback para a busca sem rerank
+            _logger.warning("rag: reranker %r nao carregou (%s) - busca SEM rerank", nome, type(exc).__name__)
+            return None
+    return _rerankers[chave]
+
+
 def buscar_trechos(pergunta: str) -> list[SearchHit]:
     """Abre o indice (somente leitura), busca e FECHA na mesma thread: o
-    sqlite3 e preso a thread que criou a conexao."""
+    sqlite3 e preso a thread que criou a conexao. Com rerank configurado, busca
+    `rag_rerank_candidatos` e reordena; qualquer falha do reranker cai para os
+    `rag_top_k` primeiros da busca normal (com log)."""
     conn = open_index(Path(settings.rag_index_path))
     try:
         embedder = None if settings.rag_search_mode == "bm25" else _embedder_do_indice(read_meta(conn))
-        return search(
+        reranker = _reranker()
+        k = settings.rag_top_k
+        hits = search(
             conn,
             pergunta,
             modo=settings.rag_search_mode,
             embedder=embedder,
-            k=settings.rag_top_k,
+            k=max(k, settings.rag_rerank_candidatos) if reranker else k,
             colecao=settings.rag_colecao,
         )
     finally:
         conn.close()
+    if reranker is None:
+        return hits
+    try:
+        return reordenar(pergunta, hits, reranker, k)
+    except Exception as exc:  # noqa: BLE001 - fallback para a busca sem rerank
+        _logger.warning("rag: reranker falhou (%s) - usando a busca SEM rerank", type(exc).__name__)
+        return hits[:k]
 
 
 # --- notas do scratchpad -----------------------------------------------------

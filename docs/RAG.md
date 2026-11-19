@@ -1,12 +1,11 @@
 # RAG MVP — Especialista de Procedimentos (Supermercado Bom Preço)
 
-Status: **Missão 6 concluída** (contextual retrieval medido e adotado). Ainda
-**sem commit** e sem revisão adversária. **Padrão do agente: híbrido com
-contexto no BM25 + embedding, 16/17 de recall@5**, decidido pela regra
-pré-registrada (ver *Resultados — Missão 6*). O `rag` segue **desligado por
+Status: **Missão 7 concluída** (reranking medido e **não adotado**: falhou no
+critério de latência p95 ≤ 1,5 s). Ainda **sem commit** e sem revisão
+adversária. **Padrão do agente: híbrido com contexto no BM25 + embedding, sem
+rerank** (16/17 de recall@5; MRR@20 0,602). O `rag` segue **desligado por
 padrão** (`ORCHESTRATOR_RAG_ENABLED=false`) e **não há deploy**. Antes de
-qualquer deploy há pendências obrigatórias (ver *Pendências*). A Missão 5 está
-no commit `7cc5657`.
+qualquer deploy há pendências obrigatórias (ver *Pendências*).
 
 ## Resumo (para o README)
 
@@ -18,6 +17,7 @@ de 6 POPs):
 | Baseline (Missão 3) | BM25 sem normalização (o híbrido também ficou em 14/17) | 14/17 (82%) |
 | Português no BM25 (Missão 4) | BM25 com stemming PT | 15/17 (88%) |
 | Contextual retrieval (Missão 6) | **Híbrido (RRF) com contexto no BM25 + embedding**, o padrão atual | **16/17 (94%)** |
+| Reranking (Missão 7), **não adotado** | + cross-encoder `bge-reranker-v2-m3-int8` sobre 20 candidatos | 16/17 (94%); recall@1 6 → 12/17 e MRR 0,60 → 0,81, mas p95 de 10,3 s, acima do limite de 1,5 s |
 
 **Nota:** cada passo é de **uma pergunta em 17**, dentro do ruído. A tabela
 mostra uma tendência medida com uma regra fixada antes de cada medição, não uma
@@ -258,7 +258,8 @@ campo em `config.py` e nos dois `.env.example`, depois o valor no `.env`.
 | Missão 3 (`c9efb2d`) | 455 passed, 1 skipped, 1 xfailed (+42 motor do RAG, +1 fixtures, +1 blindagem líquido) |
 | Missão 4 (`b959b58`) | 488 passed, 1 skipped, 1 xfailed (+33 em `test_rag_text.py`) |
 | Missão 5 (`7cc5657`) | 527 passed, 1 skipped, 1 xfailed (+38: invariantes do registro nos 2 estados da chave, especialista rag, smoke isolado, `.env.example` carregável, índice falso na blindagem) |
-| Missão 6 (sem commit) | **546 passed, 1 skipped, 1 xfailed** (+19 em `test_rag_contextual.py`: geração, vazamento, indexação com contexto, controles, o `contextos.json` real e o padrão novo do ingest) |
+| Missão 6 (`5b49ffb`) | 546 passed, 1 skipped, 1 xfailed (+19 em `test_rag_contextual.py`: geração, vazamento, indexação com contexto, controles, o `contextos.json` real e o padrão novo do ingest) |
+| Missão 7 (sem commit) | **559 passed, 1 skipped, 1 xfailed** (+13 em `test_rag_rerank.py`: reordenação, métricas, veredito e fallback do reranker) |
 
 Comando: `cd orchestrator && python -m pytest -q`. A suíte precisa do repo
 inteiro: `test_provision_client.py` usa `scripts/` da raiz. Com a rede
@@ -824,10 +825,190 @@ Mudancas em relacao ao baseline (posicao de cada fonte, '—' = fora do top 50):
 - contexto no BM25 + embedding / hibrido / q17: 2. Documento obrigatório: 1 → 3; 6. Forma de reembolso: 2 → 2
 ```
 
+## Missão 7 — Reranking (pré-registro, ANTES da medição)
+
+"Busque largo, rerankeie estreito": o padrão atual (híbrido com contexto em
+ambos) traz **20 candidatos**, um cross-encoder lê pergunta + trecho juntos,
+reordena e devolve os **5** melhores.
+
+**Modelos multilíngues em CPU no fastembed 0.9.1** (medidos nesta máquina:
+30 GB de RAM, 16 núcleos):
+
+| Modelo | Disco | RSS após carga | Pico após a 1ª inferência (20 pares) | Licença |
+|---|---|---|---|---|
+| `BAAI/bge-reranker-v2-m3-int8` | 0,57 GB | ~1,09 GB | **~1,29 GB** | Apache-2.0 |
+| `jinaai/jina-reranker-v2-base-multilingual` | 1,11 GB | ~1,53 GB | **~1,96 GB** (no limite) | **CC-BY-NC-4.0** (não comercial) |
+| `BAAI/bge-reranker-v2-m3` (fp32) | 2,27 GB | não baixado: só os pesos já passam de 2 GB | — | Apache-2.0 |
+
+Os outros cross-encoders do fastembed (`ms-marco-MiniLM`, `bge-reranker-base`,
+`jina-reranker-v1-*-en`) não são multilíngues. A licença vem da API pública do
+Hugging Face e da lista do próprio fastembed.
+
+**Transparência:** na checagem de RAM, a 1ª inferência de 20 pares (com
+aquecimento, amostra única) levou **3,05 s no bge-m3-int8** e **1,27 s no
+jina**. Não é a medição. Fica registrado porque foi visto antes da escolha
+do candidato.
+
+**Candidatos** (regra do Max, fixada ANTES da medição; opção C):
+- **ELEGÍVEL para padrão:** só o `BAAI/bge-reranker-v2-m3-int8` (Apache-2.0),
+  julgado pelos critérios a–d abaixo.
+- **REFERÊNCIA, não elegível:** o `jinaai/jina-reranker-v2-base-multilingual`,
+  medido só para comparação. A licença CC-BY-NC-4.0 é incompatível com o
+  objetivo de produto comercial para PMEs. Mesmo que ele passe nos quatro
+  critérios, ele não vira padrão.
+
+**Pipeline medido** (`python -m orchestrator.rag.evaluate --comparar-rerank MODELO`):
+- índice padrão montado do zero (híbrido, BM25 com stemming, contexto em
+  ambos, `contextos.json` v1);
+- para cada uma das 17 perguntas com fonte, o híbrido traz 20 candidatos e o
+  reranker pontua **os mesmos 20**, usando o `texto` do trecho, que é a fonte
+  vista pelo `synthesize_final` (nunca o contexto gerado);
+- empate de score: vale a ordem da busca original.
+
+**Métricas** (sem e com rerank, sobre os mesmos 20 candidatos):
+- **posição de uma pergunta** = posição em que a **última** fonte esperada
+  aparece. Só a partir daí a pergunta é respondível; nas `multi_secao`, contam
+  as duas;
+- **recall@k** = perguntas com posição ≤ k (k = 1, 3, 5);
+- **MRR@20** = média de 1/posição, com 0 se alguma fonte ficou fora dos 20.
+  É a métrica principal desta missão: o recall@5 já está em 16/17, quase
+  saturado;
+- **latência** = tempo só do `reranker.score` dos 20 candidatos, com
+  `time.perf_counter`. São 17 perguntas × 3 repetições = 51 medições, com 1
+  chamada de aquecimento descartada e a carga do modelo excluída, num único
+  processo, em CPU, nesta máquina. p50 e p95 pelo método nearest-rank;
+- **RAM** = pico de RSS do processo (`ru_maxrss`) menos o RSS logo antes de
+  carregar o reranker. Inclui a arena do onnxruntime durante as 51 medições.
+
+**Regra de decisão** (do Max; o rerank vira padrão só se **TODAS** forem
+verdadeiras):
+
+a) MRR@20 com rerank **estritamente maior** que sem rerank;
+b) recall@5 com rerank **≥ 16/17**;
+c) latência **p95 ≤ 1,5 s**;
+d) RAM do modelo carregado **≤ 2 GB** (2048 MB).
+
+Nenhum outro critério entra depois da medição. Custos e consequências viram
+pendência, não veto. O veredito é calculado em código
+(`evaluate.veredito_rerank`).
+
+**Se virar padrão:** `ORCHESTRATOR_RAG_RERANK_MODEL` recebe o modelo. A
+integração já está pronta e **desligada** (campo vazio):
+- o rerank só roda com o `rag` ligado;
+- modelo que não carrega, ou score que falha, faz a busca cair para o híbrido
+  sem rerank, com log de warning;
+- tudo isso está testado com um reranker falso.
+
+## Resultados — Missão 7: reranking
+
+Medido em 18/11/2026 nesta máquina (16 núcleos, 30 GB de RAM, CPU, onnxruntime
+com a configuração padrão do fastembed). Índice padrão montado do zero e mesmos
+20 candidatos com e sem rerank. Cada modelo rodou num processo separado.
+
+| Configuração | recall@1 | recall@3 | recall@5 | MRR@20 | Latência do rerank p50 / p95 | RAM do reranker |
+|---|---|---|---|---|---|---|
+| Híbrido + contexto, **sem rerank** | 6/17 | 14/17 | 16/17 | 0,602 | — | — |
+| + rerank `bge-reranker-v2-m3-int8` (**elegível**) | **12/17** | 15/17 | 16/17 | **0,807** | 6,89 s / **10,25 s** | 1544 MB |
+| + rerank `jina-reranker-v2-base-multilingual` (referência) | 11/17 | 14/17 | 16/17 | 0,767 | 4,38 s / **6,17 s** | **2124 MB** |
+
+Latência: 51 medições de cada (17 perguntas × 3), só o score dos 20
+candidatos. No bge, a mínima foi 3,57 s e a máxima 10,92 s. RAM = pico de RSS
+menos o RSS antes de carregar o reranker.
+
+**Veredito pela regra pré-registrada** (todas precisam ser verdadeiras):
+
+| Critério | bge-reranker-v2-m3-int8 (elegível) | jina (referência, não elegível) |
+|---|---|---|
+| a) MRR estritamente maior (0,602) | OK (0,807) | OK (0,767) |
+| b) recall@5 ≥ 16/17 | OK (16) | OK (16) |
+| c) p95 ≤ 1,5 s | **FALHA (10,25 s)** | **FALHA (6,17 s)** |
+| d) RAM ≤ 2048 MB | OK (1544) | **FALHA (2124)** |
+| **Resultado** | **NÃO vira padrão** | fora da disputa (licença), e também não passaria |
+
+O padrão segue **híbrido com contexto em ambos, sem rerank**.
+`ORCHESTRATOR_RAG_RERANK_MODEL` fica vazio. A integração (liga/desliga e
+fallback) continua no código, testada e desligada.
+
+**O que o rerank fez na qualidade** (bge, posição em que todas as fontes aparecem):
+- **Melhorou:** q10 (8ª → **1ª**, a pergunta que falhava desde a Missão 3),
+  q03, q08, q12 e q14 (2ª → 1ª), q11 (3ª → 1ª).
+- **Piorou:** q04 (5ª → 7ª). Ela sai do top 5, e o recall@5 só se mantém em
+  16/17 porque a q10 entra.
+- **No jina,** além das mesmas melhoras: q01 (1ª → 2ª), q05 (4ª → 5ª), q16 (2ª
+  → 5ª) e q17 (3ª → 2ª).
+
+O ganho de qualidade é grande e consistente: o recall@1 dobra (6 → 12) e o MRR
+sobe 0,2. O que barra o rerank é **só a latência**, cerca de 7× acima do limite
+no p95. Isso foi medido com 16 núcleos; a Contabo é bem mais fraca, então o
+número de produção seria pior.
+
+**Também registrado, sem mudar o veredito:**
+- A amostra preliminar da checagem de RAM (1,27 s no jina para 20 pares)
+  subestimou a latência. Ela usou textos sintéticos curtos; os chunks reais são
+  longos (até 512 tokens no cross-encoder).
+- Nada foi ajustado para "fazer passar". Ajustes de latência seriam um
+  **experimento novo**, com pré-registro próprio e medido também na Contabo:
+  menos candidatos (10 em vez de 20), `max_length` menor, número de threads do
+  onnxruntime, fp32 em vez de int8 (o int8 nem sempre é mais rápido em CPU sem
+  instruções VNNI), ou rerank só quando o híbrido estiver incerto.
+
+### Diagnóstico da q10 (falha desde a Missão 3)
+
+- **Pergunta:** "fechei o caixa faltando 3 reais, vou ter problema?"
+- **Esperada:** POP-04, "6. Diferença de caixa". A resposta é "até R$ 5,00 é
+  tolerância: só anotar no F-02".
+- **A seção é uma tabela:** "Até R$ 5,00 (para mais ou para menos) |
+  Tolerância: anotar no F-02…", "De R$ 5,01 a R$ 50,00…", "Acima de R$ 50,00…",
+  mais a regra das três diferenças no mês.
+
+O que veio no lugar (índice padrão atual):
+
+| Modo | Posição da esperada | Top 5 |
+|---|---|---|
+| BM25 | 10ª | POP-03 §3 Prazo de troca perecíveis; POP-01 §5 Validade mínima; POP-03 §4 Prazo de troca não perecíveis; POP-07 §3 Divergência etiqueta × caixa; POP-05 §1 Higiene pessoal |
+| Vetorial | **5ª** (acerta) | POP-04 §2 Sangria; §1 Abertura do caixa; §5 Fechamento do caixa; §4 Cancelamento; §6 Diferença de caixa |
+| Híbrido | 8ª | POP-04 §5 Fechamento do caixa; §2 Sangria; §1 Abertura; POP-03 §4 Prazo de troca não perecíveis; POP-04 §3 Pagamentos aceitos |
+
+Por quê:
+1. **Vocabulário disjunto.** A pergunta diz "fechei", "faltando", "3 reais",
+   "problema"; a seção diz "Diferença no fechamento", "R$ 5,00", "Tolerância".
+   Dos 9 radicais da pergunta (`3 caix falt fech o problem rea ter vou`), só
+   `caix` (e o `o`) aparecem na seção ou no contexto dela. `fech` não casa com
+   "fechamento" (`fechament`), e `caix` aparece em quase todo o POP-04.
+2. **O BM25 é puxado por coincidências.** O "3" casa com "3 dias" e com
+   numerações "3." de outros POPs, e o `fech`/`ter` casa com a seção de prazo
+   de troca. O 1º lugar do BM25 (POP-03 §3) casa `3`, `fech`, `o` e `ter`,
+   mais do que a seção certa.
+3. **A resposta exige comparação numérica.** Para saber que 3 reais está
+   dentro de "até R$ 5,00", nem o BM25 nem o embedding fazem a comparação.
+4. **No vetorial, o tema certo tem vizinhos fortes.** "5. Fechamento do caixa"
+   é semanticamente mais próxima de "fechei o caixa" do que uma tabela de
+   faixas de valor. O vetorial acerta por pouco (5ª), e o BM25 em 10º puxa o
+   híbrido para 8º.
+
+Não é defeito do gabarito nem do POP, e nenhum dos dois foi alterado. É o caso
+típico em que um cross-encoder, lendo pergunta e trecho juntos, pode ajudar. A
+medição vai dizer.
+
+**Achado (limite do RAG).** O rerank pôs a q10 em 1º lugar: o cross-encoder lê
+pergunta e trecho juntos e reconhece "diferença de caixa". Mas achar a seção
+não é responder. A q10 mostra um limite da recuperação por texto:
+responder exige uma **comparação numérica** ("3 reais cabe em até R$ 5,00?").
+Busca (BM25 ou vetor) acha texto parecido, mas não compara valor com faixa.
+Dado **numérico ou estruturado** (tabelas de faixas, limites, prazos, preços)
+deve ir por **SQL ou camada semântica** (ex.: uma tabela `faixas_diferenca_caixa`
+consultada por uma tool), e não por busca. O RAG fica para o texto do
+procedimento.
+
 ## Pendências
 
 **Obrigatórias antes de qualquer deploy** (custo do padrão híbrido + contexto,
-decidido na Missão 6):
+decidido na Missão 6, e do reranking, Missão 7):
+- **Medir a latência de novo no servidor de destino.** A latência da Missão 7
+  foi medida numa máquina de **16 núcleos e 30 GB de RAM**. A Contabo tem CPU
+  bem mais fraca. Antes de produção, rode lá o
+  `evaluate --comparar-rerank` (e o tempo da busca) e reaplique o critério de
+  p95 ≤ 1,5 s com o número de lá.
 - **`fastembed`/`onnxruntime` na imagem.** Hoje estão no extra `rag`, fora da
   imagem. Sem eles, o modo padrão responde "não consegui consultar o manual".
   É preciso escolher: incluir o extra na imagem ou configurar o deploy com
