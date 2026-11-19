@@ -9,7 +9,6 @@
   somado por chunk. Junta pela POSICAO, sem calibrar escalas de score.
 """
 
-import re
 import sqlite3
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -26,8 +25,7 @@ MODOS: tuple[Modo, ...] = ("vetorial", "bm25", "hibrido")
 RRF_K = 60
 CANDIDATOS = 50  # profundidade de cada ranking antes da fusao
 
-_CODIGO = re.compile(r"\b(POP|F|Q|P)-(\d{2})\b", re.IGNORECASE)
-_PALAVRA = re.compile(r"\w+", re.UNICODE)
+BASELINE = Bm25Config(stopwords=False, stemming=False)
 
 
 @dataclass(frozen=True)
@@ -45,32 +43,25 @@ class SearchHit:
         return (self.arquivo, self.secao)
 
 
-def fts_query(pergunta: str) -> str:
-    """Pergunta livre -> expressao FTS5 segura ('' se nao sobrar termo)."""
-    termos: list[str] = []
-    for m in _CODIGO.finditer(pergunta):
-        frase = f'"{m.group(1).lower()} {m.group(2)}"'
-        if frase not in termos:
-            termos.append(frase)
-    resto = _CODIGO.sub(" ", pergunta)
-    for palavra in _PALAVRA.findall(resto):
-        termo = f'"{palavra.lower()}"'
-        if termo not in termos:
-            termos.append(termo)
-    return " OR ".join(termos)
-
-
 def fts_query_normalizada(pergunta: str, cfg: Bm25Config) -> str:
-    """Mesma normalizacao da indexacao (`text.tokens`), em query segura:
-    codigo vira frase, o resto vira termos entre aspas unidos por OR. Os
-    termos saem de `\\w+` (e codigos "pop 06"): nunca contem aspas, entao
-    nenhum operador do FTS5 escapa."""
+    """Pergunta livre -> expressao FTS5 segura ('' se nao sobrar termo), com a
+    MESMA normalizacao da indexacao (`text.tokens`): sem acento (NFC e NFD dao
+    o mesmo), `_` como separador, codigo vira frase ("pop 06"), o resto vira
+    termos entre aspas unidos por OR. Os termos saem de `[^\\W_]+` (e codigos
+    "pop 06"): nunca contem aspas, entao nenhum operador do FTS5 escapa."""
     termos: list[str] = []
     for termo, _ in tokens(pergunta, cfg):
         q = f'"{termo}"'
         if q not in termos:
             termos.append(q)
     return " OR ".join(termos)
+
+
+def fts_query(pergunta: str) -> str:
+    """Query do indice baseline (sem stopwords nem stemming). Uma implementacao
+    so (M-02, 2a revisao adversaria): antes era um segundo regex sobre o texto
+    CRU, que fatiava palavra acentuada em NFD ("diluic" OR "a" OR "o")."""
+    return fts_query_normalizada(pergunta, BASELINE)
 
 
 def rrf_fuse(rankings: Sequence[Sequence[int]], k_rrf: int = RRF_K) -> list[tuple[int, float]]:
@@ -87,7 +78,7 @@ def rrf_fuse(rankings: Sequence[Sequence[int]], k_rrf: int = RRF_K) -> list[tupl
 
 def _bm25_ids(conn: sqlite3.Connection, pergunta: str, colecao: str, limite: int) -> list[tuple[int, float]]:
     cfg = read_bm25_config(conn)
-    query = fts_query_normalizada(pergunta, cfg) if cfg.normaliza else fts_query(pergunta)
+    query = fts_query_normalizada(pergunta, cfg)
     if not query:
         return []
     # bm25() do FTS5: quanto MENOR, melhor.
