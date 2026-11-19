@@ -1,11 +1,34 @@
-from pydantic import field_validator
+from typing import Literal
+
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Chaves `ORCHESTRATOR_*` que moram no MESMO `orchestrator/.env` mas NAO sao
+# deste Settings: as do compose (interpolacao `${ORCHESTRATOR_IMAGE}` etc. no
+# docker-compose.yml) e as do lado do gateway Node, documentadas ali para o
+# par orquestrador<->gateway ficar consistente. Sem esta lista, copiar o
+# `orchestrator/.env.example` como `.env` derrubava o import (extra_forbidden).
+# Qualquer OUTRA chave desconhecida continua derrubando (protege de typo).
+COMPOSE_E_GATEWAY_KEYS = frozenset({"image", "data_dir", "host_port", "network", "url", "turn_timeout_ms"})
 
 
 class Settings(BaseSettings):
     """Configuracao central do orquestrador, carregada de variaveis de ambiente."""
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="ORCHESTRATOR_")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _descartar_chaves_de_compose_e_gateway(cls, data: object) -> object:
+        """O `.env` entrega as extras como `orchestrator_<nome>` (minusculo)."""
+        if not isinstance(data, dict):
+            return data
+        prefixo = "orchestrator_"
+        return {
+            k: v
+            for k, v in data.items()
+            if not (isinstance(k, str) and k.lower().startswith(prefixo) and k.lower()[len(prefixo):] in COMPOSE_E_GATEWAY_KEYS)
+        }
 
     # API
     # Bind em todas as interfaces DENTRO do container (necessario para o
@@ -138,6 +161,37 @@ class Settings(BaseSettings):
 
     # Checkpointing
     checkpointer_sqlite_path: str = "./data/checkpoints.sqlite"
+
+    # Especialista de Procedimentos (RAG, docs/RAG.md). DESLIGADO por padrao:
+    # desligado, o "rag" nao aparece no prompt do supervisor nem no schema da
+    # tool DispatchSpecialist e nao pode ser roteado (um despacho alucinado e
+    # descartado). Ligue so no ambiente que tiver o indice do manual.
+    rag_enabled: bool = False
+    # Indice SQLite PROPRIO
+    # (sqlite-vec + FTS5), separado do checkpoints.sqlite e gerado offline por
+    # `python -m orchestrator.rag.ingest`. O modelo de embedding NAO e
+    # configurado aqui: vem da tabela `meta` do proprio indice (evita buscar
+    # com um modelo diferente do da ingestao).
+    rag_index_path: str = "./data/rag_index.sqlite"
+    # hibrido (PADRAO desde a Missao 6: com o indice gerado com contexto em
+    # BM25 + embedding, 16/17 de recall@5; decisao pela regra pre-registrada,
+    # docs/RAG.md) | bm25 (15/17, sem fastembed) | vetorial. hibrido e vetorial
+    # exigem o extra `rag` (fastembed): sem ele, a consulta vira erro tratado.
+    rag_search_mode: Literal["bm25", "hibrido", "vetorial"] = "hibrido"
+    rag_top_k: int = Field(default=5, ge=1, le=20)
+    rag_colecao: str = "supermercado"
+    # Cache do modelo de embedding (so usado nos modos hibrido/vetorial).
+    rag_embedding_cache_dir: str = "./data/fastembed_cache"
+    # Reranking (Missao 7): cross-encoder que reordena `rag_rerank_candidatos`
+    # trechos e devolve os `rag_top_k`. None/vazio = sem rerank. Se o modelo
+    # nao carregar (ou falhar), a busca cai para o modo acima, com log.
+    rag_rerank_model: str | None = None
+    rag_rerank_candidatos: int = Field(default=20, ge=1, le=50)
+
+    @field_validator("rag_rerank_model", mode="before")
+    @classmethod
+    def _normalizar_rerank_model(cls, v: object) -> object:
+        return v.strip() or None if isinstance(v, str) else v
 
     # Observabilidade (LangSmith)
     langchain_tracing_v2: bool = False

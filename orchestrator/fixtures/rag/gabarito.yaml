@@ -1,0 +1,268 @@
+# Gabarito de avaliacao do RAG MVP - corpus fixtures/rag/supermercado/.
+#
+# Formato de cada item:
+#   id               identificador estavel (q01..q20)
+#   tipo             direta | multi_secao | sem_resposta
+#   pergunta         como um funcionario escreveria no WhatsApp
+#   resposta_esperada
+#   arquivo_fonte    LISTA de arquivos (1 em "direta", 2 em "multi_secao",
+#                    vazia em "sem_resposta")
+#   secao_fonte      LISTA paralela a arquivo_fonte, com o texto exato do
+#                    cabecalho Markdown (sem os "#") onde esta a resposta
+#   armadilha        (opcional) o que torna a pergunta dificil para a busca
+#   trecho_exclusivo (so multi_secao) LISTA paralela a secao_fonte: um trecho
+#                    que so aquela secao contem e que a resposta esperada
+#                    exige - com uma secao so, a resposta fica incompleta
+#   criterio_acerto  (so sem_resposta) o que conta como acerto
+#   aceita_tambem    (opcional, sem_resposta) outra resposta que tambem vale
+#
+# Recall@5 (docs/RAG.md): acerto quando TODAS as secoes de secao_fonte
+# aparecem entre os 5 primeiros trechos recuperados. Itens "sem_resposta" nao
+# entram no recall - sao julgados pelo criterio_acerto de cada um. Regra
+# geral: vale dizer "nao sei" OU dizer que o manual nao preve aquilo citando a
+# regra relacionada, desde que a resposta NAO invente valor, prazo ou numero.
+# A consistencia deste arquivo com o corpus e checada em
+# tests/test_rag_fixtures.py.
+
+perguntas:
+  # ---------------------------------------------------------------- diretas
+  - id: q01
+    tipo: direta
+    pergunta: "o caminhao do fornecedor chegou agora 15h, posso receber?"
+    resposta_esperada: >-
+      Não. A doca recebe de segunda a sábado das 6h às 14h. Fora do horário só
+      com autorização por escrito do gerente de loja, registrada no Formulário
+      F-03 (Recebimento Extraordinário).
+    arquivo_fonte: [pop-01-recebimento-de-mercadorias.md]
+    secao_fonte: ["2. Horário da doca"]
+
+  - id: q02
+    tipo: direta
+    pergunta: "chegou frango congelado marcando -10 graus no termometro, aceito?"
+    resposta_esperada: >-
+      Não. Congelado só é aceito até −12 °C na chegada; a −10 °C a carga deve
+      ser recusada e anotada no F-07.
+    arquivo_fonte: [pop-01-recebimento-de-mercadorias.md]
+    secao_fonte: ["4. Temperatura na chegada"]
+    armadilha: "confunde com os −18 °C de armazenamento do POP-05"
+
+  - id: q03
+    tipo: direta
+    pergunta: "qual temperatura tem que ficar o freezer dos congelados aqui na loja?"
+    resposta_esperada: "−18 °C ou menos, tanto na câmara quanto no expositor de congelados."
+    arquivo_fonte: [pop-05-higienizacao-e-seguranca-alimentar.md]
+    secao_fonte: ["4. Temperatura de armazenamento e exposição"]
+    armadilha: "confunde com os −12 °C de aceite na doca do POP-01"
+
+  - id: q04
+    tipo: direta
+    pergunta: "cliente quer trocar um queijo que comprou anteontem, posso trocar?"
+    resposta_esperada: >-
+      Não. Perecível (frios/laticínios) só tem troca em até 24 horas a partir do
+      horário do cupom, na embalagem original.
+    arquivo_fonte: [pop-03-troca-e-devolucao.md]
+    secao_fonte: ["3. Prazo de troca — produtos perecíveis"]
+    armadilha: "seção vizinha de não perecíveis tem prazos de 7 e 30 dias"
+
+  - id: q05
+    tipo: direta
+    pergunta: "a cliente comprou um shampoo semana passada, nem abriu e nao gostou. ainda da pra trocar?"
+    resposta_esperada: >-
+      Sim, se estiver lacrado e dentro de 7 dias corridos da compra
+      (arrependimento de produto não perecível).
+    arquivo_fonte: [pop-03-troca-e-devolucao.md]
+    secao_fonte: ["4. Prazo de troca — produtos não perecíveis"]
+    armadilha: "confunde com o prazo de 24 h dos perecíveis e com os 30 dias de defeito"
+
+  - id: q06
+    tipo: direta
+    pergunta: "na ronda de validade eu anoto onde?"
+    resposta_esperada: >-
+      No Formulário F-12 (Controle de Validade): código de barras, lote,
+      validade e quantidade. Entregar ao encarregado de perecíveis até as 9h
+      (ronda da manhã) e até as 16h (ronda da tarde).
+    arquivo_fonte: [pop-02-validade-e-pereciveis.md]
+    secao_fonte: ["2. Ronda diária de validade"]
+
+  - id: q07
+    tipo: direta
+    pergunta: "a nota fiscal veio com o arroz mais caro que no pedido, isso é caso de F-07 ou recebo assim mesmo?"
+    resposta_esperada: >-
+      Não recebe: preço diferente do pedido faz a carga do item ser recusada,
+      e o conferente preenche o Formulário F-07 (Divergência de Recebimento).
+      A tolerância de 2% vale só para quantidade, não para preço.
+    arquivo_fonte: [pop-01-recebimento-de-mercadorias.md]
+    secao_fonte: ["3. Conferência da nota fiscal"]
+    armadilha: >-
+      código exato (busca semântica tende a errar), mas o F-07 também aparece
+      nas seções 4, 5 e 6 (temperatura, validade, avaria): só a seção 3 trata
+      de divergência da nota; e os 2% de tolerância parecem valer para tudo
+
+  - id: q08
+    tipo: direta
+    pergunta: "quanto de troco vem na gaveta quando eu abro o caixa?"
+    resposta_esperada: >-
+      R$ 200,00 de fundo de troco: R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e
+      R$ 100,00 em moedas. Conferido com o tesoureiro e assinado no F-01.
+    arquivo_fonte: [pop-04-abertura-e-fechamento-de-caixa.md]
+    secao_fonte: ["1. Abertura do caixa"]
+
+  - id: q09
+    tipo: direta
+    pergunta: "minha gaveta ta com quase 900 conto em dinheiro, faço o que?"
+    resposta_esperada: >-
+      Passou de R$ 800,00 em dinheiro o PDV bloqueia vendas em dinheiro; chamar
+      o fiscal de caixa para fazer a sangria (fica o fundo de troco, os dois
+      assinam o comprovante e o malote vai direto ao cofre).
+    arquivo_fonte: [pop-04-abertura-e-fechamento-de-caixa.md]
+    secao_fonte: ["2. Sangria"]
+    armadilha: "a pergunta não usa a palavra 'sangria'"
+
+  - id: q10
+    tipo: direta
+    pergunta: "fechei o caixa faltando 3 reais, vou ter problema?"
+    resposta_esperada: "Não. Diferença de até R$ 5,00 é tolerância: só anotar no F-02."
+    arquivo_fonte: [pop-04-abertura-e-fechamento-de-caixa.md]
+    secao_fonte: ["6. Diferença de caixa"]
+    armadilha: "resposta está numa tabela"
+
+  - id: q11
+    tipo: direta
+    pergunta: "quanto tempo eu deixo a alface de molho no cloro?"
+    resposta_esperada: >-
+      15 minutos, em hipoclorito de sódio 2,5% diluído a 10 ml por litro de
+      água.
+    arquivo_fonte: [pop-05-higienizacao-e-seguranca-alimentar.md]
+    secao_fonte: ["2. Diluição dos produtos de limpeza"]
+    armadilha: "resposta numa tabela; 'alface' não aparece no texto (é 'hortifrúti')"
+
+  - id: q12
+    tipo: direta
+    pergunta: "o preço na prateleira ta mais barato do que passou no caixa, cobro qual?"
+    resposta_esperada: >-
+      O menor preço. O operador chama o fiscal, que autoriza a correção no PDV
+      e registra no Formulário F-18; a etiqueta é corrigida em até 30 minutos.
+    arquivo_fonte: [pop-07-precos-e-promocoes.md]
+    secao_fonte: ["3. Divergência entre etiqueta e caixa"]
+
+  - id: q13
+    tipo: direta
+    pergunta: "alguem me mandou olhar o POP-06, onde acho ele?"
+    resposta_esperada: >-
+      O POP-06 (Etiquetagem) foi revogado em 2025 e substituído pelo POP-07
+      (Preços, Etiquetas e Promoções).
+    arquivo_fonte: [pop-07-precos-e-promocoes.md]
+    secao_fonte: ["POP-07 — Preços, Etiquetas e Promoções"]
+    armadilha: "código exato que só aparece numa linha do cabeçalho do POP-07"
+
+  - id: q14
+    tipo: direta
+    pergunta: "iogurte que falta 3 dias pra vencer, boto quanto de desconto?"
+    resposta_esperada: >-
+      30% de desconto (laticínios a 3 dias do vencimento), com etiqueta amarela
+      "Oferta do Dia", aplicada pelo encarregado de perecíveis.
+    arquivo_fonte: [pop-02-validade-e-pereciveis.md]
+    secao_fonte: ["3. Rebaixa de preço por proximidade do vencimento"]
+    armadilha: "tabela com vários percentuais por coluna (carnes a 3 dias é 25%)"
+
+  # ----------------------------------------------------------- multi_secao
+  - id: q15
+    tipo: multi_secao
+    pergunta: "cliente pegou um leite vencido da prateleira, pagou e voltou aqui reclamando. o que ele ganha e o que o fiscal precisa fazer?"
+    resposta_esperada: >-
+      O cliente recebe troca ou reembolso imediato em qualquer prazo, mais um
+      vale-compras de R$ 20,00; o atendente lança no F-09 e avisa a Gerência
+      de Perecíveis (POP-03). Além disso, o fiscal abre um registro de não
+      conformidade e avisa o encarregado de perecíveis no mesmo turno (POP-02).
+    arquivo_fonte:
+      - pop-02-validade-e-pereciveis.md
+      - pop-03-troca-e-devolucao.md
+    secao_fonte:
+      - "7. Cliente encontrou produto vencido na gôndola"
+      - "5. Produto vencido vendido pela loja"
+    trecho_exclusivo:
+      - "registro de não conformidade"
+      - "vale-compras de R$ 20,00"
+    armadilha: >-
+      a regra de 24 h dos perecíveis NÃO se aplica; a troca na hora sem nota
+      do POP-02 só vale antes de pagar
+
+  - id: q16
+    tipo: multi_secao
+    pergunta: "qual a diferença da etiqueta amarela pra vermelha? a amarela qualquer repositor pode colar?"
+    resposta_esperada: >-
+      A vermelha é promoção do encarte semanal; a amarela é a "Oferta do Dia",
+      rebaixa por validade (POP-07). A amarela não é qualquer um: só o
+      encarregado de perecíveis aplica, com o desconto da tabela de dias até
+      vencer (POP-02).
+    arquivo_fonte:
+      - pop-07-precos-e-promocoes.md
+      - pop-02-validade-e-pereciveis.md
+    secao_fonte:
+      - "2. Cores das etiquetas"
+      - "3. Rebaixa de preço por proximidade do vencimento"
+    trecho_exclusivo:
+      - "promoção do encarte semanal"
+      - "encarregado de perecíveis"
+
+  - id: q17
+    tipo: multi_secao
+    pergunta: "cliente quer devolver uma panela de 400 reais que pagou em dinheiro mas perdeu o cupom, como faço?"
+    resposta_esperada: >-
+      Sem cupom, só se a compra for localizada no sistema pelo CPF do programa
+      "Cliente Bom Preço"; sem cupom e sem CPF não há troca (oferecer o F-09).
+      Localizada a compra, por ser acima de R$ 300,00 o reembolso vai por Pix
+      em até 2 dias úteis (ou o cliente escolhe um vale-troca de 60 dias).
+    arquivo_fonte:
+      - pop-03-troca-e-devolucao.md
+      - pop-03-troca-e-devolucao.md
+    secao_fonte:
+      - "2. Documento obrigatório"
+      - "6. Forma de reembolso"
+    trecho_exclusivo:
+      - "CPF"
+      - "2 dias úteis"
+
+  # ---------------------------------------------------------- sem_resposta
+  - id: q18
+    tipo: sem_resposta
+    pergunta: "quantos dias de ferias eu tenho direito esse ano?"
+    resposta_esperada: "Não sei — o manual de procedimentos não trata de férias."
+    arquivo_fonte: []
+    secao_fonte: []
+    criterio_acerto: >-
+      Acerto se disser "não sei" ou que o manual não trata de férias. Erro se
+      inventar qualquer número de dias.
+    armadilha: "fora do tema do corpus"
+
+  - id: q19
+    tipo: sem_resposta
+    pergunta: "o fornecedor atrasou de novo, qual a multa que a gente cobra dele?"
+    resposta_esperada: "Não sei — o manual não define multa para fornecedor atrasado."
+    arquivo_fonte: []
+    secao_fonte: []
+    criterio_acerto: >-
+      Acerto se disser "não sei" OU se disser que o manual não prevê multa
+      citando a regra relacionada (horário da doca / 40 minutos de doca do
+      POP-01). Erro se inventar valor, percentual ou prazo de multa.
+    aceita_tambem: >-
+      O manual não prevê multa para fornecedor. O POP-01 só diz que a doca
+      recebe das 6h às 14h e que cada caminhão tem até 40 minutos; passou
+      disso, vai para o fim da fila.
+    armadilha: "quase-acerto: o POP-01 fala de horário e de 40 min de doca, mas não de multa"
+
+  - id: q20
+    tipo: sem_resposta
+    pergunta: "com quantas diferenças de caixa o operador é mandado embora?"
+    resposta_esperada: "Não sei — o manual não fala em demissão por diferença de caixa."
+    arquivo_fonte: []
+    secao_fonte: []
+    criterio_acerto: >-
+      Acerto se disser "não sei" OU se disser que o manual não prevê demissão
+      citando a regra relacionada (reciclagem de 4 h após três diferenças acima
+      de R$ 5,00 no mesmo mês, do POP-04). Erro se inventar um número de diferenças que leva à
+      demissão.
+    aceita_tambem: >-
+      O manual não fala em demissão. O POP-04 só prevê que, com três diferenças
+      acima de R$ 5,00 no mesmo mês, o operador faz uma reciclagem de 4 horas.
+    armadilha: "quase-acerto: o POP-04 prevê reciclagem de 4 h após três diferenças acima de R$ 5,00 no mês, não demissão"

@@ -25,13 +25,34 @@ dependencies = [
     "certifi>=2026.10.18",
     "urllib3>=2.8.0",
     "langgraph-sdk>=0.4.6",
+    # Especialista de Procedimentos (RAG): o grafo importa orchestrator.rag,
+    # e o modo padrao (bm25) precisa do indice sqlite-vec/FTS5 e do stemming
+    # PT. Os dois sao pequenos (sem modelo, sem download). O fastembed
+    # (onnxruntime, pesado) fica no extra `rag`: so os modos hibrido/vetorial
+    # e a ingestao precisam dele.
+    "sqlite-vec>=0.1.9,<0.2",
+    "snowballstemmer>=3.0,<4",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    # Usado como BIBLIOTECA pelo tests/conftest.py para bloquear rede no nivel
+    # de socket na suite inteira; o plugin dele fica desligado em addopts.
+    # Faixa travada: o conftest depende do comportamento de disable_socket/
+    # enable_socket (bloqueio de socket.socket E de getaddrinfo), verificado
+    # na 0.8.1. Nenhuma API privada e usada (o loopback_socket herda do
+    # socket.socket da stdlib guardado em hermetic_support).
+    "pytest-socket>=0.8.1,<0.9",
     "ruff>=0.7",
+]
+# RAG MVP (docs/RAG.md): ingestao offline, avaliacao e os modos de busca
+# hibrido/vetorial. Fora das dependencias principais porque o fastembed traz o
+# onnxruntime (pesado) para a imagem; o modo padrao (bm25) nao precisa dele.
+# Testado no Python 3.14.
+rag = [
+    "fastembed>=0.9.1,<0.10",
 ]
 # Ferramentas de analise de seguranca usadas no CI (.github/workflows/ci.yml).
 security = [
@@ -41,6 +62,11 @@ security = [
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+# -p no:socket: o teardown do plugin pytest-socket RELIGA a rede depois de cada
+# teste (e deixa coleta/fixtures de sessao abertas); o conftest faz o bloqueio
+# sozinho, para o processo inteiro. -p no:langsmith_plugin: o plugin do
+# LangSmith importa o SDK antes do conftest limpar o ambiente.
+addopts = "-p no:socket -p no:langsmith_plugin"
 
 [build-system]
 requires = ["hatchling"]

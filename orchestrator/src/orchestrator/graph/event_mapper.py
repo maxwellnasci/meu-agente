@@ -15,7 +15,7 @@ _GRAPH_ROOT_NAME = "LangGraph"
 
 # Nos de especialista cujo on_chain_start deve virar SpecialistCalledEvent -
 # mesmo conjunto de nos que orchestrator.graph.nodes.SPECIALIST_ROUTES mapeia.
-_SPECIALIST_NODE_NAMES = {"specialist_openclaw", "specialist_cybersec", "specialist_n8n"}
+_SPECIALIST_NODE_NAMES = {"specialist_openclaw", "specialist_cybersec", "specialist_n8n", "specialist_rag"}
 
 
 def map_langgraph_event(raw_event: dict[str, Any]) -> StreamEvent | None:

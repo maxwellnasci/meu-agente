@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from hermetic_support import loopback_socket
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "provision-client.sh"
@@ -36,8 +37,10 @@ def _unique_name(tag: str) -> str:
 
 
 def _get_free_port() -> str:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
+    # loopback_socket: a suite bloqueia socket.socket (tests/conftest.py); este
+    # so reserva porta em 127.0.0.1, sem conectar a nada.
+    with loopback_socket() as s:
+        s.bind(("127.0.0.1", 0))
         return str(s.getsockname()[1])
 
 
@@ -483,7 +486,7 @@ def test_provision_force_without_flags_preserves_env_values_in_agents(cleanup):
     # deve herdar port1 do .env e nao ser afetado por 8000.
     srv = None
     try:
-        srv = socket.socket()
+        srv = loopback_socket()
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             srv.bind(("127.0.0.1", 8000))
@@ -629,9 +632,7 @@ def test_provision_force_refuses_if_container_running(cleanup, tmp_path, monkeyp
 
 def test_provision_refuses_port_in_use():
     """Porta ocupada no host aborta com erro informativo, sem criar nada."""
-    import socket
-
-    srv = socket.socket()
+    srv = loopback_socket()
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind(("127.0.0.1", 0))
     srv.listen(1)

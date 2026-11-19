@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -24,31 +25,64 @@ class SpecialistName(str, Enum):
     OPENCLAW = "openclaw"
     CYBERSEC = "cybersec"
     N8N = "n8n"
+    RAG = "rag"
+
+
+# Descricao de cada especialista no schema da tool (o que o LLM do supervisor
+# le para escolher). Uma entrada por valor de SpecialistName.
+_DESCRICOES: dict[SpecialistName, str] = {
+    SpecialistName.OPENCLAW: (
+        "openclaw: Especialista em Programacao - "
+        "escrever/editar codigo, executar comandos, mexer em arquivos de um "
+        "projeto, debugar, rodar testes, ou qualquer acao que precise de um "
+        "sandbox de execucao real."
+    ),
+    SpecialistName.CYBERSEC: (
+        "cybersec: Especialista em Ciberseguranca - "
+        "recon/OSINT, scan de vulnerabilidades, pentest web/API/cloud/rede, "
+        "analise de log, threat hunting, etc. So pode executar acoes ativas "
+        "(scans, testes de exploracao) contra um alvo se a propria instrucao "
+        "autorizar esse alvo explicitamente - nunca contra infraestrutura de "
+        "producao ou de terceiros sem autorizacao explicita na instrucao."
+    ),
+    SpecialistName.N8N: (
+        "n8n: Especialista de Automacao - tem tool-calling real contra a API "
+        "REST de uma instancia de n8n em producao: criar, editar, deletar, "
+        "ativar/desativar e disparar execucao (via webhook) de workflows, "
+        "alem de listar/consultar os que ja existem."
+    ),
+    SpecialistName.RAG: (
+        "rag: Especialista de Procedimentos - perguntas sobre procedimentos/"
+        "manual do supermercado: recebimento, validade, troca, caixa, "
+        "higienizacao, precos e etiquetas. So consulta o manual (leitura), "
+        "nao executa nada."
+    ),
+}
+
+# Especialistas que dependem de uma chave de config (desligados por padrao).
+OPCIONAIS = frozenset({SpecialistName.RAG})
+
+
+def especialistas_ativos(rag_enabled: bool) -> list[SpecialistName]:
+    """Os que o supervisor pode oferecer/despachar neste ambiente."""
+    return [e for e in SpecialistName if e not in OPCIONAIS or (e is SpecialistName.RAG and rag_enabled)]
+
+
+def descricao_do_campo(ativos: list[SpecialistName]) -> str:
+    return "Qual especialista acionar. " + " ".join(_DESCRICOES[e] for e in ativos)
 
 
 class DispatchSpecialist(BaseModel):
     """Tool exposta ao LLM do `supervisor` via `bind_tools`: cada chamada
     desta tool enfileira um despacho concreto em `pending_specialists`. O
     LLM pode fazer varias chamadas paralelas nesta mesma rodada para
-    acionar mais de um especialista."""
+    acionar mais de um especialista.
 
-    specialist: SpecialistName = Field(
-        description=(
-            "Qual especialista acionar. openclaw: Especialista em Programacao - "
-            "escrever/editar codigo, executar comandos, mexer em arquivos de um "
-            "projeto, debugar, rodar testes, ou qualquer acao que precise de um "
-            "sandbox de execucao real. cybersec: Especialista em Ciberseguranca - "
-            "recon/OSINT, scan de vulnerabilidades, pentest web/API/cloud/rede, "
-            "analise de log, threat hunting, etc. So pode executar acoes ativas "
-            "(scans, testes de exploracao) contra um alvo se a propria instrucao "
-            "autorizar esse alvo explicitamente - nunca contra infraestrutura de "
-            "producao ou de terceiros sem autorizacao explicita na instrucao. "
-            "n8n: Especialista de Automacao - tem tool-calling real contra a API "
-            "REST de uma instancia de n8n em producao: criar, editar, deletar, "
-            "ativar/desativar e disparar execucao (via webhook) de workflows, "
-            "alem de listar/consultar os que ja existem."
-        )
-    )
+    Esta classe e o catalogo COMPLETO (valida os argumentos). O schema que o
+    LLM realmente recebe sai de `dispatch_tool(rag_enabled)`, que tira do
+    enum e da descricao os especialistas desligados neste ambiente."""
+
+    specialist: SpecialistName = Field(description=descricao_do_campo(list(SpecialistName)))
     instructions: str = Field(
         description=(
             "Instrucao especifica e autocontida para este especialista executar "
@@ -58,3 +92,21 @@ class DispatchSpecialist(BaseModel):
             "sem isso o especialista vai recusar a acao ativa."
         )
     )
+
+
+_INSTRUCOES_RAG = " Para o rag: repita a pergunta do usuario como ela foi feita."
+
+
+def dispatch_tool(rag_enabled: bool) -> dict:
+    """Schema OpenAI da tool DispatchSpecialist so com os especialistas
+    ativos (enum E descricao). E o que vai no `bind_tools` do supervisor."""
+    from langchain_core.utils.function_calling import convert_to_openai_tool
+
+    ativos = especialistas_ativos(rag_enabled)
+    tool = copy.deepcopy(convert_to_openai_tool(DispatchSpecialist))
+    props = tool["function"]["parameters"]["properties"]
+    props["specialist"]["enum"] = [e.value for e in ativos]
+    props["specialist"]["description"] = descricao_do_campo(ativos)
+    if SpecialistName.RAG in ativos:
+        props["instructions"]["description"] += _INSTRUCOES_RAG
+    return tool
