@@ -15,6 +15,7 @@ from pathlib import Path
 from orchestrator.rag.chunking import chunk_corpus
 from orchestrator.rag.embeddings import DEFAULT_MODEL, FastEmbedEmbedder
 from orchestrator.rag.store import build_index
+from orchestrator.rag.text import DEFAULT_BM25, Bm25Config
 
 ORCHESTRATOR_DIR = Path(__file__).resolve().parents[3]
 DEFAULT_CORPUS = ORCHESTRATOR_DIR / "fixtures" / "rag" / "supermercado"
@@ -30,6 +31,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--db", type=Path, default=DEFAULT_DB, help="arquivo do indice (NUNCA o checkpoints.sqlite)")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE)
+    p.add_argument("--stopwords", action=argparse.BooleanOptionalAction, default=DEFAULT_BM25.stopwords,
+                   help="stopwords em PT no BM25 (padrao: %(default)s)")
+    p.add_argument("--stemming", action=argparse.BooleanOptionalAction, default=DEFAULT_BM25.stemming,
+                   help="stemming Snowball PT no BM25 (padrao: %(default)s)")
     return p.parse_args(argv)
 
 
@@ -40,9 +45,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     chunks = chunk_corpus(args.corpus, args.colecao)
     embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
-    n = build_index(chunks, embedder, args.db)
+    bm25 = Bm25Config(stopwords=args.stopwords, stemming=args.stemming)
+    n = build_index(chunks, embedder, args.db, bm25)
     arquivos = len({c.arquivo for c in chunks})
-    print(f"{n} chunks de {arquivos} arquivos -> {args.db} (modelo {embedder.model_name}, dim {embedder.dim})")
+    print(f"{n} chunks de {arquivos} arquivos -> {args.db} (modelo {embedder.model_name}, dim {embedder.dim}, "
+          f"bm25 {bm25.nome})")
     return 0
 
 

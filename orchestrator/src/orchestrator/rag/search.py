@@ -18,7 +18,8 @@ from typing import Literal
 import sqlite_vec
 
 from orchestrator.rag.embeddings import Embedder
-from orchestrator.rag.store import check_embedder
+from orchestrator.rag.store import check_embedder, read_bm25_config
+from orchestrator.rag.text import Bm25Config, tokens
 
 Modo = Literal["vetorial", "bm25", "hibrido"]
 MODOS: tuple[Modo, ...] = ("vetorial", "bm25", "hibrido")
@@ -59,6 +60,19 @@ def fts_query(pergunta: str) -> str:
     return " OR ".join(termos)
 
 
+def fts_query_normalizada(pergunta: str, cfg: Bm25Config) -> str:
+    """Mesma normalizacao da indexacao (`text.tokens`), em query segura:
+    codigo vira frase, o resto vira termos entre aspas unidos por OR. Os
+    termos saem de `\\w+` (e codigos "pop 06"): nunca contem aspas, entao
+    nenhum operador do FTS5 escapa."""
+    termos: list[str] = []
+    for termo, _ in tokens(pergunta, cfg):
+        q = f'"{termo}"'
+        if q not in termos:
+            termos.append(q)
+    return " OR ".join(termos)
+
+
 def rrf_fuse(rankings: Sequence[Sequence[int]], k_rrf: int = RRF_K) -> list[tuple[int, float]]:
     """Funde rankings de ids (melhor primeiro). Empate: melhor posicao
     individual, depois menor id (deterministico)."""
@@ -72,7 +86,8 @@ def rrf_fuse(rankings: Sequence[Sequence[int]], k_rrf: int = RRF_K) -> list[tupl
 
 
 def _bm25_ids(conn: sqlite3.Connection, pergunta: str, colecao: str, limite: int) -> list[tuple[int, float]]:
-    query = fts_query(pergunta)
+    cfg = read_bm25_config(conn)
+    query = fts_query_normalizada(pergunta, cfg) if cfg.normaliza else fts_query(pergunta)
     if not query:
         return []
     # bm25() do FTS5: quanto MENOR, melhor.

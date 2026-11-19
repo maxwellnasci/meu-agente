@@ -13,21 +13,25 @@ apareceu - e a primeira pista do porque.
 
 import argparse
 import json
+import tempfile
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import yaml
 
+from orchestrator.rag.chunking import chunk_corpus
 from orchestrator.rag.embeddings import DEFAULT_MODEL, Embedder, FastEmbedEmbedder
 from orchestrator.rag.ingest import (
     DEFAULT_CACHE,
     DEFAULT_COLECAO,
+    DEFAULT_CORPUS,
     DEFAULT_DB,
     ORCHESTRATOR_DIR,
 )
 from orchestrator.rag.search import CANDIDATOS, MODOS, search
-from orchestrator.rag.store import open_index, read_meta
+from orchestrator.rag.store import build_index, open_index, read_bm25_config, read_meta
+from orchestrator.rag.text import VARIANTES, Bm25Config
 
 DEFAULT_GABARITO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "gabarito.yaml"
 TIPOS_AVALIADOS = ("direta", "multi_secao")
@@ -111,6 +115,49 @@ def relatorio_markdown(resultados: Sequence[ResultadoPergunta], k: int = 5) -> s
     return "\n".join(linhas)
 
 
+def comparar_variantes(chunks, perguntas, embedder: Embedder, *, k: int = 5, colecao: str = DEFAULT_COLECAO,
+                       variantes: Sequence[Bm25Config] = VARIANTES) -> dict[str, list[ResultadoPergunta]]:
+    """Monta um indice temporario por variante do BM25 (mesmos chunks, mesmo
+    embedder) e avalia os 3 modos em cada um. O vetorial nao depende da
+    variante: e o controle (se mudar, algo esta errado)."""
+    out: dict[str, list[ResultadoPergunta]] = {}
+    with tempfile.TemporaryDirectory(prefix="rag-variantes-") as d:
+        for cfg in variantes:
+            db = Path(d) / f"{cfg.nome}.sqlite"
+            build_index(chunks, embedder, db, cfg)
+            conn = open_index(db)
+            try:
+                assert read_bm25_config(conn) == cfg
+                out[cfg.nome] = avaliar(conn, perguntas, embedder, k=k, colecao=colecao)
+            finally:
+                conn.close()
+    return out
+
+
+def relatorio_variantes(por_variante: dict[str, list[ResultadoPergunta]], k: int = 5) -> str:
+    modos = list(MODOS)
+    linhas = ["| Variante do BM25 | " + " | ".join(modos) + " |", "|---|" + "---|" * len(modos)]
+    for nome, resultados in por_variante.items():
+        r = resumo(resultados)
+        linhas.append(f"| {nome} | " + " | ".join(_fmt(r[m]["total"]) for m in modos) + " |")
+    base = {(r.id, r.modo): r for r in next(iter(por_variante.values()))}
+    linhas += ["", "Mudancas em relacao ao baseline (posicao de cada fonte, '—' = fora do top 50):", ""]
+    mudou = False
+    for nome, resultados in list(por_variante.items())[1:]:
+        for r in resultados:
+            b = base[(r.id, r.modo)]
+            if r.acertou != b.acertou or r.posicao_das_fontes != b.posicao_das_fontes:
+                mudou = True
+                pos = "; ".join(
+                    f"{f.split(' :: ')[1]}: {b.posicao_das_fontes[f] or '—'} → {r.posicao_das_fontes[f] or '—'}"
+                    for f in r.posicao_das_fontes)
+                virou = "" if r.acertou == b.acertou else (" **ACERTO NOVO**" if r.acertou else " **PERDEU**")
+                linhas.append(f"- {nome} / {r.modo} / {r.id}{virou}: {pos}")
+    if not mudou:
+        linhas.append("- nenhuma")
+    return "\n".join(linhas)
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -120,11 +167,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE)
     p.add_argument("--k", type=int, default=5)
     p.add_argument("--json", type=Path, help="grava o resultado detalhado por pergunta/modo neste arquivo")
+    p.add_argument("--comparar-variantes", action="store_true",
+                   help="ignora --db: monta 1 indice temporario por variante do BM25 (a partir de --corpus) e compara")
+    p.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.comparar_variantes:
+        embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
+        por_variante = comparar_variantes(chunk_corpus(args.corpus, args.colecao), carregar_perguntas(args.gabarito),
+                                          embedder, k=args.k, colecao=args.colecao)
+        print(f"modelo {embedder.model_name} | corpus {args.corpus}\n")
+        print(relatorio_variantes(por_variante, args.k))
+        if args.json:
+            dados = {n: [asdict(r) for r in rs] for n, rs in por_variante.items()}
+            args.json.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+        return 0
     conn = open_index(args.db)
     try:
         meta = read_meta(conn)
@@ -132,7 +192,8 @@ def main(argv: list[str] | None = None) -> int:
         resultados = avaliar(conn, carregar_perguntas(args.gabarito), embedder, k=args.k, colecao=args.colecao)
     finally:
         conn.close()
-    print(f"indice: {args.db} | modelo {meta.get('model_name')} | {meta.get('n_chunks')} chunks\n")
+    print(f"indice: {args.db} | modelo {meta.get('model_name')} | {meta.get('n_chunks')} chunks | "
+          f"bm25 {Bm25Config(meta.get('bm25_stopwords') == '1', meta.get('bm25_stemming') == '1').nome}\n")
     print(relatorio_markdown(resultados, args.k))
     if args.json:
         args.json.write_text(json.dumps([asdict(r) for r in resultados], ensure_ascii=False, indent=2), encoding="utf-8")

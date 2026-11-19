@@ -1,11 +1,13 @@
 # RAG MVP — Especialista de Procedimentos (Supermercado Bom Preço)
 
-Status: **Missão 3 concluída** (motor de busca + primeira medição de
-recall@5), ainda **sem commit** e sem revisão adversária. Existe o módulo
-`orchestrator/src/orchestrator/rag/`: chunking, ingestão offline, índice
-SQLite próprio (sqlite-vec + FTS5), busca nos 3 modos e o script de avaliação.
-**Ainda não existe `specialist_rag`**: nada disso está ligado ao grafo nem ao
-supervisor (Missão 4). Tudo abaixo que fala do especialista é **plano**. MVP
+Status: **Missão 4 concluída** (português no BM25: stopwords e stemming,
+4 variantes medidas), ainda **sem commit** e sem revisão adversária. A Missão 3
+(motor de busca + primeira medição de recall@5) está no commit `c9efb2d`.
+Existe o módulo `orchestrator/src/orchestrator/rag/`: chunking, ingestão
+offline, índice SQLite próprio (sqlite-vec + FTS5), busca nos 3 modos,
+normalização PT do BM25 e o script de avaliação. **Ainda não existe
+`specialist_rag`**: nada disso está ligado ao grafo nem ao supervisor (próxima
+missão). Tudo abaixo que fala do especialista é **plano**. MVP
 local. Nada vai para a Contabo agora.
 
 ## Objetivo
@@ -31,7 +33,8 @@ nó não executa ação. A ingestão é um script offline fora do grafo.
 | **Embeddings locais com `fastembed`** (modelo multilíngue, CPU, sem API) | Corpus e perguntas em português. Rodar em CPU não exige GPU nem serviço novo. Sem API externa: custo zero por consulta, nada do manual sai da máquina e os testes não dependem de rede. `fastembed` usa ONNX, sem PyTorch, então a imagem fica bem menor. |
 | **Modelo: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`** (384 dim, 0,22 GB) | Missão 3. É o menor dos 4 multilíngues que o `fastembed` 0.9.1 suporta. Os outros: `paraphrase-multilingual-mpnet-base-v2` (768 dim, 1 GB), `multilingual-e5-large` (1024 dim, 2,24 GB) e `potion-multilingual-128M` (256 dim). Foi escolhido como ponto de partida da medição, não por ter ganho uma comparação. **Limite conhecido:** o tokenizer dele trunca em **128 tokens**, e 15 dos 46 chunks passam disso (o maior tem 275). Ver *Resultados*. O embedder usa `query_embed`/`passage_embed`, então trocar para o e5 (que exige os prefixos `query:`/`passage:`) não pede mudança de código, só reingestão. |
 | **Chunk = seção `##`; preâmbulo vira chunk próprio** | O gabarito é por seção. O preâmbulo (entre o `#` e a primeira `##`) vira um chunk cuja `seção` é o texto do título `#`: é onde está a q13. Subseções `###` ficam dentro da `##` delas. O texto indexado (embedding e FTS5) leva o título do documento na frente (`POP-04 — Abertura e Fechamento de Caixa` + `## 2. Sangria`…). O `texto` devolvido como fonte é só o da seção. |
-| **Query BM25 sanitizada** | A pergunta nunca chega crua ao `MATCH` do FTS5. Códigos (`POP-06`, `F-12`…) viram **frase** (`"pop 06"`), para não virar `pop OR 06`. O resto vira palavras entre aspas unidas por `OR`. Tokenizer `unicode61 remove_diacritics 2`, porque as perguntas chegam sem acento. Sem stopwords e sem stemming (baseline, ver *Resultados*). |
+| **Query BM25 sanitizada** | A pergunta nunca chega crua ao `MATCH` do FTS5. Códigos (`POP-06`, `F-12`…) viram **frase** (`"pop 06"`), para não virar `pop OR 06`. O resto vira palavras entre aspas unidas por `OR`. Tokenizer `unicode61 remove_diacritics 2`, porque as perguntas chegam sem acento. |
+| **BM25 com stemming PT, sem stopwords (padrão desde a Missão 4)** | As 4 variantes foram medidas (ver *Resultados*). Só stemming foi a única que subiu o recall@5: BM25 de 14 para 15/17, com o híbrido empatado em 14 nas quatro. Stopwords+stemming perdeu a q15. Normalização em `rag/text.py`, a **mesma** na indexação e na consulta: minúsculas, sem acento, códigos intactos (`POP-06` → `"pop 06"`), stopwords opcionais e Snowball português (`snowballstemmer`, Python puro, sem download). O stemming roda **depois** de tirar o acento: com acento, "diluição" vira `diluiçã` e a pergunta "diluicao" vira `diluica`, e as duas nunca casariam. A variante fica na `meta` do índice (`bm25_stopwords`, `bm25_stemming`), a busca a aplica na consulta e um índice sem essas chaves é tratado como baseline. A lista de stopwords é própria e **nunca** remove negação nem limite: não, nunca, sem, só, antes, depois, até, acima e abaixo (pedidas), mais "mais", "menos", "após" e "entre" (mesmo motivo). |
 | **RRF com k = 60 e 50 candidatos por ranking** | Valor padrão da literatura, sem calibrar. O empate é decidido pela melhor posição individual, depois pelo menor id (determinístico). |
 | **`sqlite-vec` (vetorial) + FTS5 (palavra-chave/BM25)**, busca híbrida com **RRF** | O projeto já é SQLite: sem servidor novo, sem porta, backup = copiar arquivo. Só vetorial erra códigos exatos ("POP-07", "F-12", "Q-22"); só BM25 erra paráfrases de WhatsApp ("900 conto na gaveta" → sangria). O RRF (Reciprocal Rank Fusion) junta os dois rankings pela **posição**, sem calibrar escalas de score diferentes. |
 | **Arquivo separado do `checkpoints.sqlite`** (`data/rag_index.sqlite`) | Ciclos de vida diferentes. O índice é **derivado** do corpus: pode ser apagado e reconstruído pela ingestão a qualquer momento. O checkpoint é **estado de conversa** e não pode ser perdido. Separados, um rebuild do índice nunca encosta no histórico, e não há disputa de lock de escrita entre ingestão e grafo. Os dois ficam no volume `data/`. A ingestão monta o índice num arquivo temporário e só troca no fim (`os.replace`): uma ingestão que falhe nunca deixa índice pela metade. Ela recusa `--db …/checkpoints.sqlite`. A tabela `meta` guarda modelo e dimensão, e a busca recusa um embedder diferente (`IndexMismatchError`). |
@@ -103,6 +106,8 @@ a sobra de padaria só é doada no dia da coleta. Nos outros dias, vira quebra
 | `orchestrator/src/orchestrator/rag/search.py` | `search(conn, pergunta, modo="vetorial" \| "bm25" \| "hibrido", k=5, colecao=...)`, `fts_query`, `rrf_fuse` |
 | `orchestrator/src/orchestrator/rag/ingest.py` | `python -m orchestrator.rag.ingest` (script offline) |
 | `orchestrator/src/orchestrator/rag/evaluate.py` | `python -m orchestrator.rag.evaluate [--json saida.json]` |
+| `orchestrator/src/orchestrator/rag/text.py` | (Missão 4) Normalização PT do BM25: stopwords, stemming, `Bm25Config` e as 4 variantes |
+| `orchestrator/tests/test_rag_text.py` | (Missão 4) 33 testes: negação preservada, mesma normalização dos dois lados, variante na `meta`, vetorial como controle |
 | `orchestrator/tests/test_rag_engine.py` | 42 testes com embedder **falso** (hash de palavras). Inclui o contrato "cada fonte do gabarito é exatamente 1 chunk" |
 | `orchestrator/pyproject.toml` | Extra novo `rag` (`fastembed`, `sqlite-vec`); `sqlite-vec` também no `dev`, porque os testes usam o índice de verdade |
 
@@ -121,7 +126,7 @@ coleção vêm por argumento (`--db`, `--corpus`, `--model`, `--colecao`,
 `--cache-dir`), com defaults em `orchestrator/data/` e
 `orchestrator/fixtures/rag/`. Por isso nenhum campo `ORCHESTRATOR_RAG_*` foi
 criado em `config.py` (o aviso do `extra="forbid"` abaixo continua valendo
-para a Missão 4).
+para a missão do grafo).
 
 **Python 3.14 (venv local):** `fastembed` 0.9.1, `onnxruntime` 1.32.0 (wheel
 `cp314` nativa) e `sqlite-vec` 0.1.9 instalam com `--only-binary=:all:` e
@@ -209,7 +214,7 @@ seguinte, `SocketBlockedError` e o n8n falso de volta (no `settings` e no
 ambiente). OpenRouter, gateway e RAG continuam
 neutralizados nesse modo.
 
-**Cuidado para a Missão 4** (a Missão 3 não criou campo nenhum): o `Settings` herda o `extra="forbid"` padrão do
+**Cuidado para a missão do grafo** (as Missões 3 e 4 não criaram campo nenhum): o `Settings` herda o `extra="forbid"` padrão do
 pydantic-settings. Uma chave `ORCHESTRATOR_RAG_*` posta no `.env` **antes** de
 existir o campo correspondente em `config.py` derruba o import
 (`extra_forbidden`), ou seja, derruba o orquestrador (verificado). Como
@@ -223,7 +228,8 @@ campo em `config.py` e nos dois `.env.example`, depois o valor no `.env`.
 | Antes da Missão 2 (`feat/rag-mvp` @ `33db106`) | **359 passed, 1 skipped** (o skip é o teste live do n8n) |
 | Missão 2 (`ff259cb`) | 383 passed, 1 skipped |
 | Depois da revisão adversária (`7aaa5a7`) | 412 passed, 1 skipped (33 blindagem, 20 consistência das fixtures) |
-| Missão 3 (sem commit) | **455 passed, 1 skipped, 1 xfailed** (+42 motor do RAG, +1 fixtures, +1 blindagem líquido) |
+| Missão 3 (`c9efb2d`) | 455 passed, 1 skipped, 1 xfailed (+42 motor do RAG, +1 fixtures, +1 blindagem líquido) |
+| Missão 4 (sem commit) | **488 passed, 1 skipped, 1 xfailed** (+33 em `test_rag_text.py`) |
 
 Comando: `cd orchestrator && python -m pytest -q`. A suíte precisa do repo
 inteiro: `test_provision_client.py` usa `scripts/` da raiz. Com a rede
@@ -234,7 +240,7 @@ desmarcado (`--deselect`), para não escrever no n8n de produção.
 ## Método de avaliação
 
 Implementado em `orchestrator.rag.evaluate` (só o recall; o julgamento das
-`sem_resposta` depende da resposta gerada, Missão 4).
+`sem_resposta` depende da resposta gerada, missão do grafo).
 
 - **recall@5:** fração das perguntas `direta` e `multi_secao` (17) em que
   **todas** as seções de `secao_fonte` aparecem entre os 5 primeiros trechos
@@ -253,15 +259,17 @@ Implementado em `orchestrator.rag.evaluate` (só o recall; o julgamento das
 
 ## Resultados
 
-Primeira medição, **antes de qualquer ajuste** (2026-11-18). Modelo
+Missão 3: primeira medição, **antes de qualquer ajuste** (2026-11-18). O
+BM25 aqui é o baseline (sem stopwords, sem stemming). A comparação das
+variantes está em *Resultados — Missão 4*. Modelo
 `paraphrase-multilingual-MiniLM-L12-v2`, 46 chunks (6 POPs), k = 5, RRF k = 60.
 Reingestão e reavaliação deram resultado idêntico (determinístico).
 
 | Configuração | recall@5 (17) | Diretas (14) | Multi-seção (3) | "Não sei" correto (3) |
 |---|---|---|---|---|
-| Só vetorial | **13/17 (76%)** | 11/14 | 2/3 | não medido (Missão 4) |
-| Só BM25 (FTS5) | **14/17 (82%)** | 11/14 | 3/3 | não medido (Missão 4) |
-| Híbrido (RRF) | **14/17 (82%)** | 12/14 | 2/3 | não medido (Missão 4) |
+| Só vetorial | **13/17 (76%)** | 11/14 | 2/3 | não medido (missão do grafo) |
+| Só BM25 (FTS5) | **14/17 (82%)** | 11/14 | 3/3 | não medido (missão do grafo) |
+| Híbrido (RRF) | **14/17 (82%)** | 12/14 | 2/3 | não medido (missão do grafo) |
 
 Falhas por pergunta. O número é a posição em que a fonte que faltou apareceu,
 até a 50ª; "—" significa que não apareceu.
@@ -315,18 +323,87 @@ Leitura (hipóteses, **não verificadas**: nada foi ajustado):
 - O `gabarito.yaml` **não foi alterado** nesta missão (o último commit que o
   toca é o `7aaa5a7`, da Missão 2), nem os POPs em `fixtures/rag/supermercado/`.
 
+## Resultados — Missão 4: português no BM25
+
+Uma variável por vez (2026-11-18). Mesmo modelo, mesmos 46 chunks, mesmo
+gabarito; muda só a normalização do BM25. Comando:
+`python -m orchestrator.rag.evaluate --comparar-variantes`, que monta um índice
+temporário por variante.
+
+| Variante do BM25 | Vetorial | BM25 | Híbrido |
+|---|---|---|---|
+| baseline (Missão 3) | 13/17 | 14/17 | 14/17 |
+| só stopwords | 13/17 | 14/17 | 14/17 |
+| **só stemming (padrão)** | 13/17 | **15/17** | 14/17 |
+| stopwords + stemming | 13/17 | 14/17 | 14/17 |
+
+**Controle:** o vetorial ficou igual nas 4 variantes (é o mesmo embedding), e
+o baseline reproduziu os números da Missão 3. Há um teste que garante isso com
+o embedder falso (`test_comparar_variantes_vetorial_e_controle`).
+
+**Perguntas que mudaram de resultado no recall@5** (só duas, ambas no modo BM25):
+
+- **q05 passou a acertar com stemming** (só stemming e stopwords+stemming: 9ª →
+  5ª). A pergunta diz "trocar" e "comprou", o manual diz "troca" e "compra".
+  Sem stemming são palavras diferentes; com ele viram `troc` e `compr`, e a
+  seção "4. Prazo de troca — não perecíveis" passa a casar.
+- **q15 passou a errar com stopwords + stemming** (BM25: "5. Produto vencido
+  vendido pela loja" de 2ª → 7ª). Com cada ajuste sozinho ela fica em 2ª: o
+  erro é da **combinação**. Hipótese plausível, não verificada termo a termo:
+  o stemming transforma termos discriminantes em radicais genéricos (`pag` casa
+  pagamento e "Pague 2"; `venc` casa vencimento, que aparece em muitas seções;
+  `client`), e sem as stopwords os textos encurtam, o que muda a normalização
+  por tamanho do BM25. Seções como "4. Cancelamento de item e de cupom"
+  ultrapassam a fonte.
+
+**Mudanças de posição sem mudar o acerto** (as maiores):
+
+- **q04 (híbrido): 23ª → 14ª** (stopwords), **9ª** (stemming) e **6ª**
+  (stopwords+stemming). No BM25 puro, a seção, que antes nem aparecia, entra
+  em 21ª/16ª com stemming ("trocar" → `troc`). Continua fora do top 5.
+- **q10 (BM25): 8ª → 6ª** com stopwords. Fica pior com stemming (9ª). Segue
+  falhando nos três modos.
+- **q11 (híbrido): 4ª → 2ª** com stopwords. **q13 (BM25): 2ª → 1ª** com stopwords.
+- **q17 (BM25):** "6. Forma de reembolso" cai de 2ª para 3ª, 4ª e 5ª. No limite
+  com stopwords+stemming, ainda dentro do top 5.
+- **q08 e q12 (híbrido):** 1ª → 2ª em algumas variantes, ainda acerto.
+
+**Por que não stopwords+stemming, que melhora o ranking do híbrido em q04 e
+q11?** O critério combinado é o recall@5, e nele essa variante não ganha nada
+e perde a q15 no BM25. Com 17 perguntas, escolher pela posição de uma pergunta
+seria sobreajuste ao gabarito. Fica registrado como empate no híbrido.
+
+### Achados da Missão 4
+
+- **O xfail strict de "onde fica o F-18?" NÃO virou XPASS, e não foi
+  forçado.** Ele só acerta nas variantes **com stopwords** (o "onde" sai da
+  consulta). O padrão escolhido pelo recall é **só stemming**, que mantém o
+  "onde", então o caso continua falhando pelo motivo declarado no `reason`
+  ("BM25 sem stopwords em português"). O `xfail(strict=True)` fica. Um teste
+  novo (`test_f18_com_onde_acerta_nas_variantes_com_stopwords`) prova que as
+  variantes com stopwords acertam. Se o padrão mudar para uma variante com
+  stopwords, o caso vira XPASS, a suíte reprova e o `xfail` deve sair.
+- "fica"/"ficar" chegaram a entrar na lista de stopwords. Saíram antes da
+  medição: não são stopwords usuais do português e só estavam lá por causa da
+  pergunta do F-18. Seria ajustar a lista ao teste.
+- O `gabarito.yaml` e os POPs **não foram alterados** nesta missão (`git diff`
+  vazio em `orchestrator/fixtures/`).
+- **Python 3.11:** não foi possível rodar a suíte. Não há `python3.11` nem
+  `uv` na máquina (só o 3.14). Segue sem verificação: `sqlite_vec.load()` e
+  `snowballstemmer` no 3.11 do CI.
+
 ## Pendências
 
 - Atualizar a linha **LLM08** do `SECURITY.md` (hoje "não aplicável") e
   revisar LLM01 e LLM04: os trechos recuperados são entrada indireta no prompt.
-- Missão 4: ligar ao grafo (`specialist_rag`) e julgar as 3 `sem_resposta`
+- Próxima missão: ligar ao grafo (`specialist_rag`) e julgar as 3 `sem_resposta`
   pelo `criterio_acerto` (exige a resposta gerada). Decidir se `fastembed` e
-  `sqlite-vec` vão para as dependências principais (o `fastembed` traz o
+  `sqlite-vec` (e o `snowballstemmer`) vão para as dependências principais (o `fastembed` traz o
   `onnxruntime` para a imagem) e onde o índice é gerado no deploy (o
   `Dockerfile` não copia `fixtures/`).
-- Ajustes candidatos, **um por vez e medindo de novo**: modelo com janela
-  maior (truncamento em 128 tokens), stopwords e stemming em PT no BM25, peso
-  extra para códigos exatos. Cuidado: com 17 perguntas, ajustar até o número
+- Ajustes candidatos, **um por vez e medindo de novo**: modelo de embedding
+  (o vetorial é o modo mais fraco, 13/17), peso extra para códigos exatos e
+  q10, que falha em tudo. Stopwords e stemming já foram medidos (Missão 4). Cuidado: com 17 perguntas, ajustar até o número
   subir é sobreajuste ao gabarito.
 - Verificar o `sqlite_vec.load()` no Python 3.11 do CI (primeiro push).
 - O bloqueio de socket não cobre processos filhos (`subprocess`): um teste

@@ -41,6 +41,8 @@ dev = [
     # Testes do indice do RAG (tests/test_rag_engine.py) usam o sqlite-vec de
     # verdade, com embedder falso; o fastembed NAO entra aqui.
     "sqlite-vec>=0.1.9,<0.2",
+    # Stemming PT do BM25 (rag/text.py), Python puro, sem download.
+    "snowballstemmer>=3.0,<4",
     "ruff>=0.7",
 ]
 # RAG MVP (docs/RAG.md): ingestao e avaliacao offline. Ainda fora das
@@ -49,6 +51,7 @@ dev = [
 rag = [
     "fastembed>=0.9.1,<0.10",
     "sqlite-vec>=0.1.9,<0.2",
+    "snowballstemmer>=3.0,<4",
 ]
 # Ferramentas de analise de seguranca usadas no CI (.github/workflows/ci.yml).
 security = [

@@ -7,7 +7,10 @@ Tabelas:
   embedder falso dos testes) se misturariam em silencio;
 - `chunks`: arquivo, secao, colecao, texto (o que volta como fonte);
 - `chunks_fts`: FTS5 (BM25), tokenizer `unicode61 remove_diacritics 2`
-  porque as perguntas de WhatsApp chegam sem acento ("ferias", "termometro");
+  porque as perguntas de WhatsApp chegam sem acento ("ferias", "termometro").
+  Com stopwords/stemming ligados (`text.Bm25Config`, padrao), a coluna guarda
+  o texto JA normalizado por `text.normalizar`; a variante fica na `meta`
+  (`bm25_stopwords`, `bm25_stemming`) e a busca aplica a mesma na consulta;
 - `chunks_vec`: sqlite-vec `vec0`, distancia cosseno, com `colecao` como
   coluna de metadado (filtro dentro da propria busca KNN).
 
@@ -26,8 +29,9 @@ import sqlite_vec
 
 from orchestrator.rag.chunking import Chunk
 from orchestrator.rag.embeddings import Embedder
+from orchestrator.rag.text import DEFAULT_BM25, Bm25Config, normalizar
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"  # 2: variante do BM25 na meta
 
 
 class IndexMismatchError(RuntimeError):
@@ -68,7 +72,12 @@ def _criar_schema(conn: sqlite3.Connection, dim: int) -> None:
     conn.execute(f"CREATE VIRTUAL TABLE chunks_vec USING vec0(embedding float[{dim}] distance_metric=cosine, colecao text)")
 
 
-def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path) -> int:
+def _texto_fts(chunk: Chunk, bm25: Bm25Config) -> str:
+    texto = chunk.texto_indexado()
+    return normalizar(texto, bm25) if bm25.normaliza else texto
+
+
+def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path, bm25: Bm25Config = DEFAULT_BM25) -> int:
     """(Re)constroi o indice em `path` e devolve o numero de chunks gravados."""
     if not chunks:
         raise ValueError("nenhum chunk para indexar")
@@ -94,6 +103,8 @@ def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path) -> int:
                         ("model_name", embedder.model_name),
                         ("dim", str(embedder.dim)),
                         ("n_chunks", str(len(chunks))),
+                        ("bm25_stopwords", str(int(bm25.stopwords))),
+                        ("bm25_stemming", str(int(bm25.stemming))),
                     ],
                 )
                 for i, (chunk, vetor) in enumerate(zip(chunks, vetores, strict=True), start=1):
@@ -101,7 +112,7 @@ def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path) -> int:
                         "INSERT INTO chunks (id, arquivo, secao, colecao, texto) VALUES (?, ?, ?, ?, ?)",
                         (i, chunk.arquivo, chunk.secao, chunk.colecao, chunk.texto),
                     )
-                    conn.execute("INSERT INTO chunks_fts (rowid, texto) VALUES (?, ?)", (i, chunk.texto_indexado()))
+                    conn.execute("INSERT INTO chunks_fts (rowid, texto) VALUES (?, ?)", (i, _texto_fts(chunk, bm25)))
                     conn.execute(
                         "INSERT INTO chunks_vec (rowid, embedding, colecao) VALUES (?, ?, ?)",
                         (i, sqlite_vec.serialize_float32(vetor), chunk.colecao),
@@ -125,6 +136,13 @@ def open_index(path: Path) -> sqlite3.Connection:
 
 def read_meta(conn: sqlite3.Connection) -> dict[str, str]:
     return dict(conn.execute("SELECT chave, valor FROM meta").fetchall())
+
+
+def read_bm25_config(conn: sqlite3.Connection) -> Bm25Config:
+    """Variante do BM25 com que o indice foi montado. Indice sem as chaves
+    (schema 1, Missao 3) = baseline: texto cru, sem stopwords nem stemming."""
+    meta = read_meta(conn)
+    return Bm25Config(meta.get("bm25_stopwords") == "1", meta.get("bm25_stemming") == "1")
 
 
 def check_embedder(conn: sqlite3.Connection, embedder: Embedder) -> None:

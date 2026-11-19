@@ -27,6 +27,7 @@ from orchestrator.rag.store import (
     open_index,
     read_meta,
 )
+from orchestrator.rag.text import DEFAULT_BM25
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "rag"
 CORPUS = FIXTURES / "supermercado"
@@ -184,7 +185,14 @@ def test_rebuild_substitui_o_indice(tmp_path, chunks):
     build_index(chunks, FakeEmbedder(), db)
     build_index(chunks[:5], FakeEmbedder("outro", dim=32), db)
     conn = open_index(db)
-    assert read_meta(conn) == {"schema_version": "1", "model_name": "outro", "dim": "32", "n_chunks": "5"}
+    assert read_meta(conn) == {
+        "schema_version": "2",
+        "model_name": "outro",
+        "dim": "32",
+        "n_chunks": "5",
+        "bm25_stopwords": str(int(DEFAULT_BM25.stopwords)),
+        "bm25_stemming": str(int(DEFAULT_BM25.stemming)),
+    }
     conn.close()
 
 
