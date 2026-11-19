@@ -25,6 +25,7 @@ import pytest
 from hermetic_support import (
     FAKE_GATEWAY_URL,
     FAKE_N8N_URL,
+    FAKE_RAG_INDEX_PATH,
     FAKE_SECRET,
     SDK_ENV_VARS_REMOVED,
     SDK_TRACING_VARS_FORCED_OFF,
@@ -216,7 +217,14 @@ _FAKES_DO_CONFTEST = {
     "ORCHESTRATOR_N8N_URL": FAKE_N8N_URL,
     "ORCHESTRATOR_N8N_API_KEY": FAKE_SECRET,
     "ORCHESTRATOR_OPENCLAW_GATEWAY_URL": FAKE_GATEWAY_URL,
+    "ORCHESTRATOR_RAG_INDEX_PATH": FAKE_RAG_INDEX_PATH,
 }
+
+
+def test_indice_do_rag_aponta_para_caminho_inexistente():
+    """Sem isto, o default relativo ao cwd usaria o indice REAL do checkout."""
+    assert settings.rag_index_path == FAKE_RAG_INDEX_PATH
+    assert not Path(FAKE_RAG_INDEX_PATH).exists()
 
 
 def test_ambiente_do_processo_so_tem_os_fakes_do_conftest():

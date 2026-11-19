@@ -1,9 +1,11 @@
+import asyncio
 import json
 import logging
 import time
 
 import httpx
 from langchain_core.messages import (
+    AIMessage,
     BaseMessage,
     HumanMessage,
     SystemMessage,
@@ -19,6 +21,7 @@ from orchestrator.clients.n8n_client import (
 )
 from orchestrator.clients.openclaw_client import OpenClawClient
 from orchestrator.config import settings
+from orchestrator.graph import rag_specialist
 from orchestrator.graph.cybersec_guard import check_production_infra_block
 from orchestrator.graph.n8n_confirmation import (
     NEEDS_CONFIRMATION_KEY,
@@ -44,6 +47,8 @@ from orchestrator.schemas.routing import (
     DispatchSpecialist,
     RouteDestination,
     SpecialistName,
+    dispatch_tool,
+    especialistas_ativos,
 )
 
 # Mapa especialista -> no do grafo que sabe executa-lo. Chave amarrada a
@@ -53,6 +58,7 @@ SPECIALIST_ROUTES = {
     SpecialistName.OPENCLAW.value: "specialist_openclaw",
     SpecialistName.CYBERSEC.value: "specialist_cybersec",
     SpecialistName.N8N.value: "specialist_n8n",
+    SpecialistName.RAG.value: "specialist_rag",
 }
 
 # Tools reais do especialista n8n (bind_tools) - cada uma mapeia 1:1 para um
@@ -204,12 +210,31 @@ _SUPERVISOR_SYSTEM_PROMPT = (
     "e dispara execucao de workflows numa instancia de n8n real em "
     "producao, via tool-calling direto contra a API REST dela. Va com "
     "cautela ao pedir para ele mexer em workflows que ja existiam antes "
-    "desta tarefa - so instrua isso se o usuario pedir explicitamente.\n\n"
+    "desta tarefa - so instrua isso se o usuario pedir explicitamente.\n"
+    "{especialistas_opcionais}\n"
     "Chame a tool DispatchSpecialist uma vez para cada especialista que "
     "precisar acionar (pode chamar mais de uma vez na mesma rodada). Se a "
     "tarefa ja puder ser respondida direto - ou se o progresso registrado "
     "ja e suficiente para concluir - NAO chame nenhuma tool."
 )
+
+# Linha do rag no prompt do supervisor: so entra com settings.rag_enabled.
+_SUPERVISOR_PROMPT_RAG = (
+    "- rag: Especialista de Procedimentos - perguntas sobre procedimentos/"
+    "manual do supermercado: recebimento, validade, troca, caixa, "
+    "higienizacao, precos e etiquetas. So CONSULTA o manual (leitura, sem "
+    "acao nenhuma) e devolve trechos com a fonte (POP e secao). Use para "
+    "qualquer duvida de 'como fazer'/'pode ou nao pode' da rotina da loja, "
+    "mesmo que o manual possa nao cobrir o assunto - ele sabe dizer quando "
+    "nao cobre. Nas instrucoes, repita a pergunta do usuario.\n"
+)
+
+
+def supervisor_system_prompt(rag_enabled: bool | None = None) -> str:
+    """Prompt do supervisor so com os especialistas ativos neste ambiente."""
+    ligado = settings.rag_enabled if rag_enabled is None else rag_enabled
+    return _SUPERVISOR_SYSTEM_PROMPT.replace("{especialistas_opcionais}", _SUPERVISOR_PROMPT_RAG if ligado else "")
+
 
 _SYNTHESIZE_SYSTEM_PROMPT = (
     "Voce e o Cerebro de um orquestrador de agentes de IA, respondendo "
@@ -276,7 +301,11 @@ async def supervisor_node(state: GraphState) -> dict:
         }
 
     task_description = extract_task_description(state["messages"])
-    scratchpad_text = _format_scratchpad(state.get("internal_scratchpad") or [])
+    # LLM01: o supervisor despacha acoes (n8n/openclaw) e NUNCA ve texto de
+    # trecho do manual - so o resumo confiavel das notas do rag.
+    scratchpad_text = _format_scratchpad(
+        rag_specialist.scratchpad_para_supervisor(state.get("internal_scratchpad") or [])
+    )
 
     # --- Resolucao de acao n8n pendente de confirmacao --------------------
     # Roda so na primeira rodada do turno (a proposta que o n8n_node cria
@@ -347,12 +376,12 @@ async def supervisor_node(state: GraphState) -> dict:
         temperature=0,
         api_key=settings.openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
-    ).bind_tools([DispatchSpecialist])
+    ).bind_tools([dispatch_tool(settings.rag_enabled)])
 
     try:
         response = await llm.ainvoke(
             [
-                SystemMessage(content=_SUPERVISOR_SYSTEM_PROMPT),
+                SystemMessage(content=supervisor_system_prompt()),
                 HumanMessage(content=prompt),
             ]
         )
@@ -364,7 +393,18 @@ async def supervisor_node(state: GraphState) -> dict:
             "route": RouteDestination.SPECIALIST.value,
         }
 
-    dispatches = [tc for tc in response.tool_calls if tc["name"] == DispatchSpecialist.__name__]
+    ativos = {e.value for e in especialistas_ativos(settings.rag_enabled)}
+    dispatches = []
+    for tc in response.tool_calls:
+        if tc["name"] != DispatchSpecialist.__name__:
+            continue
+        if tc["args"].get("specialist") not in ativos:
+            # Especialista desligado neste ambiente (ex.: rag sem
+            # ORCHESTRATOR_RAG_ENABLED): o schema nem o oferece, mas um LLM
+            # pode alucinar o nome. Descarta - nunca roteia.
+            _logger.warning("supervisor_node: despacho para especialista inativo descartado: %r", tc["args"].get("specialist"))
+            continue
+        dispatches.append(tc)
 
     if not dispatches:
         _logger.info("supervisor_node: rodada %d, nenhum especialista despachado (rota=general)", iteration_count)
@@ -745,6 +785,55 @@ async def specialist_n8n_node(state: GraphState) -> dict:
     return update
 
 
+async def specialist_rag_node(state: GraphState) -> dict:
+    """No do Especialista de Procedimentos (RAG): SO LEITURA, sem gate de
+    confirmacao (nao executa acao). Busca `rag_top_k` trechos no indice do
+    manual e grava no `internal_scratchpad` a nota com arquivo/secao de cada
+    um (ver graph/rag_specialist.py). Quem compoe a resposta e o
+    `synthesize_final`.
+
+    Busca com a pergunta ORIGINAL do usuario (foi com ela que o recall@5 foi
+    medido), nao com as `instructions` reescritas pelo supervisor - essas so
+    entram se a pergunta vier vazia. Indice ausente/corrompido (ou fastembed
+    ausente nos modos hibrido/vetorial) vira nota de erro + `last_error`: o
+    grafo nunca quebra aqui."""
+    pending = list(state.get("pending_specialists") or [])
+    if not pending:
+        return {"current_specialist": None}
+
+    job = pending.pop(0)
+    update: dict = {"pending_specialists": pending, "current_specialist": None}
+    if not settings.rag_enabled:
+        # Defesa em profundidade: o supervisor ja descarta despacho para o
+        # rag desligado; se algo chegar aqui mesmo assim, nao consulta nada.
+        _logger.warning("specialist_rag_node: rag desligado (ORCHESTRATOR_RAG_ENABLED=false), nada consultado")
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+            "[rag] ERRO: a consulta ao manual esta desligada neste ambiente. NAO redespache o rag."
+        ]
+        update["last_error"] = "especialista rag desligado neste ambiente"
+        return update
+    pergunta = extract_task_description(state["messages"]) or job["instructions"]
+    started_at = time.monotonic()
+    try:
+        hits = await asyncio.to_thread(rag_specialist.buscar_trechos, pergunta)
+    except Exception as exc:
+        _logger.warning("specialist_rag_node: indice do manual indisponivel (%s)", type(exc).__name__, exc_info=True)
+        update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+            rag_specialist.nota_indisponivel(exc)
+        ]
+        update["last_error"] = f"indice do manual indisponivel ({type(exc).__name__})"
+        return update
+
+    elapsed_ms = round((time.monotonic() - started_at) * 1000)
+    _logger.info(
+        "specialist_rag_node: %d trecho(s) em %dms (modo %s)", len(hits), elapsed_ms, settings.rag_search_mode
+    )
+    update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
+        rag_specialist.nota_trechos(hits, settings.rag_search_mode)
+    ]
+    return update
+
+
 def route_after_specialist(state: GraphState) -> str:
     """Borda de fila/loop apos um no de especialista: se ainda ha itens
     enfileirados pelo `supervisor` nesta rodada, drena o proximo direto
@@ -765,7 +854,16 @@ async def synthesize_final_node(state: GraphState) -> dict:
         _logger.warning("synthesize_final_node: abortando por limite de iteracoes do supervisor")
         return {"final_result": _ABORT_MESSAGE}
 
-    scratchpad_text = _format_scratchpad(state.get("internal_scratchpad") or [])
+    scratchpad = state.get("internal_scratchpad") or []
+    # So o rag rodou e nao trouxe trecho (nada encontrado, ou indice
+    # indisponivel): resposta fixa, sem LLM - nada para inventar em cima.
+    fixa = rag_specialist.resposta_fixa(scratchpad)
+    if fixa is not None:
+        _logger.info("synthesize_final_node: resposta fixa do rag (sem LLM)")
+        return {"messages": [AIMessage(content=fixa)], "final_result": fixa}
+
+    rag = rag_specialist.resumir(scratchpad)
+    scratchpad_text = _format_scratchpad(scratchpad)
     task_description = extract_task_description(state["messages"])
 
     prompt = f"Instrucao original do usuario:\n{task_description}"
@@ -780,7 +878,12 @@ async def synthesize_final_node(state: GraphState) -> dict:
         api_key=settings.openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
     )
-    response = await llm.ainvoke([SystemMessage(content=_SYNTHESIZE_SYSTEM_PROMPT), HumanMessage(content=prompt)])
+    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.REGRAS_DO_MANUAL if rag.com_trechos else "")
+    response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=prompt)])
     text = response.content if isinstance(response.content, str) else str(response.content)
+    cited = rag_specialist.garantir_citacao(text, rag.fontes)
+    if cited != text:
+        text = cited
+        response = AIMessage(content=text)
     _logger.info("synthesize_final_node: concluido, iteration_count=%d", state.get("iteration_count", 0))
     return {"messages": [response], "final_result": text}

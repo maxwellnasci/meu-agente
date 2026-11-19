@@ -44,6 +44,7 @@ import pytest_socket
 from hermetic_support import (
     FAKE_GATEWAY_URL,
     FAKE_N8N_URL,
+    FAKE_RAG_INDEX_PATH,
     FAKE_SECRET,
     LIVE_N8N_TEST,
     SDK_ENV_VARS_REMOVED,
@@ -78,6 +79,7 @@ os.environ["ORCHESTRATOR_OPENROUTER_API_KEY"] = FAKE_SECRET
 os.environ["ORCHESTRATOR_N8N_URL"] = FAKE_N8N_URL
 os.environ["ORCHESTRATOR_N8N_API_KEY"] = FAKE_SECRET
 os.environ["ORCHESTRATOR_OPENCLAW_GATEWAY_URL"] = FAKE_GATEWAY_URL
+os.environ["ORCHESTRATOR_RAG_INDEX_PATH"] = FAKE_RAG_INDEX_PATH
 
 # --- Camada 2: rede ----------------------------------------------------------
 pytest_socket.disable_socket(allow_unix_socket=True)

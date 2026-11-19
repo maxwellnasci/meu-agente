@@ -25,6 +25,13 @@ dependencies = [
     "certifi>=2026.10.18",
     "urllib3>=2.8.0",
     "langgraph-sdk>=0.4.6",
+    # Especialista de Procedimentos (RAG): o grafo importa orchestrator.rag,
+    # e o modo padrao (bm25) precisa do indice sqlite-vec/FTS5 e do stemming
+    # PT. Os dois sao pequenos (sem modelo, sem download). O fastembed
+    # (onnxruntime, pesado) fica no extra `rag`: so os modos hibrido/vetorial
+    # e a ingestao precisam dele.
+    "sqlite-vec>=0.1.9,<0.2",
+    "snowballstemmer>=3.0,<4",
 ]
 
 [project.optional-dependencies]
@@ -38,20 +45,14 @@ dev = [
     # na 0.8.1. Nenhuma API privada e usada (o loopback_socket herda do
     # socket.socket da stdlib guardado em hermetic_support).
     "pytest-socket>=0.8.1,<0.9",
-    # Testes do indice do RAG (tests/test_rag_engine.py) usam o sqlite-vec de
-    # verdade, com embedder falso; o fastembed NAO entra aqui.
-    "sqlite-vec>=0.1.9,<0.2",
-    # Stemming PT do BM25 (rag/text.py), Python puro, sem download.
-    "snowballstemmer>=3.0,<4",
     "ruff>=0.7",
 ]
-# RAG MVP (docs/RAG.md): ingestao e avaliacao offline. Ainda fora das
-# dependencias principais: nada no grafo usa RAG ate a Missao 4, e o fastembed
-# traz o onnxruntime (pesado) para a imagem. Testado no Python 3.14.
+# RAG MVP (docs/RAG.md): ingestao offline, avaliacao e os modos de busca
+# hibrido/vetorial. Fora das dependencias principais porque o fastembed traz o
+# onnxruntime (pesado) para a imagem; o modo padrao (bm25) nao precisa dele.
+# Testado no Python 3.14.
 rag = [
     "fastembed>=0.9.1,<0.10",
-    "sqlite-vec>=0.1.9,<0.2",
-    "snowballstemmer>=3.0,<4",
 ]
 # Ferramentas de analise de seguranca usadas no CI (.github/workflows/ci.yml).
 security = [

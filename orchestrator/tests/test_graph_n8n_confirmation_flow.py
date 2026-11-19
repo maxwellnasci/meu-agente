@@ -27,8 +27,8 @@ from orchestrator.graph import n8n_confirmation
 from orchestrator.graph.builder import build_graph
 from orchestrator.graph.nodes import (
     _N8N_SYSTEM_PROMPT,
-    _SUPERVISOR_SYSTEM_PROMPT,
     _SYNTHESIZE_SYSTEM_PROMPT,
+    supervisor_system_prompt,
 )
 from orchestrator.graph.state import fresh_turn_input
 
@@ -49,7 +49,7 @@ class _FakeLLM:
     async def ainvoke(self, messages, *_a, **_k):
         system = messages[0].content
         human = messages[-1].content
-        if system == _SUPERVISOR_SYSTEM_PROMPT:
+        if system == supervisor_system_prompt():
             self.calls["supervisor"] += 1
             return self._supervisor(human)
         if system == _N8N_SYSTEM_PROMPT:

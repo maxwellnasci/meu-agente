@@ -8,6 +8,7 @@ from orchestrator.graph.nodes import (
     specialist_cybersec_node,
     specialist_n8n_node,
     specialist_openclaw_node,
+    specialist_rag_node,
     supervisor_node,
     synthesize_final_node,
 )
@@ -25,8 +26,8 @@ def build_graph(checkpointer: BaseCheckpointSaver):
     O `supervisor` decide via tool-calling quais especialistas acionar
     (SPECIALIST_ROUTES mapeia cada nome de especialista a seu no); os
     especialistas disponiveis sao o OpenClaw (`specialist_openclaw`,
-    Programacao), o Ciberseguranca (`specialist_cybersec`) e a Automacao/n8n
-    (`specialist_n8n`). Novos especialistas entram adicionando um no aqui e
+    Programacao), o Ciberseguranca (`specialist_cybersec`), a Automacao/n8n
+    (`specialist_n8n`) e o de Procedimentos/RAG (`specialist_rag`, so leitura). Novos especialistas entram adicionando um no aqui e
     uma entrada em SPECIALIST_ROUTES/SpecialistName, sem mexer no resto do
     grafo.
 
@@ -40,6 +41,7 @@ def build_graph(checkpointer: BaseCheckpointSaver):
     graph.add_node("specialist_openclaw", specialist_openclaw_node)
     graph.add_node("specialist_cybersec", specialist_cybersec_node)
     graph.add_node("specialist_n8n", specialist_n8n_node)
+    graph.add_node("specialist_rag", specialist_rag_node)
     graph.add_node("synthesize_final", synthesize_final_node)
 
     graph.add_edge(START, "supervisor")
@@ -59,6 +61,7 @@ def build_graph(checkpointer: BaseCheckpointSaver):
     graph.add_conditional_edges("specialist_openclaw", route_after_specialist, specialist_destinations)
     graph.add_conditional_edges("specialist_cybersec", route_after_specialist, specialist_destinations)
     graph.add_conditional_edges("specialist_n8n", route_after_specialist, specialist_destinations)
+    graph.add_conditional_edges("specialist_rag", route_after_specialist, specialist_destinations)
 
     graph.add_edge("synthesize_final", END)
 

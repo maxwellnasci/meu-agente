@@ -21,6 +21,11 @@ FAKE_SECRET = "test-only-not-a-real-key"
 FAKE_N8N_URL = "https://n8n.test.invalid"
 FAKE_GATEWAY_URL = "http://openclaw-gateway.test.invalid:18789"
 
+# Indice do RAG inexistente: o default (`./data/rag_index.sqlite`, relativo
+# ao cwd) apontaria para o indice REAL do checkout. Teste que precisa de
+# indice monta um em tmp_path e troca `settings.rag_index_path` por monkeypatch.
+FAKE_RAG_INDEX_PATH = "/nonexistent/orchestrator-tests/rag_index.sqlite"
+
 # Unico teste da suite autorizado a usar rede/credenciais reais (n8n de
 # producao), e so com RUN_LIVE_N8N_TESTS=1. Ver `live_n8n_credentials` no conftest.
 LIVE_N8N_TEST = "test_specialist_n8n.py::test_create_and_delete_workflow_against_real_n8n_instance"

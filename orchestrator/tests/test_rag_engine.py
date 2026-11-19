@@ -342,7 +342,8 @@ def test_importar_o_rag_nao_carrega_fastembed(tmp_path):
     import sys
 
     codigo = (
-        "import sys, orchestrator.rag, orchestrator.rag.evaluate, orchestrator.rag.ingest; "
+        "import sys, orchestrator.rag, orchestrator.rag.evaluate, orchestrator.rag.ingest, "
+        "orchestrator.graph.nodes, orchestrator.main; "
         "print(sorted(m for m in ('fastembed', 'onnxruntime') if m in sys.modules))"
     )
     saida = subprocess.run(
