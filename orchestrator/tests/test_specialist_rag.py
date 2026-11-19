@@ -126,9 +126,9 @@ def _texto(mensagens) -> str:
 # --- configuracao ---------------------------------------------------------------
 
 
-def test_config_do_rag_tem_padrao_bm25_e_valida():
+def test_config_do_rag_tem_padrao_hibrido_e_valida():
     s = Settings(_env_file=None)
-    assert (s.rag_search_mode, s.rag_top_k, s.rag_colecao) == ("bm25", 5, "supermercado")
+    assert (s.rag_search_mode, s.rag_top_k, s.rag_colecao) == ("hibrido", 5, "supermercado")
     with pytest.raises(ValidationError):
         Settings(_env_file=None, rag_search_mode="semantico")
     with pytest.raises(ValidationError):

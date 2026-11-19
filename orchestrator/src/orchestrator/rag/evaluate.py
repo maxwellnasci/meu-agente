@@ -13,6 +13,7 @@ apareceu - e a primeira pista do porque.
 
 import argparse
 import json
+import re
 import tempfile
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass, field
@@ -21,6 +22,7 @@ from pathlib import Path
 import yaml
 
 from orchestrator.rag.chunking import chunk_corpus
+from orchestrator.rag.contextualize import DEFAULT_CONTEXTOS, carregar_contextos
 from orchestrator.rag.embeddings import DEFAULT_MODEL, Embedder, FastEmbedEmbedder
 from orchestrator.rag.ingest import (
     DEFAULT_CACHE,
@@ -31,7 +33,7 @@ from orchestrator.rag.ingest import (
 )
 from orchestrator.rag.search import CANDIDATOS, MODOS, search
 from orchestrator.rag.store import build_index, open_index, read_bm25_config, read_meta
-from orchestrator.rag.text import VARIANTES, Bm25Config
+from orchestrator.rag.text import DEFAULT_BM25, VARIANTES, Bm25Config
 
 DEFAULT_GABARITO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "gabarito.yaml"
 TIPOS_AVALIADOS = ("direta", "multi_secao")
@@ -134,9 +136,87 @@ def comparar_variantes(chunks, perguntas, embedder: Embedder, *, k: int = 5, col
     return out
 
 
-def relatorio_variantes(por_variante: dict[str, list[ResultadoPergunta]], k: int = 5) -> str:
+VARIANTES_CONTEXTO = (
+    ("sem contexto", "nenhum"),
+    ("contexto so no BM25", "bm25"),
+    ("contexto no BM25 + embedding", "ambos"),
+)
+
+
+def comparar_contexto(chunks, perguntas, embedder: Embedder, contextos, *, k: int = 5,
+                      colecao: str = DEFAULT_COLECAO, bm25: Bm25Config = DEFAULT_BM25) -> dict[str, list[ResultadoPergunta]]:
+    """Contextual retrieval, uma variavel por vez: mesmos chunks, embedder,
+    variante do BM25 (padrao da Missao 4) e gabarito; muda so ONDE entra o
+    contexto. Controles: "sem contexto" reproduz a Missao 4, e na variante "so
+    no BM25" o vetorial tem de sair identico ao "sem contexto"."""
+    out: dict[str, list[ResultadoPergunta]] = {}
+    with tempfile.TemporaryDirectory(prefix="rag-contexto-") as d:
+        for nome, onde in VARIANTES_CONTEXTO:
+            db = Path(d) / f"{onde}.sqlite"
+            build_index(chunks, embedder, db, bm25, contextos if onde != "nenhum" else None, onde)
+            conn = open_index(db)
+            try:
+                assert read_meta(conn)["contexto_em"] == onde
+                out[nome] = avaliar(conn, perguntas, embedder, k=k, colecao=colecao)
+            finally:
+                conn.close()
+    return out
+
+
+_CODIGO = re.compile(r"\b(?:POP|F|Q|P)-\d{2}\b")
+
+
+def estatisticas_tokens(chunks, contextos, contar, janela: int = 128) -> dict:
+    """Quanto do texto do PROPRIO chunk cabe na janela do modelo de embedding
+    quando o contexto vai na frente (o resto e truncado e nao entra no vetor)."""
+    sem = [contar(c.texto_indexado()) for c in chunks]
+    com = [contar(f"{contextos[c.chave]}\n{c.texto_indexado()}") for c in chunks]
+    ctx = [contar(contextos[c.chave]) for c in chunks]
+    frac_sem = [min(s_, janela) / s_ for s_ in sem]
+    frac_com = [min(s_, max(0, janela - t)) / s_ for s_, t in zip(sem, ctx, strict=True)]
+    novos = [c.chave for c in chunks if set(_CODIGO.findall(contextos[c.chave])) - set(_CODIGO.findall(c.texto))]
+    return {
+        "janela": janela,
+        "acima_sem_contexto": sum(t > janela for t in sem),
+        "acima_com_contexto": sum(t > janela for t in com),
+        "tokens_contexto_medio": sum(ctx) / len(ctx),
+        "fracao_do_chunk_na_janela_sem": sum(frac_sem) / len(frac_sem),
+        "fracao_do_chunk_na_janela_com": sum(frac_com) / len(frac_com),
+        "fracao_minima_com": min(frac_com),
+        "contextos_com_codigo_ausente_do_chunk": novos,
+    }
+
+
+def relatorio_tokens(est: dict, n: int) -> str:
+    linha1 = (
+        f"Tokens (MiniLM, janela {est['janela']}): acima da janela sem contexto {est['acima_sem_contexto']}/{n}, "
+        f"com contexto {est['acima_com_contexto']}/{n}; contexto medio {est['tokens_contexto_medio']:.0f} tokens."
+    )
+    linha2 = (
+        f"Fracao do texto do proprio chunk dentro da janela: {est['fracao_do_chunk_na_janela_sem']:.0%} sem contexto, "
+        f"{est['fracao_do_chunk_na_janela_com']:.0%} com contexto (pior chunk: {est['fracao_minima_com']:.0%})."
+    )
+    linha3 = (
+        "Contextos que citam codigo (POP/F/Q/P) ausente do proprio chunk: "
+        f"{len(est['contextos_com_codigo_ausente_do_chunk'])}/{n}."
+    )
+    return f"{linha1}\n{linha2}\n{linha3}"
+
+
+def _contador_minilm(model: str, cache_dir: Path):
+    """Tokenizer do proprio modelo, SEM truncamento (API interna do fastembed;
+    so neste script offline)."""
+    from fastembed import TextEmbedding
+
+    tok = TextEmbedding(model_name=model, cache_dir=str(cache_dir)).model.tokenizer
+    tok.no_truncation()
+    return lambda texto: len(tok.encode(texto).ids)
+
+
+def relatorio_variantes(por_variante: dict[str, list[ResultadoPergunta]], k: int = 5,
+                        titulo: str = "Variante do BM25") -> str:
     modos = list(MODOS)
-    linhas = ["| Variante do BM25 | " + " | ".join(modos) + " |", "|---|" + "---|" * len(modos)]
+    linhas = [f"| {titulo} | " + " | ".join(modos) + " |", "|---|" + "---|" * len(modos)]
     for nome, resultados in por_variante.items():
         r = resumo(resultados)
         linhas.append(f"| {nome} | " + " | ".join(_fmt(r[m]["total"]) for m in modos) + " |")
@@ -170,11 +250,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--comparar-variantes", action="store_true",
                    help="ignora --db: monta 1 indice temporario por variante do BM25 (a partir de --corpus) e compara")
     p.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    p.add_argument("--comparar-contexto", action="store_true",
+                   help="ignora --db: sem contexto x contexto so no BM25 x contexto no BM25 + embedding")
+    p.add_argument("--contextos", type=Path, default=DEFAULT_CONTEXTOS)
     return p.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.comparar_contexto:
+        chunks = chunk_corpus(args.corpus, args.colecao)
+        contextos = carregar_contextos(args.contextos, args.corpus, args.colecao)
+        embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
+        por_variante = comparar_contexto(chunks, carregar_perguntas(args.gabarito), embedder, contextos,
+                                         k=args.k, colecao=args.colecao)
+        est = estatisticas_tokens(chunks, contextos, _contador_minilm(args.model, args.cache_dir))
+        print(f"modelo {embedder.model_name} | bm25 {DEFAULT_BM25.nome} | contextos {args.contextos}\n")
+        print(relatorio_tokens(est, len(chunks)) + "\n")
+        print(relatorio_variantes(por_variante, args.k, titulo="Contexto"))
+        if args.json:
+            dados = {"tokens": est, **{n: [asdict(r) for r in rs] for n, rs in por_variante.items()}}
+            args.json.write_text(json.dumps(dados, ensure_ascii=False, indent=2, default=list), encoding="utf-8")
+        return 0
     if args.comparar_variantes:
         embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
         por_variante = comparar_variantes(chunk_corpus(args.corpus, args.colecao), carregar_perguntas(args.gabarito),

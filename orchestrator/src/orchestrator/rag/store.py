@@ -19,10 +19,12 @@ temporario ao lado e so no fim troca pelo destino (`os.replace`). Uma
 ingestao que falhe no meio nunca deixa um indice pela metade.
 """
 
+import hashlib
+import json
 import os
 import sqlite3
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import sqlite_vec
@@ -31,7 +33,12 @@ from orchestrator.rag.chunking import Chunk
 from orchestrator.rag.embeddings import Embedder
 from orchestrator.rag.text import DEFAULT_BM25, Bm25Config, normalizar
 
-SCHEMA_VERSION = "2"  # 2: variante do BM25 na meta
+SCHEMA_VERSION = "2"  # 2: variante do BM25 na meta (3a: + contexto_em/contextos_sha256, chaves opcionais)
+
+# Contextual retrieval (Missao 6): onde o contexto gerado entra. NUNCA na
+# coluna `texto` (que vai para o synthesize_final como fonte): o contexto so
+# mexe no RANKING.
+CONTEXTO_EM = ("nenhum", "bm25", "ambos")
 
 
 class IndexMismatchError(RuntimeError):
@@ -72,18 +79,47 @@ def _criar_schema(conn: sqlite3.Connection, dim: int) -> None:
     conn.execute(f"CREATE VIRTUAL TABLE chunks_vec USING vec0(embedding float[{dim}] distance_metric=cosine, colecao text)")
 
 
-def _texto_fts(chunk: Chunk, bm25: Bm25Config) -> str:
+def _com_contexto(chunk: Chunk, contextos: Mapping | None, usar: bool) -> str:
     texto = chunk.texto_indexado()
+    return f"{contextos[chunk.chave]}\n{texto}" if usar else texto
+
+
+def _texto_fts(chunk: Chunk, bm25: Bm25Config, contextos: Mapping | None = None, usar: bool = False) -> str:
+    texto = _com_contexto(chunk, contextos, usar)
     return normalizar(texto, bm25) if bm25.normaliza else texto
 
 
-def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path, bm25: Bm25Config = DEFAULT_BM25) -> int:
-    """(Re)constroi o indice em `path` e devolve o numero de chunks gravados."""
+def contextos_sha256(contextos: Mapping[tuple[str, str], str]) -> str:
+    itens = sorted([list(k), v] for k, v in contextos.items())
+    return hashlib.sha256(json.dumps(itens, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def build_index(
+    chunks: Sequence[Chunk],
+    embedder: Embedder,
+    path: Path,
+    bm25: Bm25Config = DEFAULT_BM25,
+    contextos: Mapping[tuple[str, str], str] | None = None,
+    contexto_em: str = "nenhum",
+) -> int:
+    """(Re)constroi o indice em `path` e devolve o numero de chunks gravados.
+
+    `contexto_em`: "nenhum" (padrao), "bm25" (contexto so no FTS) ou "ambos"
+    (FTS + embedding). Com contexto, TODO chunk precisa ter o seu - indice
+    parcial misturaria duas variaveis."""
     if not chunks:
         raise ValueError("nenhum chunk para indexar")
+    if contexto_em not in CONTEXTO_EM:
+        raise ValueError(f"contexto_em invalido: {contexto_em!r} (use {CONTEXTO_EM})")
+    if contexto_em != "nenhum":
+        faltando = [c.chave for c in chunks if not (contextos or {}).get(c.chave, "").strip()]
+        if faltando:
+            raise ValueError(f"{len(faltando)} chunk(s) sem contexto (ex.: {faltando[0]})")
+    no_fts = contexto_em in ("bm25", "ambos")
+    no_vetor = contexto_em == "ambos"
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    vetores = embedder.embed_documents([c.texto_indexado() for c in chunks])
+    vetores = embedder.embed_documents([_com_contexto(c, contextos, no_vetor) for c in chunks])
     if len(vetores) != len(chunks) or any(len(v) != embedder.dim for v in vetores):
         raise ValueError("o embedder devolveu quantidade ou dimensao de vetores inesperada")
 
@@ -105,6 +141,8 @@ def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path, bm25: B
                         ("n_chunks", str(len(chunks))),
                         ("bm25_stopwords", str(int(bm25.stopwords))),
                         ("bm25_stemming", str(int(bm25.stemming))),
+                        ("contexto_em", contexto_em),
+                        ("contextos_sha256", contextos_sha256(contextos) if no_fts else ""),
                     ],
                 )
                 for i, (chunk, vetor) in enumerate(zip(chunks, vetores, strict=True), start=1):
@@ -112,7 +150,7 @@ def build_index(chunks: Sequence[Chunk], embedder: Embedder, path: Path, bm25: B
                         "INSERT INTO chunks (id, arquivo, secao, colecao, texto) VALUES (?, ?, ?, ?, ?)",
                         (i, chunk.arquivo, chunk.secao, chunk.colecao, chunk.texto),
                     )
-                    conn.execute("INSERT INTO chunks_fts (rowid, texto) VALUES (?, ?)", (i, _texto_fts(chunk, bm25)))
+                    conn.execute("INSERT INTO chunks_fts (rowid, texto) VALUES (?, ?)", (i, _texto_fts(chunk, bm25, contextos, no_fts)))
                     conn.execute(
                         "INSERT INTO chunks_vec (rowid, embedding, colecao) VALUES (?, ?, ?)",
                         (i, sqlite_vec.serialize_float32(vetor), chunk.colecao),

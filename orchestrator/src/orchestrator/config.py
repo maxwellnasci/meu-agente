@@ -173,9 +173,11 @@ class Settings(BaseSettings):
     # configurado aqui: vem da tabela `meta` do proprio indice (evita buscar
     # com um modelo diferente do da ingestao).
     rag_index_path: str = "./data/rag_index.sqlite"
-    # bm25 (padrao, medido na Missao 4: 15/17 de recall@5, sem precisar do
-    # fastembed) | hibrido | vetorial (esses dois exigem o extra `rag`).
-    rag_search_mode: Literal["bm25", "hibrido", "vetorial"] = "bm25"
+    # hibrido (PADRAO desde a Missao 6: com o indice gerado com contexto em
+    # BM25 + embedding, 16/17 de recall@5; decisao pela regra pre-registrada,
+    # docs/RAG.md) | bm25 (15/17, sem fastembed) | vetorial. hibrido e vetorial
+    # exigem o extra `rag` (fastembed): sem ele, a consulta vira erro tratado.
+    rag_search_mode: Literal["bm25", "hibrido", "vetorial"] = "hibrido"
     rag_top_k: int = Field(default=5, ge=1, le=20)
     rag_colecao: str = "supermercado"
     # Cache do modelo de embedding (so usado nos modos hibrido/vetorial).

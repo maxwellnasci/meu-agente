@@ -192,6 +192,8 @@ def test_rebuild_substitui_o_indice(tmp_path, chunks):
         "n_chunks": "5",
         "bm25_stopwords": str(int(DEFAULT_BM25.stopwords)),
         "bm25_stemming": str(int(DEFAULT_BM25.stemming)),
+        "contexto_em": "nenhum",
+        "contextos_sha256": "",
     }
     conn.close()
 

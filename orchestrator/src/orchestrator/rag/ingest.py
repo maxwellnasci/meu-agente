@@ -13,8 +13,9 @@ import sys
 from pathlib import Path
 
 from orchestrator.rag.chunking import chunk_corpus
+from orchestrator.rag.contextualize import DEFAULT_CONTEXTOS, carregar_contextos
 from orchestrator.rag.embeddings import DEFAULT_MODEL, FastEmbedEmbedder
-from orchestrator.rag.store import build_index
+from orchestrator.rag.store import CONTEXTO_EM, build_index
 from orchestrator.rag.text import DEFAULT_BM25, Bm25Config
 
 ORCHESTRATOR_DIR = Path(__file__).resolve().parents[3]
@@ -35,6 +36,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="stopwords em PT no BM25 (padrao: %(default)s)")
     p.add_argument("--stemming", action=argparse.BooleanOptionalAction, default=DEFAULT_BM25.stemming,
                    help="stemming Snowball PT no BM25 (padrao: %(default)s)")
+    # Padrao "ambos" desde a Missao 6 (contexto no BM25 + embedding, 16/17).
+    # Exige um contextos.json valido para o corpus atual (POP editado = regerar).
+    p.add_argument("--contexto-em", choices=CONTEXTO_EM, default="ambos",
+                   help="contextual retrieval: onde o contexto gerado entra (padrao: %(default)s)")
+    p.add_argument("--contextos", type=Path, default=DEFAULT_CONTEXTOS, help="arquivo gerado por rag.contextualize")
     return p.parse_args(argv)
 
 
@@ -44,12 +50,15 @@ def main(argv: list[str] | None = None) -> int:
         print("erro: o indice do RAG nao pode ser o checkpoints.sqlite", file=sys.stderr)
         return 2
     chunks = chunk_corpus(args.corpus, args.colecao)
+    # Contextos ANTES do embedder: contextos.json obsoleto falha cedo, sem
+    # carregar modelo.
+    contextos = carregar_contextos(args.contextos, args.corpus, args.colecao) if args.contexto_em != "nenhum" else None
     embedder = FastEmbedEmbedder(args.model, cache_dir=args.cache_dir)
     bm25 = Bm25Config(stopwords=args.stopwords, stemming=args.stemming)
-    n = build_index(chunks, embedder, args.db, bm25)
+    n = build_index(chunks, embedder, args.db, bm25, contextos, args.contexto_em)
     arquivos = len({c.arquivo for c in chunks})
     print(f"{n} chunks de {arquivos} arquivos -> {args.db} (modelo {embedder.model_name}, dim {embedder.dim}, "
-          f"bm25 {bm25.nome})")
+          f"bm25 {bm25.nome}, contexto {args.contexto_em})")
     return 0
 
 
