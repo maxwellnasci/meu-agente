@@ -20,8 +20,57 @@ multi-agente com controles de segurança determinísticos** em volta do LLM — 
 | **Segurança de agentes (OWASP LLM Top 10)** | Gate de confirmação com TTL e uso único para ações em produção; allowlist de argumentos vindos do LLM; gate de alvos protegidos; limites de entrada | [SECURITY.md](SECURITY.md) |
 | **Auditoria com provas** | 17 achados registrados (severidade, evidência, status — inclusive os que seguem abertos). Os de maior severidade têm PoC offline e correção guiada por teste (red → green): path traversal controlado pelo LLM, bypass de guardrail, confirmação fraca de ações em produção, injeção de shell no CI | [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md) |
 | **Engenharia de produção** | Webhook com HMAC, anti-replay, fila por remetente; deploy via imagem publicada (GHCR); provisionamento multi-cliente; moldes de servidor dedicado sem portas expostas | [`extensions/`](extensions/), [`deployments/`](deployments/servidor-dedicado/), [`scripts/provision-client.sh`](scripts/provision-client.sh) |
-| **Qualidade e supply chain** | 359 testes herméticos (Python 3.11 e 3.14), ruff, bandit, pip-audit, gitleaks (histórico completo semanal), shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Qualidade e supply chain** | 559 testes herméticos (Python 3.11 e 3.14), ruff, bandit, pip-audit, gitleaks (histórico completo semanal), shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | **Pós-incidentes documentados** | Falhas reais viraram documentos: o bug do "coma eterno", a investigação de travamento de hooks e a criação indevida de workflow no n8n | [docs/RESOLUCAO_BUG_COMA_ETERNO.md](docs/RESOLUCAO_BUG_COMA_ETERNO.md), [docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md), [docs/archive/P0_CONTENCAO_N8N_2026-09-06.md](docs/archive/P0_CONTENCAO_N8N_2026-09-06.md) |
+
+## RAG: manual de procedimentos
+
+Especialista `rag` no agente: responde perguntas sobre um manual de
+procedimentos (fictício) de supermercado **citando o POP e a seção**, e diz "o
+manual de procedimentos não cobre isso" em vez de inventar.
+
+**recall@5 da busca** (gabarito fixo, 17 perguntas com fonte, 6 POPs):
+
+| Passo | recall@5 |
+|---|---|
+| BM25 (baseline) | 14/17 (82%) |
+| BM25 com stemming em português | 15/17 (88%) |
+| **Híbrido (BM25 + vetor, RRF) com contextual retrieval**, o padrão atual | **16/17 (94%)** |
+| + reranking (cross-encoder): MRR 0,60 → 0,81 | 16/17, **não adotado** (p95 de 10 s) |
+
+> Cada passo é **1 pergunta em 17**, dentro do ruído: é tendência, não prova
+> estatística. A tabela mede só a busca; a avaliação das respostas ainda não
+> foi feita (o smoke test real cobriu 2 perguntas).
+
+**Aprendizados:**
+- O híbrido empatou com o BM25 e depois perdeu para ele (com stemming); só
+  passou à frente com contextual retrieval.
+- O reranking melhorou muito a ordem (recall@1 de 6 para 12 em 17), mas foi
+  barrado pela latência, pela regra fixada antes de medir.
+- Comparação numérica ("faltam 3 reais: cabe em até R$ 5,00?") é limite do RAG.
+  Dado numérico ou estruturado vai por SQL ou camada semântica, não por busca.
+
+**Como foi feito:**
+- critérios de decisão pré-registrados antes de cada medição, e só eles
+  decidem;
+- revisão adversária por outro modelo (Gemini, via Antigravity) nas etapas de
+  fundação; as missões mais recentes ainda aguardam revisão;
+- testes com rede bloqueada, LLM e embedder falsos, sem chamada a modelo real
+  no pytest.
+
+**Como rodar** (o `rag` vem **desligado por padrão**: `ORCHESTRATOR_RAG_ENABLED=false`):
+
+```bash
+cd orchestrator
+pip install -e ".[rag]"
+python -m orchestrator.rag.ingest      # índice local (híbrido + contexto)
+python -m orchestrator.rag.evaluate    # recall@5 no gabarito
+python -m orchestrator.rag.smoke "o preço na prateleira ta mais barato do que passou no caixa, cobro qual?"             # só mostra o plano
+python -m orchestrator.rag.smoke --executar "o preço na prateleira ta mais barato do que passou no caixa, cobro qual?"  # LLM real (OpenRouter, centavos)
+```
+
+O smoke liga o `rag` só no próprio processo. Detalhes, números por pergunta e
+decisões: [docs/RAG.md](docs/RAG.md).
 
 ## Arquitetura
 
@@ -45,7 +94,7 @@ SQLite (checkpointer) · LangSmith (tracing opcional) — **TypeScript** (plugin
 ## Estrutura
 
 ```
-orchestrator/            cérebro LangGraph (FastAPI) + 359 testes
+orchestrator/            cérebro LangGraph (FastAPI) + 559 testes
 extensions/              plugins TypeScript do gateway
   whatsapp-cloud/          canal WhatsApp oficial (webhook assinado)
   orchestrator-bridge/     ferramenta ask_orchestrator
