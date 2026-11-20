@@ -630,3 +630,175 @@ def test_respostas_que_falham_na_primeira_pergunta_nao_gravam_arquivo(tmp_path, 
     assert av.main(["--executar", "--etapa", "respostas"]) == 2
     assert "nada gravado" in capsys.readouterr().err
     assert not list(tmp_path.glob("respostas-*.json"))
+
+
+# --- (g) formato (pre-registro de 20/11) e desvio --sem-calibracao ----------------
+# So textos SINTETICOS: o criterio (g) nao e ajustado olhando as respostas reais.
+
+FMT = av.carregar_formato()
+
+
+def test_formato_congelado_bate_com_o_hash_e_adulterado_e_recusado(tmp_path):
+    assert FMT["sim_nao"] == {"q01", "q02", "q04", "q05", "q10"}
+    assert (FMT["max_linhas"], FMT["largura"]) == (3, 80)
+    copia = tmp_path / "formato_v1.yaml"
+    copia.write_text(av.FORMATO.read_text(encoding="utf-8").replace("max_linhas: 3", "max_linhas: 30"), encoding="utf-8")
+    with pytest.raises(juiz.PromptAdulterado):
+        av.carregar_formato(copia)
+
+
+def test_sim_nao_gabarito_comeca_por_sim_ou_nao_nas_escolhidas():
+    for qid in FMT["sim_nao"]:
+        assert FMT["inicio"].search(av.normalizar(G[qid]["resposta_esperada"])), qid
+
+
+@pytest.mark.parametrize(("resposta", "esperado"), [
+    ("Não. A doca fecha às 14h.", True),
+    ("**Não**, só com o F-03.", True),
+    ("Nao pode receber.", True),
+    ("Sim, dentro de 7 dias.", True),
+    ("\n\n- Sim: está no prazo.", True),
+    ("Segundo o manual, não pode.", False),
+    ("Simples: não pode.", False),
+    ("Naonde?", False),
+    ("", False),
+])
+def test_formato_a_primeira_linha_comeca_por_sim_ou_nao(resposta, esperado):
+    assert av.checar_formato(resposta, "q01", FMT)["sim_nao"] is esperado
+
+
+def test_formato_a_nao_se_aplica_fora_das_sim_nao():
+    assert av.checar_formato("Não. 15 minutos.", "q11", FMT)["sim_nao"] is None
+
+
+@pytest.mark.parametrize(("resposta", "linhas", "curta"), [
+    ("Não.\nSó das 6h às 14h.\nFora disso, F-03.\n\nDetalhe 1\nDetalhe 2\nDetalhe 3\nDetalhe 4", 3, True),
+    ("Não.\n- um\n- dois\n- três\n\nresto", 4, False),                  # cada item de lista e uma linha
+    ("x" * 80 + "\n\nresto", 1, True),
+    ("x" * 81 + "\n\nresto", 2, True),
+    ("x" * 241 + "\n\nresto", 4, False),                               # paragrafo longo nao vale "1 linha"
+    ("**" + "x" * 80 + "**\n\nresto", 1, True),                          # markdown nao conta caractere
+    ("um\ndois\ntres\nquatro", 4, False),                              # sem linha em branco: tudo e principal
+    ("\n\num\n\ndois", 1, True),                                       # linhas em branco no inicio nao abrem o complemento
+    ("", 0, False),
+])
+def test_formato_b_principal_ate_3_linhas_antes_do_complemento(resposta, linhas, curta):
+    r = av.checar_formato(resposta, "q11", FMT)
+    assert (r["linhas_principal"], r["principal_curta"]) == (linhas, curta)
+
+
+@pytest.mark.parametrize(("resposta", "esperado"), [
+    ("15 minutos.\n\nQuer mais detalhes?", True),
+    ("15 minutos.\n\n**Quer que eu explique o passo a passo?**", True),
+    ("15 minutos.\n\nQuer mais detalhes?\n\nFonte: (POP-05, seção \"3. Diluição\")", True),  # citacao depois da oferta
+    ("15 minutos.\n\nQuer mais detalhes?\n(POP-05, seção \"3. Diluição\")", True),
+    ("15 minutos.\nPosso aprofundar algum ponto?", True),
+    ("15 minutos.\n\nPosso explicar melhor?", True),
+    ("15 minutos.\n\nQuer mais detalhes? Posso enviar.", False),         # a linha nao termina com "?"
+    ("15 minutos.\n\nSe quiser me passar esses detalhes, posso ajudar no cálculo!", False),
+    ("15 minutos.\n\nPosso detalhar se quiser.", False),                  # limitacao registrada: sem "?"
+    ("Quer mais detalhes?\n\n15 minutos.", False),                        # a oferta tem de ser a ultima
+    ("15 minutos. Algo mais?", False),                                    # pergunta sem oferta de detalhe
+    ("", False),
+])
+def test_formato_c_termina_oferecendo_detalhes(resposta, esperado):
+    assert av.checar_formato(resposta, "q11", FMT)["oferece_detalhes"] is esperado
+
+
+def _no_formato(g: dict) -> str:
+    inicio = "Não. " if g["id"] in FMT["sim_nao"] else ""
+    return f"{inicio}Resposta curta.\n\nComplemento {_citacao(g)}\n\nQuer mais detalhes?"
+
+
+def test_metricas_g_denominadores_fixos_e_ausente_conta_como_erro():
+    ideais = _respostas_ideais()
+    for r in ideais["perguntas"]:
+        r["resposta_crua"] = _no_formato(G[r["id"]])
+    m = av.calcular_metricas(ideais, GABARITO, FATOS)
+    assert m["g_sim_nao"] == {"acertos": 5, "n": 5}
+    assert m["g_principal_curta"] == {"acertos": 17, "n": 17}
+    assert m["g_oferece_detalhes"] == {"acertos": 20, "n": 20}
+    assert m["g_total"] == {"acertos": 17, "n": 17}
+    ideais["perguntas"] = [r for r in ideais["perguntas"] if r["id"] not in ("q01", "q20")]
+    m = av.calcular_metricas(ideais, GABARITO, FATOS)
+    assert m["g_sim_nao"] == {"acertos": 4, "n": 5}
+    assert m["g_oferece_detalhes"] == {"acertos": 18, "n": 20}
+    assert m["g_total"] == {"acertos": 16, "n": 17}
+    md = av.relatorio_markdown(m)
+    assert "(g) formato total" in md and "q01, q02, q04, q05, q10" in md
+
+
+def test_metricas_g_falha_em_cada_criterio_derruba_o_total():
+    ideais = _respostas_ideais()
+    for r in ideais["perguntas"]:
+        r["resposta_crua"] = _no_formato(G[r["id"]])
+    por = {r["id"]: r for r in ideais["perguntas"]}
+    por["q02"]["resposta_crua"] = por["q02"]["resposta_crua"].replace("Não. ", "Segundo o manual, não. ")   # (a)
+    por["q03"]["resposta_crua"] = "a\nb\nc\nd\n\nQuer mais detalhes?"                                       # (b)
+    por["q06"]["resposta_crua"] = por["q06"]["resposta_crua"].replace("\n\nQuer mais detalhes?", "")      # (c)
+    m = av.calcular_metricas(ideais, GABARITO, FATOS)
+    assert m["g_sim_nao"]["acertos"] == 4 and m["g_principal_curta"]["acertos"] == 16
+    assert m["g_oferece_detalhes"]["acertos"] == 19 and m["g_total"]["acertos"] == 14
+
+
+def test_sem_calibracao_libera_o_juiz_e_grava_o_status(tmp_path, monkeypatch, capsys):
+    _arquivos_m8(tmp_path, monkeypatch, julgamento=False)
+    respostas = _respostas_ideais()
+    ids = av.selecionar_calibracao(av.calcular_metricas(respostas, GABARITO, FATOS))
+    dados = yaml.safe_load(av.gerar_calibracao(respostas, GABARITO, ids))
+    dados["itens"][0]["marcacao"].update(fiel="sim", correta="nao")   # so a q01, como no desvio de 20/11
+    av.CALIBRACAO.write_text(yaml.safe_dump(dados, allow_unicode=True), encoding="utf-8")
+    recebido = {}
+
+    async def julgar_falso(respostas, gabarito, api_key, *, orcamento, calibracao):
+        recebido.update(calibracao)
+        return {"custo_usd": 0.0, "abortado_por_orcamento": False, "calibracao": calibracao,
+                **_julgamento()}
+
+    monkeypatch.setattr(av, "etapa_julgar", julgar_falso)
+    monkeypatch.setattr(settings, "openrouter_api_key", FAKE_SECRET)
+    assert av.main(["--executar", "--etapa", "julgar"]) == 2            # sem a flag, continua recusando
+    assert not list(tmp_path.glob("julgamento-*.json"))
+    assert av.main(["--executar", "--etapa", "julgar", "--sem-calibracao"]) == 0
+    assert "SEM calibracao" in capsys.readouterr().out
+    gravado = json.loads(next(tmp_path.glob("julgamento-*.json")).read_text(encoding="utf-8"))
+    assert gravado["calibracao"]["status"] == "nao_calibrada" == recebido["status"]
+    assert gravado["calibracao"]["itens_marcados"] == ["q01"] and gravado["calibracao"]["itens_previstos"] == 8
+    assert "custo de tempo" in gravado["calibracao"]["motivo"]
+
+
+def test_sem_calibracao_so_vale_com_a_etapa_julgar():
+    for argv in (["--sem-calibracao"], ["--relatorio", "--sem-calibracao"],
+                 ["--executar", "--etapa", "respostas", "--sem-calibracao"]):
+        with pytest.raises(SystemExit):
+            av.parse_args(argv)
+
+
+@pytest.mark.asyncio
+async def test_etapa_julgar_grava_calibrada_por_padrao():
+    respostas = _respostas_ideais()
+    respostas["perguntas"] = respostas["perguntas"][:1]
+    llm = MagicMock()
+    with patch.object(juiz, "julgar", AsyncMock(return_value=({"afirmacoes": [], "correta": True}, {}))):
+        saida = await av.etapa_julgar(respostas, GABARITO, FAKE_SECRET, llm_factory=lambda *a: llm, log=lambda *_: None)
+    assert saida["calibracao"] == {"status": "calibrada"}
+
+
+def test_relatorio_mostra_o_juiz_rotulado_nao_calibrado(tmp_path, monkeypatch, capsys):
+    _arquivos_m8(tmp_path, monkeypatch, julgamento=False)
+    j = {**_julgamento(), "calibracao": av.status_sem_calibracao(tmp_path / "nao-existe.yaml")}
+    (tmp_path / "julgamento-2026-11-20.json").write_text(json.dumps(j), encoding="utf-8")
+    assert av.main(["--relatorio"]) == 0
+    saida = capsys.readouterr().out
+    assert "omite o juiz" not in saida
+    assert "NÃO calibrada" in saida and "Juiz NÃO calibrado" in saida
+    assert "| (f) correção (juiz vê o gabarito — **NÃO calibrada**) | 17/17 |" in saida
+
+
+def test_concordancia_com_calibracao_incompleta_sai_com_erro_limpo(tmp_path, monkeypatch, capsys):
+    _arquivos_m8(tmp_path, monkeypatch)
+    respostas = _respostas_ideais()
+    ids = av.selecionar_calibracao(av.calcular_metricas(respostas, GABARITO, FATOS))
+    av.CALIBRACAO.write_text(av.gerar_calibracao(respostas, GABARITO, ids), encoding="utf-8")
+    assert av.main(["--concordancia"]) == 2
+    assert "marcacao incompleta" in capsys.readouterr().err

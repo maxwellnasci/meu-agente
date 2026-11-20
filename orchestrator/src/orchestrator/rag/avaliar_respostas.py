@@ -10,12 +10,17 @@ smoke. Mede, NAO otimiza: nenhuma mudanca de prompt ou de roteamento aqui.
     python -m orchestrator.rag.avaliar_respostas --calibracao                  # 2. gratis: arquivo p/ o Max marcar
     #                                                                            3. o Max marca as 8 (sem ver o juiz)
     python -m orchestrator.rag.avaliar_respostas --executar --etapa julgar     # 4. pago: juiz (exige 3 feito)
+    #   ... --executar --etapa julgar --sem-calibracao                         #    desvio de 20/11: sem o 3 completo
     python -m orchestrator.rag.avaliar_respostas --concordancia                # 5. gratis: humano x juiz
     python -m orchestrator.rag.avaliar_respostas --relatorio                   # 6. gratis: metricas dos JSONs
 
 Calibracao CEGA, garantida em codigo: o juiz so roda depois de a calibracao
 estar marcada, e o log do juiz nao mostra veredito. Antes do juiz, o
 `--relatorio` mostra so as metricas deterministicas.
+DESVIO de 20/11/2026 (Max): a calibracao parou em 1/8. A flag explicita
+`--sem-calibracao` libera o juiz e grava `calibracao.status = nao_calibrada`
+no julgamento; o `--relatorio` entao mostra o juiz rotulado "NAO calibrada".
+Sem a flag, a trava acima continua igual.
 
 Falha de infraestrutura (erro de LLM capturado por um no, ex. 429/timeout no
 supervisor, que cai no fallback) fica registrada em `erros_llm` e marcada
@@ -34,7 +39,12 @@ e os modelos.
 Resposta CRUA x FINAL: o `garantir_citacao` anexa "Fontes consultadas..."
 quando o LLM nao cita. Um espiao (so neste processo, repassa a chamada sem
 mudar nada) guarda o texto do LLM antes do anexo. As metricas (b), (c)
-espontanea, (d), (e) e (f) usam a CRUA; a (c) final e so informativa.
+espontanea, (d), (e), (f) e (g) usam a CRUA; a (c) final e so informativa.
+
+(g) formato (pre-registro de 20/11, `fixtures/rag/formato_v1.yaml` com hash
+conferido): Sim/Nao na 1a linha (nas sim/nao), principal <= 3 linhas de 80
+caracteres antes da 1a linha em branco, ultima linha oferecendo detalhes.
+Deterministica, sem LLM. Linha de base: as regras atuais nao pedem o formato.
 """
 
 import argparse
@@ -60,6 +70,9 @@ from orchestrator.rag.ingest import ORCHESTRATOR_DIR
 GABARITO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "gabarito.yaml"
 FATOS_CHAVE = ORCHESTRATOR_DIR / "fixtures" / "rag" / "fatos_chave_v1.yaml"
 HASH_FATOS_CHAVE = "16600f54fc6bc459bf5171af7b23552bd264a07fd07d388c5523f39c3258b4ca"
+# Metrica (g) formato: pre-registrada em 20/11/2026 (depois da coleta, antes do calculo).
+FORMATO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "formato_v1.yaml"
+HASH_FORMATO = "6f5605e7e4fc4ae7fc63f3f4613a16c618577718ad0bd00f3c87961115bd2def"
 DIR_SAIDA = ORCHESTRATOR_DIR / "fixtures" / "rag" / "m8"
 CALIBRACAO = DIR_SAIDA / "calibracao_v1.yaml"
 COM_FONTE = ("direta", "multi_secao")
@@ -162,6 +175,63 @@ def checar_sem_resposta(resposta: str, trechos: Sequence[dict]) -> dict:
     nos_trechos = _numeros(normalizar(" ".join(t["texto"] for t in trechos)))
     inventados = sorted(_numeros(_CITACAO.sub(" ", texto)) - nos_trechos)
     return {"acerto": recusa and not inventados, "recusa": recusa, "numeros_fora_dos_trechos": inventados}
+
+
+# --- (g) formato, deterministica (fixtures/rag/formato_v1.yaml) -------------
+
+_MD_QUALQUER = re.compile(r"[*_`]")
+_MD_INICIO = re.compile(r"^\s*(?:[#>]+\s*)*(?:(?:[-+•]|\d+[.)])\s+)?")
+
+
+def carregar_formato(path: Path = FORMATO, hash_esperado: str = HASH_FORMATO) -> dict:
+    atual = juiz.sha256_arquivo(path)
+    if atual != hash_esperado:
+        raise juiz.PromptAdulterado(f"criterio de formato ({Path(path).name}) mudou: {atual} != pre-registrado {hash_esperado}")
+    dados = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    return {
+        "sim_nao": frozenset(dados["perguntas_sim_nao"]),
+        "inicio": re.compile(dados["regex_inicio"]),
+        "max_linhas": int(dados["max_linhas"]),
+        "largura": int(dados["largura_linha"]),
+        "oferta": re.compile(dados["regex_oferta"]),
+        "citacao": re.compile(dados["regex_citacao"]),
+        "rotulo_citacao": re.compile(dados["regex_rotulo_citacao"]),
+    }
+
+
+def limpar_linha(linha: str) -> str:
+    """Tira markdown: * _ ` em qualquer posicao; # > e marcador de lista do inicio."""
+    return _MD_INICIO.sub("", _MD_QUALQUER.sub("", linha)).strip()
+
+
+def _so_citacao(linha_normalizada: str, fmt: dict) -> bool:
+    resto = fmt["rotulo_citacao"].sub(" ", fmt["citacao"].sub(" ", linha_normalizada))
+    return not re.search(r"[a-z0-9]", resto)
+
+
+def checar_formato(resposta: str, qid: str, fmt: dict) -> dict:
+    """(g): (a) 1a linha comeca por Sim/Nao (so nas sim/nao; senao None),
+    (b) principal (antes da 1a linha em branco) <= max_linhas, cada linha
+    valendo ceil(caracteres/largura), (c) ultima linha (sem as linhas so de
+    citacao) termina com "?" e oferece detalhes."""
+    linhas = [limpar_linha(x) for x in (resposta or "").split("\n")]
+    nao_vazias = [x for x in linhas if x]
+    sim_nao = None
+    if qid in fmt["sim_nao"]:
+        sim_nao = bool(nao_vazias) and bool(fmt["inicio"].search(normalizar(nao_vazias[0])))
+    principal = []
+    for x in linhas:
+        if x:
+            principal.append(x)
+        elif principal:
+            break  # 1a linha em branco depois do texto: comeca o complemento
+    n_linhas = sum(-(-len(x) // fmt["largura"]) for x in principal)
+    fim = [normalizar(x) for x in nao_vazias]
+    while fim and _so_citacao(fim[-1], fmt):
+        fim.pop()
+    oferece = bool(fim) and fim[-1].endswith("?") and bool(fmt["oferta"].search(fim[-1]))
+    return {"sim_nao": sim_nao, "linhas_principal": n_linhas,
+            "principal_curta": bool(principal) and n_linhas <= fmt["max_linhas"], "oferece_detalhes": oferece}
 
 
 # --- execucao do grafo ------------------------------------------------------
@@ -383,7 +453,7 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
 
 
 async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, orcamento: float = ORCAMENTO_USD,
-                       llm_factory=juiz.criar_llm, log=print) -> dict:
+                       llm_factory=juiz.criar_llm, log=print, calibracao: dict | None = None) -> dict:
     pf, pc = juiz.prompt_fidelidade(), juiz.prompt_correcao()
     llm_f, llm_c = llm_factory(api_key, pf), llm_factory(api_key, pc)
     por_id = {g["id"]: g for g in gabarito}
@@ -396,6 +466,8 @@ async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, o
         "hashes": {"prompt_fidelidade": pf.hash, "prompt_correcao": pc.hash,
                    "respostas": sha256_texto(json.dumps(respostas, sort_keys=True, ensure_ascii=False))},
         "respostas_data": respostas.get("data"),
+        # "calibrada" (caminho pre-registrado) ou "nao_calibrada" (--sem-calibracao, desvio de 20/11).
+        "calibracao": calibracao or {"status": "calibrada"},
         "custo_usd": 0.0,
         "orcamento_usd": orcamento,
         "abortado_por_orcamento": False,
@@ -441,8 +513,10 @@ async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, o
 
 # --- metricas ---------------------------------------------------------------
 
-def calcular_metricas(respostas: dict, gabarito: list[dict], fatos: dict, julgamento: dict | None = None) -> dict:
+def calcular_metricas(respostas: dict, gabarito: list[dict], fatos: dict, julgamento: dict | None = None,
+                      formato: dict | None = None) -> dict:
     """Denominadores FIXOS pelo gabarito: pergunta ausente ou fora do rag conta como erro."""
+    fmt = formato or carregar_formato()
     por_id = {r["id"]: r for r in respostas["perguntas"]}
     fid = (julgamento or {}).get("fidelidade", {})
     cor = (julgamento or {}).get("correcao", {})
@@ -453,6 +527,8 @@ def calcular_metricas(respostas: dict, gabarito: list[dict], fatos: dict, julgam
         rag = bool(r.get("rag_acionado"))
         linha = {"id": g["id"], "tipo": g["tipo"], "respondida": bool(r), "rag_acionado": rag,
                  "caminho": r.get("caminho", []), "infra": bool(r.get("falha_de_infra"))}
+        # (g) formato: nao depende do rag; pergunta ausente (crua vazia) erra em tudo.
+        linha["formato"] = checar_formato(crua, g["id"], fmt)
         if g["tipo"] in COM_FONTE:
             linha["fatos"] = checar_fatos(crua, fatos[g["id"]])
             linha["citacao_espontanea"] = rag and checar_citacao(crua, g)
@@ -477,6 +553,13 @@ def calcular_metricas(respostas: dict, gabarito: list[dict], fatos: dict, julgam
 
     def sem_resp(x):
         return x["tipo"] == "sem_resposta"
+    def formato_total(x):
+        f = x["formato"]
+        return f["principal_curta"] and f["oferece_detalhes"] and f["sim_nao"] is not False
+
+    for x in linhas:
+        x["formato"]["total"] = formato_total(x) if com_fonte(x) else None
+    sim_nao_ids = fmt["sim_nao"]
     discord = [x["id"] for x in linhas if sem_resp(x) and x["correta_juiz"] is not None
                and x["correta_juiz"] != x["sem_resposta_det"]["acerto"]]
     return {
@@ -496,6 +579,13 @@ def calcular_metricas(respostas: dict, gabarito: list[dict], fatos: dict, julgam
         "e_discordancias": discord,
         "falhas_de_infra": [x["id"] for x in linhas if x["infra"]],
         "f_correcao": conta("correta_juiz", com_fonte),
+        "g_sim_nao": conta("formato", lambda x: x["id"] in sim_nao_ids, "sim_nao"),
+        "g_principal_curta": conta("formato", com_fonte, "principal_curta"),
+        "g_oferece_detalhes": conta("formato", sub="oferece_detalhes"),
+        "g_oferece_detalhes_com_fonte": conta("formato", com_fonte, "oferece_detalhes"),
+        "g_total": conta("formato", com_fonte, "total"),
+        "g_formato": {"versao": 1, "hash": HASH_FORMATO, "sim_nao": sorted(sim_nao_ids),
+                      "max_linhas": fmt["max_linhas"], "largura_linha": fmt["largura"]},
         "linhas": linhas,
     }
 
@@ -509,7 +599,9 @@ def _sim(v) -> str:
     return "—" if v is None else ("sim" if v else "não")
 
 
-def relatorio_markdown(m: dict) -> str:
+def relatorio_markdown(m: dict, juiz_nao_calibrado: bool = False) -> str:
+    nc = " — **NÃO calibrada**" if juiz_nao_calibrado else ""
+    gf = m["g_formato"]
     linhas = [
         "| Métrica | Resultado |",
         "|---|---|",
@@ -522,15 +614,25 @@ def relatorio_markdown(m: dict) -> str:
         f"| (b) fatos-chave, tudo ou nada | {_fmt(m['b_fatos'])} (fração média {m['b_fracao_media']:.2f}) |",
         f"| (c) citação espontânea (resposta crua) | {_fmt(m['c_citacao_espontanea'])} |",
         f"| (c) citação final (com anexo, informativa) | {_fmt(m['c_citacao_final'])} |",
-        f"| (d) fidelidade estrita (juiz) | {_fmt(m['d_fiel_estrito'])} |",
-        f"| (d) sem afirmação grave (juiz) | {_fmt(m['d_sem_grave'])} |",
+        f"| (d) fidelidade estrita (juiz{nc}) | {_fmt(m['d_fiel_estrito'])} |",
+        f"| (d) sem afirmação grave (juiz{nc}) | {_fmt(m['d_sem_grave'])} |",
         f"| (e) sem_resposta, determinística | {_fmt(m['e_sem_resposta_det'])} |",
-        f"| (e) sem_resposta, juiz (criterio_acerto) | {_fmt(m['e_sem_resposta_juiz'])}"
+        f"| (e) sem_resposta, juiz (criterio_acerto{nc}) | {_fmt(m['e_sem_resposta_juiz'])}"
         + (f"; discordam: {', '.join(m['e_discordancias'])}" if m["e_discordancias"] else "") + " |",
-        f"| (f) correção (juiz vê o gabarito) | {_fmt(m['f_correcao'])} |",
+        f"| (f) correção (juiz vê o gabarito{nc}) | {_fmt(m['f_correcao'])} |",
+        f"| (g-a) formato: 1ª linha começa por Sim/Não ({', '.join(gf['sim_nao'])}) | {_fmt(m['g_sim_nao'])} |",
+        (
+            f"| (g-b) formato: principal ≤ {gf['max_linhas']} linhas de {gf['largura_linha']} caracteres | "
+            f"{_fmt(m['g_principal_curta'])} |"
+        ),
+        (
+            f"| (g-c) formato: termina oferecendo detalhes (17 + 3 sem_resposta) | {_fmt(m['g_oferece_detalhes'])} "
+            f"(com fonte {_fmt(m['g_oferece_detalhes_com_fonte'])}) |"
+        ),
+        f"| (g) formato total (todos os critérios aplicáveis) | {_fmt(m['g_total'])} |",
         "",
-        "| q | tipo | rag | fatos ausentes | cita (crua/final) | fiel | sem grave | correta | sem_resp det |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| q | tipo | rag | fatos ausentes | cita (crua/final) | fiel | sem grave | correta | sem_resp det | formato a/b/c (linhas) |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for x in m["linhas"]:
         if "fatos" in x:
@@ -543,8 +645,15 @@ def relatorio_markdown(m: dict) -> str:
             det = _sim(d["acerto"]) + (f" (números fora: {', '.join(d['numeros_fora_dos_trechos'])})"
                                        if d["numeros_fora_dos_trechos"] else "")
         rag = _sim(x["rag_acionado"]) + (" (infra)" if x["infra"] else "")
+        fo = x["formato"]
+        formato = (f"{'n/a' if fo['sim_nao'] is None else _sim(fo['sim_nao'])}/{_sim(fo['principal_curta'])}/"
+                   f"{_sim(fo['oferece_detalhes'])} ({fo['linhas_principal']})")
         linhas.append(f"| {x['id']} | {x['tipo']} | {rag} | {fatos} | {cita} | "
-                      f"{_sim(x['fiel_estrito'])} | {_sim(x['sem_grave'])} | {_sim(x['correta_juiz'])} | {det} |")
+                      f"{_sim(x['fiel_estrito'])} | {_sim(x['sem_grave'])} | {_sim(x['correta_juiz'])} | {det} | {formato} |")
+    if juiz_nao_calibrado:
+        linhas.append("\n**Juiz NÃO calibrado** (desvio de 20/11/2026: calibração humana interrompida após 1 de 8 "
+                      "itens, por custo de tempo; ver docs/RAG.md). As métricas (d), (e) pelo juiz e (f) não têm "
+                      "concordância humana medida.")
     if m["falhas_de_infra"]:
         linhas.append(f"\n**Falha de infraestrutura** (erro de LLM capturado no grafo; conta como erro, sem nova rodada): "
                       f"{', '.join(m['falhas_de_infra'])}.")
@@ -638,6 +747,22 @@ def calibracao_marcada(path: Path) -> bool:
         _booleano(i["marcacao"].get("fiel")) is not None and _booleano(i["marcacao"].get("correta")) is not None
         for i in itens
     )
+
+
+MOTIVO_SEM_CALIBRACAO = ("desvio de 20/11/2026 decidido pelo Max: calibracao humana interrompida apos 1 item "
+                         "(q01) por custo de tempo; metricas do juiz NAO calibradas (docs/RAG.md, Missao 8)")
+
+
+def status_sem_calibracao(path: Path) -> dict:
+    """O que o --sem-calibracao grava no julgamento: status, motivo e os itens ja marcados."""
+    itens = []
+    if Path(path).is_file():
+        dados = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+        itens = dados.get("itens") or []
+    marcados = [i["id"] for i in itens
+                if _booleano(i["marcacao"].get("fiel")) is not None and _booleano(i["marcacao"].get("correta")) is not None]
+    return {"status": "nao_calibrada", "motivo": MOTIVO_SEM_CALIBRACAO, "itens_marcados": marcados,
+            "itens_previstos": len(itens) or N_CALIBRACAO}
 
 
 def calcular_concordancia(calibracao: dict, julgamento: dict, limiar: int = LIMIAR_CONCORDANCIA) -> dict:
@@ -753,9 +878,13 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--julgamento", type=Path, help="JSON do juiz (padrao: o mais recente)")
     p.add_argument("--saida", type=Path, help="arquivo de saida da etapa (padrao: <etapa>-<data>.json)")
     p.add_argument("--orcamento", type=float, default=ORCAMENTO_USD, help="US$ maximo por etapa paga")
+    p.add_argument("--sem-calibracao", action="store_true",
+                   help="julgar SEM a calibracao humana completa (desvio de 20/11); grava status nao_calibrada")
     a = p.parse_args(argv)
     if a.executar and not a.etapa:
         p.error("--executar exige --etapa respostas|julgar")
+    if a.sem_calibracao and not (a.executar and a.etapa == "julgar"):
+        p.error("--sem-calibracao so vale com --executar --etapa julgar")
     return a
 
 
@@ -790,7 +919,11 @@ def main(argv=None) -> int:
                 print("erro: nenhum julgamento-*.json", file=sys.stderr)
                 return 2
             calib = yaml.safe_load(CALIBRACAO.read_text(encoding="utf-8"))
-            c = calcular_concordancia(calib, julgamento)
+            try:
+                c = calcular_concordancia(calib, julgamento)
+            except ValueError as exc:
+                print(f"erro: {exc}", file=sys.stderr)
+                return 2
             for dim, v in c.items():
                 print(f"{dim}: {v['concordancia']}/{v['n']} -> {v['veredito']}")
                 for x in v["itens"]:
@@ -798,12 +931,14 @@ def main(argv=None) -> int:
                           f"{'' if x['concorda'] else '  <- discorda'}")
             _gravar(args.saida or DIR_SAIDA / f"concordancia-{hoje}.json", c)
             return 0
-        if julgamento is not None and not calibracao_marcada(CALIBRACAO):
+        nao_calibrado = (julgamento or {}).get("calibracao", {}).get("status") == "nao_calibrada"
+        if julgamento is not None and not nao_calibrado and not calibracao_marcada(CALIBRACAO):
             print("calibracao ainda nao marcada: o relatorio omite o juiz (d, e-juiz, f) para nao quebrar a "
                   "calibracao cega")
             julgamento, caminho_j = None, None
         print(f"respostas: {caminho_r.name}; julgamento: {caminho_j.name if caminho_j else '(nenhum: d/e-juiz/f pendentes)'}\n")
-        print(relatorio_markdown(calcular_metricas(respostas, gabarito, fatos, julgamento)))
+        print(relatorio_markdown(calcular_metricas(respostas, gabarito, fatos, julgamento),
+                                 juiz_nao_calibrado=nao_calibrado))
         return 0
 
     if not args.executar:
@@ -840,13 +975,20 @@ def main(argv=None) -> int:
     if destino.exists():
         print(f"erro: {destino} ja existe: nao sobrescrevo resultado medido", file=sys.stderr)
         return 2
-    if not calibracao_marcada(CALIBRACAO):
+    calibracao = {"status": "calibrada"}
+    if args.sem_calibracao:
+        calibracao = status_sem_calibracao(CALIBRACAO)
+        print(f"AVISO: juiz SEM calibracao humana completa (desvio de 20/11): itens marcados "
+              f"{calibracao['itens_marcados'] or 'nenhum'}; o JSON grava status nao_calibrada")
+    elif not calibracao_marcada(CALIBRACAO):
         print(f"erro: o juiz so roda depois da calibracao marcada ({CALIBRACAO}); rode --calibracao e marque "
-              "as 8 respostas antes (calibracao cega, pre-registro da Missao 8)", file=sys.stderr)
+              "as 8 respostas antes (calibracao cega, pre-registro da Missao 8), ou use --sem-calibracao "
+              "(desvio registrado em docs/RAG.md)", file=sys.stderr)
         return 2
     respostas = json.loads(caminho_r.read_text(encoding="utf-8"))
     try:
-        dados = asyncio.run(etapa_julgar(respostas, gabarito, settings.openrouter_api_key, orcamento=args.orcamento))
+        dados = asyncio.run(etapa_julgar(respostas, gabarito, settings.openrouter_api_key, orcamento=args.orcamento,
+                                         calibracao=calibracao))
     except FalhaInicial as exc:
         print(f"erro: {exc} - nada gravado", file=sys.stderr)
         return 2

@@ -15,6 +15,10 @@
 # Depois: python -m orchestrator.rag.avaliar_respostas --concordancia
 # Limiar pre-registrado, por dimensao: >= 7/8 aceitavel; <= 6/8 juiz NAO
 # confiavel (registrado, sem ajustar o prompt). n=8 e pouco: ruido nos dois casos.
+#
+# DESVIO (20/11/2026, decisao do Max): calibracao INTERROMPIDA apos 1 item
+# (q01), por custo de tempo. Os outros 7 ficam em branco de proposito. O juiz
+# roda com --sem-calibracao e as metricas dele saem "nao calibradas".
 
 versao: 1
 respostas_data: '2026-11-19T22:11:25-03:00'
@@ -103,10 +107,10 @@ itens:
     resposta_esperada: Não. A doca recebe de segunda a sábado das 6h às 14h. Fora do horário só com autorização
       por escrito do gerente de loja, registrada no Formulário F-03 (Recebimento Extraordinário).
   marcacao:
-    fiel: null
-    fiel_justificativa: ''
-    correta: null
-    correta_justificativa: ''
+    fiel: sim
+    fiel_justificativa: 'relato do Max em 20/11/2026 (sem justificativa escrita)'
+    correta: nao
+    correta_justificativa: 'relato do Max em 20/11/2026: nao respondeu "nao" antes das condicoes'
 - id: q02
   tipo: direta
   pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
@@ -557,3 +561,22 @@ itens:
     fiel_justificativa: ''
     correta: null
     correta_justificativa: ''
+# CALIBRACAO PARCIAL: GRAVES (20/11/2026). NAO E CEGA: o Max marcou DEPOIS de ver
+# os vereditos do juiz (julgamento-2026-11-20.json). Dimensao: so "afirmacao
+# grave" (d, sem_grave), nos 5 casos em que o juiz achou grave. Nao preenche os
+# blocos `marcacao` acima (fiel/correta) e nao entra no --concordancia: as
+# demais marcacoes do juiz seguem NAO calibradas. Ver docs/RAG.md, Missao 8.
+calibracao_parcial_graves:
+  data: '2026-11-20'
+  cega: false
+  feita_depois_de_ver_o_juiz: true
+  julgamento: julgamento-2026-11-20.json
+  dimensao: sem_grave (d)
+  resultado: 5/5 concordam com o juiz
+  itens:
+  - {id: q05, juiz: grave, max: concorda}
+  - {id: q09, juiz: grave, max: concorda}
+  - {id: q10, juiz: grave, max: concorda}
+  - {id: q15, juiz: grave, max: concorda}
+  - {id: q18, juiz: grave, max: concorda}
+  fora_desta_calibracao: as afirmacoes que o juiz NAO marcou como graves (falso negativo nao medido), fidelidade estrita, (e) pelo juiz e (f)
