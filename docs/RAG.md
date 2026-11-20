@@ -1,10 +1,11 @@
 # RAG MVP — Especialista de Procedimentos (Supermercado Bom Preço)
 
-Status: **Missão 7 concluída** (reranking medido e **não adotado**: falhou no
-critério de latência p95 ≤ 1,5 s). Missões 3–7 integradas no `master` (PR #1).
-A **2ª revisão adversária** (Gemini, via Antigravity) achou 7 problemas MÉDIOS
-e 3 BAIXOS, nenhum ALTO; todos corrigidos na branch `fix/rag-revisao` (sem
-commit ainda, ver *2ª revisão adversária*). **Padrão do agente: híbrido com contexto no BM25 + embedding, sem
+Status: **Missão 8 pré-registrada, ainda não executada** (avaliação de ponta
+a ponta: roteamento + resposta, ver *Missão 8*). Missão 7 concluída
+(reranking medido e **não adotado**: falhou no critério de latência p95 ≤
+1,5 s). Missões 3–7 integradas no `master` (PR #1). A **2ª revisão
+adversária** (Gemini, via Antigravity) achou 7 problemas MÉDIOS e 3 BAIXOS,
+nenhum ALTO; todos corrigidos e integrados no `master` (`ef80857`, PR #2). **Padrão do agente: híbrido com contexto no BM25 + embedding, sem
 rerank** (16/17 de recall@5; MRR@20 0,602). O `rag` segue **desligado por
 padrão** (`ORCHESTRATOR_RAG_ENABLED=false`) e **não há deploy**. Antes de
 qualquer deploy há pendências obrigatórias (ver *Pendências*).
@@ -262,7 +263,8 @@ campo em `config.py` e nos dois `.env.example`, depois o valor no `.env`.
 | Missão 5 (`7cc5657`) | 527 passed, 1 skipped, 1 xfailed (+38: invariantes do registro nos 2 estados da chave, especialista rag, smoke isolado, `.env.example` carregável, índice falso na blindagem) |
 | Missão 6 (`5b49ffb`) | 546 passed, 1 skipped, 1 xfailed (+19 em `test_rag_contextual.py`: geração, vazamento, indexação com contexto, controles, o `contextos.json` real e o padrão novo do ingest) |
 | Missão 7 (`e8c3f27`) | 559 passed, 1 skipped, 1 xfailed (+13 em `test_rag_rerank.py`: reordenação, métricas, veredito e fallback do reranker) |
-| 2ª revisão adversária (`fix/rag-revisao`, sem commit) | **603 passed, 1 skipped, 1 xfailed** (+44: um teste vermelho por achado, ver *2ª revisão adversária*) |
+| 2ª revisão adversária (`ef80857`) | 603 passed, 1 skipped, 1 xfailed (+44: um teste vermelho por achado, ver *2ª revisão adversária*) |
+| Missão 8 (sem commit) | **657 passed, 1 skipped, 1 xfailed** (+54 em `test_rag_avaliar_respostas.py`: modo padrão sem custo, fatos-chave e normalização, citação, sem_resposta, resposta crua × anexo, isolamento do gabarito no juiz de fidelidade, hashes congelados, orçamento e `usage` no formato real do LangChain, falha de infraestrutura, parada na 1ª falha, calibração cega e limiar de concordância) |
 
 Comando: `cd orchestrator && python -m pytest -q`. A suíte precisa do repo
 inteiro: `test_provision_client.py` usa `scripts/` da raiz. Com a rede
@@ -608,6 +610,33 @@ fonte e obedeceu ao "não sei". **Duas perguntas não são avaliação.** Não
 dizem nada sobre taxa de acerto, consistência entre execuções ou as outras
 18 perguntas. A avaliação das respostas (as 17 com fonte e as 3
 `sem_resposta`, pelo `criterio_acerto`) é a **Missão 8**.
+
+## Smoke test real (19/11/2026)
+
+Repetição do smoke depois da 2ª revisão adversária (pendência: as
+`REGRAS_DO_MANUAL` mudaram, B-01). Desta vez no padrão atual, modo **híbrido**,
+`deepseek/deepseek-chat` via OpenRouter. Rodado pelo Max
+com `python -m orchestrator.rag.smoke --executar "..."`. A de 18/11 (acima)
+foi com BM25 e o texto antigo das regras, e fica como está.
+
+| Pergunta | Caminho no grafo | Resposta (resumo) | Resultado |
+|---|---|---|---|
+| **q12** (preço da prateleira × caixa) | não registrado no relato | correta no modo híbrido | acertou |
+| **q19** (multa do fornecedor atrasado) | não registrado no relato | disse que o manual "não cobre", mas acrescentou "consulte compras ou jurídico" | acertou pelo `criterio_acerto` (não inventou valor), com **conhecimento externo leve** |
+| **q18** (dias de férias) | sem o `specialist_rag` (o caminho geral respondeu) | o caminho geral respondeu a regra da CLT de memória | **fora do rag**: o supervisor não acionou o rag; a resposta veio de conhecimento externo |
+
+**Achado (q18): o gabarito mede a busca; ninguém mede o roteamento.** O
+recall@5 das Missões 3–7 parte do princípio de que a pergunta chega ao rag.
+Na q18, ela nem chegou, e a regra "não sei" (que só vale com o manual
+consultado) não se aplicou. Isso entra como métrica (a) da Missão 8. (Este registro é o relato do Max;
+os caminhos exatos no grafo e a saída completa não foram guardados, e é isso
+que o JSON versionado da Missão 8 passa a fazer.)
+
+**Decisão de produto em aberto: "escopo fechado" para deploy de cliente.** No
+deploy de um cliente, uma pergunta de procedimento ou RH sem resposta no
+manual deveria virar "não está no manual, fale com o RH", em vez de uma
+resposta de conhecimento geral. Não é correção desta missão (a Missão 8 só
+mede): vira missão própria, com pré-registro (ver *Pendências*).
 
 ## Missão 6 — Contextual retrieval (pré-registro, ANTES da medição)
 
@@ -1077,6 +1106,156 @@ não mudaram, porque nenhum número mudou.
 - O texto das `REGRAS_DO_MANUAL` mudou (B-01) e o smoke real (18/11) foi com o
   texto antigo: ver *Pendências*.
 
+## Missão 8 — Avaliação de ponta a ponta (pré-registro, ANTES da medição)
+
+Registrado em 19/11/2026, **antes** de qualquer `--executar`, com os 3
+ajustes do Max (métrica f, calibração com 8, juiz fixado). Esta missão
+**mede, não otimiza**: nenhuma mudança de prompt ou de roteamento. As
+correções (ex.: escopo fechado) viram missão própria, com pré-registro.
+Nenhum critério abaixo muda depois de medir (critério novo depois da medição
+é recusado; custo vira pendência, não veto).
+
+**Execução.** `orchestrator/src/orchestrator/rag/avaliar_respostas.py` roda as
+20 perguntas do gabarito pelo grafo **inteiro** com o LLM real, com o
+isolamento do smoke: n8n e gateway neutralizados no `settings`, `rag_enabled`
+ligado só no processo, `MemorySaver` e um `thread_id` novo por pergunta.
+
+Ordem obrigatória (a calibração é **cega**):
+
+```bash
+cd orchestrator
+python -m orchestrator.rag.avaliar_respostas                               # 0. plano + custo (grátis)
+python -m orchestrator.rag.avaliar_respostas --executar --etapa respostas  # 1. pago: 60 chamadas DeepSeek
+python -m orchestrator.rag.avaliar_respostas --calibracao                  # 2. grátis: gera as 8 p/ o Max
+#                                                                            3. o Max marca fixtures/rag/m8/calibracao_v1.yaml
+python -m orchestrator.rag.avaliar_respostas --executar --etapa julgar     # 4. pago: 40 chamadas do juiz
+python -m orchestrator.rag.avaliar_respostas --concordancia                # 5. grátis: Max × juiz
+python -m orchestrator.rag.avaliar_respostas --relatorio                   # 6. grátis: todas as métricas
+```
+
+- **A cegueira é garantida em código, não só pedida.** O `--etapa julgar`
+  recusa rodar enquanto a calibração não estiver toda marcada. O log do juiz
+  mostra só progresso e custo, sem veredito. O `--relatorio` omite as
+  métricas do juiz enquanto a calibração não estiver marcada.
+- **Falha de infraestrutura.** Um erro de LLM que o próprio nó captura (ex.:
+  429 ou timeout no supervisor, que cai no fallback do openclaw e pareceria
+  uma decisão de roteamento) fica registrado em `erros_llm`, por um callback,
+  e marcado como **infra** no relatório. A regra pré-registrada: **conta como
+  erro** em todas as métricas, **sem nova rodada**. Chamada do juiz que falha
+  fica **pendente**: não conta como acerto e é listada.
+- **Parada na 1ª falha.** Se a primeira pergunta, ou a primeira chamada do
+  juiz, falhar (chave errada, schema recusado pelo provedor…), a etapa para
+  **sem gravar** o arquivo.
+
+- Saídas versionadas em `orchestrator/fixtures/rag/m8/`
+  (`respostas-<data>.json`, `julgamento-<data>.json`, `calibracao_v1.yaml`,
+  `concordancia-<data>.json`). O script **não sobrescreve** resultado medido.
+- O JSON de respostas guarda, por pergunta, o caminho no grafo, os trechos
+  (posição, POP, seção, texto), a resposta crua e a final, o modelo, o `usage`
+  e o custo de cada chamada, e a data. Da execução, guarda o SHA do git (com
+  marca de árvore suja), os hashes do gabarito, dos fatos-chave, das
+  `REGRAS_DO_MANUAL`, dos prompts do supervisor e do synthesize_final e da
+  tool, além da meta e do modo do índice. Nunca a chave.
+- O grafo roda com `graph.ainvoke` mais um callback (caminho e `usage`), e
+  não com `astream_events`, para o LLM responder sem streaming e devolver o
+  `usage`. Os nós são os mesmos.
+- **Resposta crua × final:** o `garantir_citacao` anexa "Fontes consultadas…"
+  quando o LLM não cita. Medir a citação no texto final daria acerto por
+  construção. Por isso um espião, só no processo do script, guarda o texto do
+  LLM antes do anexo. **Todas as métricas usam a resposta crua**, menos a
+  citação final, que é só informativa.
+- **Orçamento:** US$ 1,00 por etapa paga, somado do `usage` real (o `cost` do
+  OpenRouter, ou tokens × tabela de 19/11). Estourou, interrompe e grava o
+  parcial, marcado como incompleto.
+- **N = 1.** O `synthesize_final` não define temperatura (vale o padrão do
+  provedor) e isso não muda nesta missão. Cada resposta é **uma amostra**:
+  uma rodada não diz nada sobre consistência entre execuções.
+- O provedor que o OpenRouter escolheu para o `deepseek-chat` não aparece no
+  `response_metadata` do langchain: fica registrado o modelo devolvido.
+
+**Métricas.** Os denominadores são fixos pelo gabarito: uma pergunta que falta
+ou que não passou pelo rag conta como **erro**, nunca é excluída.
+
+| Métrica | n | Como |
+|---|---|---|
+| (a) roteamento | 20 | % em que o `specialist_rag` aparece no caminho (também por tipo) |
+| (b) fatos-chave | 17 | Determinística, `fixtures/rag/fatos_chave_v1.yaml` (aprovados pelo Max). **Tudo ou nada** por pergunta; a fração média também é reportada |
+| (c) citação | 17 | Determinística, com o critério do `garantir_citacao` (`_cita_fonte_completa`): o POP e o título de **cada** seção da `secao_fonte` (numa multi_secao, as duas). Métrica principal: **citação espontânea**, na crua. Sem rag, conta como erro |
+| (d) fidelidade | 20 | Juiz LLM **sem o gabarito**. Duas taxas: **fiel estrito** (nenhuma afirmação fora dos trechos) e **sem afirmação grave** |
+| (e) sem_resposta | 3 | Primeiro a regra determinística, depois o juiz de correção com o `criterio_acerto`. As discordâncias entre os dois são listadas |
+| (f) correção | 17 | Juiz LLM que **vê** a `resposta_esperada`: a conclusão está certa? Inclui o Sim/Não da q01, q02, q04 e q05 |
+
+**Detalhes de (b):**
+- antes de comparar, o texto é normalizado: sem acento, em minúsculas, com
+  −/–/— viram "-" e aspas tipográficas viram retas;
+- os títulos de seção citados entre aspas (`seção "2. Sangria"`) são
+  removidos, para citar a seção não contar como dizer o fato; os códigos de
+  POP ficam (a q13 exige "POP-07");
+- o "Sim/Não" não é checado aqui: vai na (f).
+
+**Detalhes de (c):** herda a limitação B-03, em que um título de uma palavra
+("Sangria") mais "(POP-04)" passa como citação completa.
+
+**Detalhes de (e), regra determinística:**
+- a resposta precisa ter uma frase de recusa ("não cobre", "não sei", "não
+  trata", "não prevê", "não fala", "não define", "não menciona", "não
+  estabelece", "não traz", "não especifica", "não há informação/previsão/
+  regra/menção");
+- cada número da resposta precisa aparecer nos trechos recuperados. As
+  citações (POP-XX, seção "…", seção N) não contam. Sem trecho, qualquer
+  número é erro.
+
+**Juiz.**
+- Modelo: `google/gemini-3.8-flash` via OpenRouter, de **outro provedor** que
+  o que responde (DeepSeek), com temperatura 0, `reasoning.effort = low`,
+  saída em JSON schema strict. Tudo fica registrado no `julgamento-*.json`.
+- Dois prompts **congelados**, cada um com sha256 conferido pelo script, que
+  recusa rodar se o hash não bater. Mudar o prompt = v2 com novo pré-registro.
+
+| Prompt | Vê | sha256 |
+|---|---|---|
+| `fixtures/rag/juiz_fidelidade_v1.md`, a (d) | pergunta, trechos, resposta crua. **Nunca** a `resposta_esperada`, o `criterio_acerto`, o `aceita_tambem` nem os fatos | `3657408ae718107075f778f840376293baeea06f9fe18871574b1d7e4ffc63be` |
+| `fixtures/rag/juiz_correcao_v1.md`, a (f) e a (e) pelo juiz | pergunta, gabarito (com `criterio_acerto`/`aceita_tambem` nas sem_resposta), resposta crua. **Não** vê os trechos | `8cf37eb0cce76c11a28211be7e99075cb5b2bbddcebb82b1aabd7702ecd04a80` |
+
+- **Rubrica da fidelidade.** O juiz só classifica cada afirmação; o veredito
+  sai em código.
+  - **Grave:** número, prazo, valor, percentual, código ou passo de
+    procedimento que não está nos trechos.
+  - **Leve:** encaminhamento genérico, sem fato operacional (ex.: o "consulte
+    compras ou jurídico" da q19 de 19/11). Conta como **não fiel** no estrito,
+    mas não no "sem grave".
+  - Dizer que "o manual não cobre X" não é afirmação; isso quem mede é a (e).
+  - Sem trecho nenhum (como na q18 pelo caminho geral), toda afirmação
+    factual fica sem suporte.
+- Os dados entram no prompt delimitados, e um delimitador forjado dentro
+  deles é neutralizado.
+
+**Calibração humana** (o Max marca; só depois o script compara).
+- **8 respostas**, por uma regra fixa que **não olha o juiz**: q18, q19 e q15;
+  a primeira direta que errou a (b); a primeira direta que acertou a (b); e as
+  próximas por id até fechar 8. Isso garante pelo menos 1 multi_secao e 1
+  sem_resposta.
+- O `calibracao_v1.yaml` sai **só do JSON de respostas**, antes de o juiz
+  rodar, e não contém nenhum veredito. O Max marca, em cada
+  item, **fiel** (no sentido estrito) e **correta** (a conclusão bate com o
+  gabarito; nas sem_resposta, vale o `criterio_acerto`), sim ou não, com uma
+  frase de justificativa.
+- **Limiar, por dimensão:** ≥ 7/8 é aceitável; ≤ 6/8 fica registrado como
+  **juiz não confiável**, **sem ajustar o prompt** para concordar. Com n = 8,
+  o número é ruído nos dois sentidos.
+
+**Custo estimado (teto),** calculado pelo próprio script com o tamanho real
+dos prompts, a ~3 caracteres por token, e com os preços públicos do
+OpenRouter em 19/11 (DeepSeek $0,26/$1,03 e Gemini 3.8 Flash $0,83/$4,13 por
+milhão de tokens de entrada/saída):
+
+| Etapa | Chamadas | Teto |
+|---|---|---|
+| Respostas (DeepSeek) | 60 | US$ 0,05 |
+| Juiz: fidelidade | 20 | ~US$ 0,26 |
+| Juiz: correção (17 da f + 3 da e) | 20 | ~US$ 0,17 |
+| **Total** | 100 | **≤ US$ 0,48** (típico bem abaixo) |
+
 ## Pendências
 
 **Obrigatórias antes de qualquer deploy** (custo do padrão híbrido + contexto,
@@ -1103,11 +1282,17 @@ decidido na Missão 6, e do reranking, Missão 7):
 - **Gerar o índice no deploy** com `ingest --contexto-em ambos`: a imagem não
   tem `fixtures/` nem índice (pendência já registrada abaixo).
 
-- Rodar o smoke real de novo: as `REGRAS_DO_MANUAL` mudaram na 2ª revisão
-  (B-01, regra 5 para o caso ERRO) e o smoke de 18/11 usou o texto antigo.
-- Missão 8: avaliação das respostas com o LLM real (citação, as 17 com fonte
-  e as 3 `sem_resposta` pelo `criterio_acerto`). O smoke de 18/11 cobriu só
-  a q12 e a q19.
+- ~~Rodar o smoke real de novo~~: **feito em 19/11** (ver *Smoke test real
+  (19/11/2026)*), no modo híbrido e com as regras novas.
+- Missão 8: **pré-registrada** (ver *Missão 8*). Falta executar as duas etapas
+  pagas (o Max decide quando), gerar a calibração e o Max marcar as 8.
+- **Roteamento (achado do smoke de 19/11):** na q18, o supervisor não acionou
+  o rag e o caminho geral respondeu a CLT de memória. A Missão 8 mede isso
+  como métrica (a); a correção não é desta missão.
+- **Decisão de produto em aberto, "escopo fechado" para deploy de cliente:**
+  pergunta de procedimento ou RH sem resposta no manual → "não está no manual,
+  fale com o RH". Vira missão própria, com pré-registro e medida contra a
+  Missão 8 como baseline.
 - Deploy: a imagem Docker não tem `fixtures/` nem o índice. Falta decidir onde o
   índice é gerado (no build ou num volume) e se o extra `rag` entra na imagem
   (só se o modo deixar de ser BM25).
