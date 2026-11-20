@@ -324,7 +324,10 @@ def _hashes_do_sistema(settings) -> dict:
     return {
         "gabarito": juiz.sha256_arquivo(GABARITO),
         "fatos_chave": juiz.sha256_arquivo(FATOS_CHAVE),
-        "regras_do_manual": sha256_texto(rag_specialist.REGRAS_DO_MANUAL),
+        # Missao 9: hash das regras EFETIVAMENTE injetadas no synth (a v1 da o
+        # mesmo hash gravado na Missao 8).
+        "regras_versao": settings.rag_regras_versao,
+        "regras_do_manual": sha256_texto(rag_specialist.regras_do_manual(settings.rag_regras_versao)),
         "prompt_supervisor": sha256_texto(nodes.supervisor_system_prompt(True)),
         "prompt_synthesize": sha256_texto(nodes._SYNTHESIZE_SYSTEM_PROMPT),
         "tool_dispatch": sha256_texto(json.dumps(dispatch_tool(True), sort_keys=True, ensure_ascii=False)),
@@ -401,15 +404,19 @@ def _custo_das_chamadas(chamadas: list[dict], settings) -> float:
 
 
 async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO_USD, graph_factory=None,
-                          responder: Callable = responder_pergunta, log=print) -> dict:
+                          responder: Callable = responder_pergunta, log=print, regras: str = "v1") -> dict:
     from langgraph.checkpoint.memory import MemorySaver
 
     from orchestrator.config import settings
-    from orchestrator.graph import builder
+    from orchestrator.graph import builder, rag_specialist
     from orchestrator.rag.smoke import neutralizar_efeitos_externos
 
     neutralizar_efeitos_externos(settings)
     settings.rag_enabled = True  # SO neste processo; o .env continua como esta
+    # Missao 9: a versao das regras vem SEMPRE do argumento (um
+    # ORCHESTRATOR_RAG_REGRAS_VERSAO no .env nao vaza para a medicao).
+    rag_specialist.regras_do_manual(regras)  # recusa versao desconhecida antes de gastar
+    settings.rag_regras_versao = regras
     graph = (graph_factory or builder.build_graph)(MemorySaver())
 
     saida = {
@@ -422,6 +429,7 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
             "general_model": settings.general_model,
             "temperatura_supervisor": 0,
             "temperatura_synthesize": None,  # o no nao define: padrao do provedor (rodada = amostra)
+            "rag_regras_versao": settings.rag_regras_versao,
             "rag_search_mode": settings.rag_search_mode,
             "rag_top_k": settings.rag_top_k,
             "rag_colecao": settings.rag_colecao,
@@ -790,7 +798,8 @@ def calcular_concordancia(calibracao: dict, julgamento: dict, limiar: int = LIMI
 
 # --- plano e custo ----------------------------------------------------------
 
-def estimar_custo(perguntas: Sequence[dict], top_k: int, router_model: str, general_model: str) -> dict:
+def estimar_custo(perguntas: Sequence[dict], top_k: int, router_model: str, general_model: str,
+                  regras: str = "v1") -> dict:
     from orchestrator.graph import nodes, rag_specialist
     from orchestrator.schemas.routing import dispatch_tool
 
@@ -800,7 +809,7 @@ def estimar_custo(perguntas: Sequence[dict], top_k: int, router_model: str, gene
     maior = max(len(p["pergunta"]) for p in perguntas)
     sup1 = tokens(len(nodes.supervisor_system_prompt(True)) + len(json.dumps(dispatch_tool(True))) + maior + 200)
     sup2 = sup1 + tokens(400)
-    synth = tokens(len(nodes._SYNTHESIZE_SYSTEM_PROMPT) + len(rag_specialist.REGRAS_DO_MANUAL)
+    synth = tokens(len(nodes._SYNTHESIZE_SYSTEM_PROMPT) + len(rag_specialist.regras_do_manual(regras))
                    + top_k * CHARS_POR_TRECHO + maior + 400)
     pf, pc = juiz.prompt_fidelidade(), juiz.prompt_correcao()
     jf = tokens(len(pf.sistema) + len(pf.usuario) + len(json.dumps(pf.schema)) + top_k * CHARS_POR_TRECHO + 2000)
@@ -878,11 +887,17 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--julgamento", type=Path, help="JSON do juiz (padrao: o mais recente)")
     p.add_argument("--saida", type=Path, help="arquivo de saida da etapa (padrao: <etapa>-<data>.json)")
     p.add_argument("--orcamento", type=float, default=ORCAMENTO_USD, help="US$ maximo por etapa paga")
+    p.add_argument("--regras", choices=("v1", "v2"),
+                   help="versao das REGRAS_DO_MANUAL no synth (obrigatoria com --etapa respostas; Missao 9)")
     p.add_argument("--sem-calibracao", action="store_true",
                    help="julgar SEM a calibracao humana completa (desvio de 20/11); grava status nao_calibrada")
     a = p.parse_args(argv)
     if a.executar and not a.etapa:
         p.error("--executar exige --etapa respostas|julgar")
+    if a.executar and a.etapa == "respostas" and not a.regras:
+        p.error("--etapa respostas exige --regras v1|v2 (a versao fica gravada no JSON)")
+    if a.regras and not (a.executar and a.etapa == "respostas"):
+        p.error("--regras so vale com --executar --etapa respostas")
     if a.sem_calibracao and not (a.executar and a.etapa == "julgar"):
         p.error("--sem-calibracao so vale com --executar --etapa julgar")
     return a
@@ -959,7 +974,7 @@ def main(argv=None) -> int:
             print(f"erro: {destino} ja existe: nao sobrescrevo resultado medido", file=sys.stderr)
             return 2
         try:
-            dados = asyncio.run(etapa_respostas(gabarito, orcamento=args.orcamento))
+            dados = asyncio.run(etapa_respostas(gabarito, orcamento=args.orcamento, regras=args.regras))
         except FalhaInicial as exc:
             print(f"erro: {exc} - nada gravado", file=sys.stderr)
             return 2

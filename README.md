@@ -51,7 +51,7 @@ critérios foram fixados antes de medir.
 | Fatos-chave (determinística) | 16/17 |
 | Correção (juiz LLM, **não calibrado**) | 16/17 (na q01, o único item da calibração cega, o humano discordou do juiz) |
 | Sem afirmação grave (juiz, **não calibrado**) | 15/20; os 5 graves foram conferidos por humano depois do juiz, com 5/5 de acordo |
-| Formato do Max (Sim/Não primeiro, resposta curta, oferta de detalhes) | 0/17: é a linha de base, e a melhoria é a próxima missão |
+| Formato do Max (Sim/Não primeiro, resposta curta, oferta de detalhes) | 0/17 na linha de base. A Missão 9 testou a v2, que formatou 15,5/17 mas derrubou fatos e correção e errou o Sim/Não: **não adotada**. A próxima é a v3, "pensa primeiro, formata depois" |
 
 Aprendizado: **citação não garante verdade.** Na q10, a resposta citou o
 POP-04 §5 com uma frase que não existe nessa seção. Só um juiz de fidelidade,
@@ -62,6 +62,7 @@ que compara a resposta com os trechos, pega isso.
   passou à frente com contextual retrieval.
 - O reranking melhorou muito a ordem (recall@1 de 6 para 12 em 17), mas foi
   barrado pela latência, pela regra fixada antes de medir.
+- Formato e conteúdo competem (Missão 9, não adotada). Exigir Sim/Não na 1ª palavra e no máximo 3 linhas levou o formato de 0 para 15,5/17. Mas derrubou fatos-chave (13,5 → 10,5) e correção (15,5 → 12,5), e respondeu "Sim" para aceitar frango a −10 °C. Hipótese: o modelo decide antes de raciocinar. Próximo passo: pensar primeiro, formatar depois.
 - Comparação numérica ("faltam 3 reais: cabe em até R$ 5,00?") é limite do RAG.
   Dado numérico ou estruturado vai por SQL ou camada semântica, não por busca.
 

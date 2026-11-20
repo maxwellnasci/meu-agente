@@ -1476,7 +1476,206 @@ milhão de tokens de entrada/saída):
 | Juiz: correção (17 da f + 3 da e) | 20 | ~US$ 0,17 |
 | **Total** | 100 | **≤ US$ 0,48** (típico bem abaixo) |
 
+## Missão 9 — Formato do Max nas respostas (pré-registro, ANTES da medição)
+
+Registrado em 20/11/2026, **antes de qualquer execução paga** da Missão 9.
+Nenhuma resposta com a v2 existe ainda.
+
+**Uma variável: o formato.** Só muda o texto das regras do manual que o
+`synthesize_final` recebe. Continuam iguais: busca (híbrido, top_k 5, sem
+rerank), índice (o `indice_meta` inteiro, com `contextos_sha256` 6abca59a…789fa572,
+igual ao da Missão 8, conferido pelo plano e pelo `--comparar`), supervisor e roteamento, modelos, juiz v1 (prompts
+congelados), fatos-chave v1 e critério de formato `formato_v1.yaml` (sha256
+6f5605e7…5bd2def).
+
+### REGRAS_DO_MANUAL v2
+
+A **v1 fica intacta** e selecionável. O sha256 dela, 3f4ca553…be498240, é o
+mesmo gravado em `respostas-2026-11-19.json` (há teste que confere). A
+**v2 = a v1 inteira + a regra 6 abaixo**, sha256
+`f8cdc6c099ba109c080a8640b55c9d9001a9de439997f6cb035696fbff69f448`. A seleção
+é feita por `ORCHESTRATOR_RAG_REGRAS_VERSAO` (`v1` | `v2`; **padrão `v1`**).
+Na avaliação, a versão vem **só** da flag `--regras`, obrigatória, para que o
+`.env` não vaze para a medição. A versão e o hash usados ficam gravados no
+JSON. Os hashes pré-registrados estão em `orchestrator.rag.missao9`. Se o
+texto mudar, a comparação é marcada **inválida**, e a mudança vira v3 com
+novo pré-registro.
+
+Texto integral da regra 6:
+
+```text
+6. FORMATO da resposta (as regras 1 a 5 valem antes desta; o formato nunca muda o conteudo):
+   a) Se a pergunta e de sim/nao e os trechos respondem, a PRIMEIRA palavra da resposta e "Sim" ou "Não", conforme os trechos. Se os trechos nao respondem (regra 4) ou a consulta falhou (regra 5), NAO comece por Sim nem por Não: comece pela frase exata da regra 4 ou, no caso da regra 5, por "A consulta ao manual falhou".
+   b) Resposta principal: o essencial em ate 3 linhas de no maximo 80 caracteres cada, CONTANDO a citacao (POP-XX, secao "..."). Sem lista e sem titulo na resposta principal.
+   c) Complemento so se for necessario para o usuario agir (ex.: um passo ou formulario obrigatorio), separado da resposta principal por UMA LINHA EM BRANCO. Se nao for necessario, nao escreva complemento. O complemento tambem segue as regras 2 e 3.
+   d) A ULTIMA linha da resposta, depois de uma linha em branco, e uma oferta curta de detalhes que termina em "?" (ex.: "Quer mais detalhes?"). Nada depois dela, nem citacao.
+```
+
+As regras 1 a 5 (fidelidade, citação, "não cobre", erro) não mudam. A regra 6
+diz de forma explícita que elas valem antes do formato.
+
+### Desenho
+
+- **N = 2 por versão.** O synth não fixa temperatura, então as respostas
+  variam a cada execução. A v1 também roda de novo agora: as respostas de
+  19/11 **não** entram na comparação.
+- **Ordem intercalada**, para diluir deriva do provedor: v1-r1, v2-r1, v1-r2,
+  v2-r2. Cada rodada passa as 20 perguntas pelo grafo inteiro e depois pelo
+  juiz.
+- **Juiz v1** com `--sem-calibracao`, status `nao_calibrada`, como na Missão 8.
+  As métricas (d) e (f) **não têm calibração**; só o "sem grave = não" teve a
+  calibração parcial de 5/5, feita depois do juiz.
+- A q18 tende a seguir o caminho geral, sem rag e portanto sem regras do
+  manual, nas duas versões. Se isso acontecer, ela conta igual para as duas.
+- Arquivos em `orchestrator/fixtures/rag/m9/`, com nomes fixos:
+  `respostas-{v1,v2}-{r1,r2}.json` e `julgamento-{v1,v2}-{r1,r2}.json`.
+
+### Regra de decisão (vinculante; nenhum outro critério entra depois)
+
+A v2 vira padrão **se e só se TODAS** forem verdadeiras. "Média" é a média
+das 2 rodadas de cada versão, sobre os acertos do `--relatorio` (denominadores
+fixos pelo gabarito):
+
+- **a) formato:** média de `(g) formato total` (n = 17) da v2 **>** a da v1.
+  A desigualdade é estrita: empate reprova.
+- **b) sem queda:** para cada uma das métricas `(b) fatos-chave` (n = 17),
+  `(f) correção` (n = 17) e `(d) sem afirmação grave` (n = 20), média_v1 −
+  média_v2 **≤ 1,0**. Queda de exatamente 1,0 passa; de 1,5 reprova.
+- **c) Sim/Não:** nas 10 respostas da v2 (2 rodadas × q01, q02, q04, q05 e
+  q10), nenhuma pode ter como 1ª palavra um Sim/Não que **contradiga** a 1ª
+  palavra da `resposta_esperada` (q05 = Sim; q01, q02, q04 e q10 = Não).
+  Tolerância zero. A 1ª palavra é a da 1ª linha não vazia, limpa de markdown
+  e normalizada, com o mesmo `^(sim|nao)\b` da (g-a).
+  - Resposta que **não** começa por Sim/Não não viola c); ela só falha na (g-a).
+  - Resposta **fixa, sem LLM** (`resposta_fixa_sem_llm`: índice indisponível
+    ou zero trechos) fica **fora** do c) e é listada. Não é a v2 inventando
+    nada. A mesma frase gerada pelo LLM conta normalmente.
+  - Erros de Sim/Não da v1 não entram no c).
+
+Falhas, como na Missão 8:
+
+- Falha de infra conta como erro, sem nova rodada.
+- Juiz pendente (falhou numa pergunta) conta como **não acerto**.
+- Rodada abortada por orçamento fica incompleta, e as faltantes contam como
+  erro.
+- Só a `FalhaInicial` (1ª chamada falhou, nada gravado, nada medido) permite
+  repetir **aquela** rodada, **uma vez**, registrando aqui.
+
+**Integridade.** O `missao9 --comparar` marca a comparação como
+**inválida**, e aí a v2 não vira padrão, se acontecer qualquer um destes:
+
+- a versão gravada no JSON difere da versão no nome do arquivo;
+- o hash das regras gravado difere do pré-registrado;
+- o julgamento não é daquelas respostas (hash);
+- os prompts do juiz não são os da v1;
+- o índice (`indice_meta` inteiro: modelo, `n_chunks`, stemming, contextos)
+  é diferente entre as rodadas ou em relação à Missão 8.
+
+### Custo (teto total da missão: US$ 1,00)
+
+| | Por rodada | × 4 rodadas |
+|---|---|---|
+| Custo real da Missão 8 (respostas US$ 0,0329 + juiz US$ 0,0708) | US$ 0,104 | **~US$ 0,42** (projeção) |
+| Teto estimado pelo script (assume o raciocínio máximo do juiz) | ~US$ 0,48 | US$ 1,93 (não é o limite) |
+| `--orcamento` em cada comando (respostas 0,08 + juiz 0,15) | US$ 0,23 | **US$ 0,92 ≤ 1,00** |
+
+O limite que vale é o `--orcamento` de cada invocação. O script interrompe a
+rodada **depois** da pergunta que estourou, então cada invocação pode passar
+alguns décimos de centavo. Nas 8 invocações, isso fica bem abaixo dos
+US$ 0,08 de folga até US$ 1,00.
+
+### Comandos (de dentro de `orchestrator/`, nesta ordem)
+
+```bash
+.venv/bin/python -m orchestrator.rag.missao9            # plano + custo + comandos (grátis)
+# 1-8: pagos, impressos pelo plano (respostas/julgar intercalados, v1-r1, v2-r1, v1-r2, v2-r2)
+.venv/bin/python -m orchestrator.rag.missao9 --comparar # grátis: aplica a regra acima
+```
+
+**Status (20/11/2026):** pré-registrado; código e testes prontos (suíte com a
+rede bloqueada). Depois, medido: ver *Resultado da Missão 9* abaixo. **A v2
+NÃO foi adotada, e a v1 continua padrão.**
+
+### Resultado da Missão 9 (`missao9 --comparar`, 20/11/2026)
+
+Saída literal, com os 8 JSONs de `orchestrator/fixtures/rag/m9/`. A
+comparação é **válida**: passou em todas as checagens de integridade (versão
+e hash das regras, elo julgamento → respostas, juiz v1, `indice_meta`). Juiz
+NÃO calibrado, como na Missão 8.
+
+| Métrica | v1-r1 | v2-r1 | v1-r2 | v2-r2 | média v1 | média v2 |
+|---|---|---|---|---|---|---|
+| (g) formato total (n=17) | 0 | 16 | 0 | 15 | 0.0 | 15.5 |
+| (b) fatos-chave (n=17) | 14 | 11 | 13 | 10 | 13.5 | 10.5 |
+| (f) correção (n=17) | 16 | 13 | 15 | 12 | 15.5 | 12.5 |
+| (d) sem grave (n=20) | 17 | 18 | 17 | 15 | 17.0 | 16.5 |
+
+- a) formato v2 > v1: sim
+- b) sem queda > 1: (b) fatos-chave CAIU, (f) correção CAIU, (d) sem grave ok
+- c) nenhum Sim/Não errado na v2: NÃO (q02 r1: veio sim, esperado nao, q04 r1: veio sim, esperado nao, q02 r2: veio sim, esperado nao, q04 r2: veio sim, esperado nao)
+
+**Decisão pela regra pré-registrada: v2 NÃO vira padrão.** Custo total
+medido: US$ 0.3782 (dentro do teto de US$ 1,00).
+
+**Achados:**
+
+- **O formato funcionou, e o conteúdo piorou.** O formato total foi de 0 para
+  15,5 em 17. Ao mesmo tempo, os fatos-chave caíram de 13,5 para 10,5 (−3,0)
+  e a correção caiu de 15,5 para 12,5 (−3,0). As duas quedas passam do limite
+  pré-registrado de 1. O "sem grave" ficou dentro do limite (17,0 para 16,5).
+- **Sim/Não errado na q02 e na q04, nas 2 rodadas.** O critério c) caiu 4
+  vezes em 10 respostas.
+  - **q02** (frango congelado chegou a −10 °C, aceito?): a v2 respondeu
+    **"Sim, o frango congelado pode ser aceito"**. O certo é **recusar**: o
+    congelado só é aceito até −12 °C, e a carga tem de ser anotada no F-07.
+    É um **erro de segurança alimentar**. Na v2-r2, o próprio complemento diz
+    "A temperatura máxima para congelados é -12°C". O modelo tinha o dado e
+    se comprometeu com o "Sim" antes de usá-lo.
+  - **q04** (queijo comprado anteontem, posso trocar?): a v2 respondeu "Sim,
+    troca em até 24h". A regra das 24 horas está certa, mas "anteontem" já
+    passou do prazo: a resposta certa é "Não".
+- **Hipótese (não testada):**
+  - Forçar Sim/Não na 1ª palavra faz o modelo **decidir antes de
+    raciocinar**: o token de conclusão sai antes da comparação (−10 contra
+    −12; anteontem contra 24 h).
+  - O limite de 3 linhas **cortou fatos essenciais** da resposta principal,
+    e o complemento "só se necessário" não os recuperou. Isso explica a queda
+    dos fatos-chave.
+- **Variação entre rodadas da própria v1** (mesmo texto, mesmo índice):
+  - fatos-chave 14 contra 13 e correção 16 contra 15. Isso dá **±1 pergunta
+    de ruído** só pela amostragem do synth, sem temperatura fixa;
+  - a q18 (férias) foi ao rag na v1-r1 e não na v1-r2. Na v2 aconteceu o
+    mesmo: foi ao rag na r1 e não na r2. Ou seja, o roteamento também varia
+    entre rodadas, mesmo com o supervisor em temperatura 0;
+  - o limite de queda de 1,0 é do tamanho desse ruído. A queda medida da v2
+    (−3) é três vezes maior que ele.
+
+**Proposta (NÃO implementada; exige pré-registro próprio): v3 "pensa
+primeiro, formata depois".** Duas etapas:
+
+1. O synth gera a resposta **completa** com as regras v1, sem restrição de
+   formato. Essa resposta é interna e não vai para o usuário.
+2. Uma 2ª chamada **resume** essa resposta no formato do Max: a conclusão
+   Sim/Não vem da resposta completa e não é decidida de novo; as citações e
+   os fatos-chave são mantidos. Só a 2ª saída vai para o usuário.
+
+A v3 precisa de critérios fixados antes de medir, no mesmo molde da Missão 9.
+Entram nesse pré-registro:
+
+- o custo da 2ª chamada;
+- a latência da 2ª chamada;
+- a fidelidade do resumo em relação aos trechos, não só em relação à
+  resposta interna.
+
 ## Pendências
+
+**Missão 9 (registrado ANTES de rodar; não muda nada agora, a variável é uma só):**
+em produção, quando a resposta crua não traz a citação completa, o
+`garantir_citacao` anexa "Fontes consultadas no manual: …" **depois** da
+oferta de detalhes. Assim, a mensagem que o usuário vê pode não terminar em
+"?", mesmo que a v2 vença. A decisão da Missão 9 continua válida, porque a
+métrica (g) usa a resposta crua. Se a v2 virar padrão, tratar a posição do
+anexo numa missão própria.
 
 **Obrigatórias antes de qualquer deploy** (custo do padrão híbrido + contexto,
 decidido na Missão 6, e do reranking, Missão 7):

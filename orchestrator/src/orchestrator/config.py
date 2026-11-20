@@ -187,6 +187,10 @@ class Settings(BaseSettings):
     # nao carregar (ou falhar), a busca cai para o modo acima, com log.
     rag_rerank_model: str | None = None
     rag_rerank_candidatos: int = Field(default=20, ge=1, le=50)
+    # Regras do manual no synthesize_final (Missao 9): v1 = Missao 8, sem
+    # formato; v2 = v1 + formato do Max (Sim/Nao primeiro, principal curta,
+    # oferta de detalhes). O padrao so muda pela regra pre-registrada (docs/RAG.md).
+    rag_regras_versao: Literal["v1", "v2"] = "v1"
 
     @field_validator("rag_rerank_model", mode="before")
     @classmethod

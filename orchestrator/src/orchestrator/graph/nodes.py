@@ -887,7 +887,8 @@ async def synthesize_final_node(state: GraphState) -> dict:
         base_url="https://openrouter.ai/api/v1",
     )
     # Sempre que o rag rodou (com trecho, sem trecho ou com erro) - B-01.
-    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.REGRAS_DO_MANUAL if rag.notas else "")
+    # Versao das regras: settings.rag_regras_versao (Missao 9; padrao v1).
+    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.regras_do_manual() if rag.notas else "")
     response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=prompt)])
     text = response.content if isinstance(response.content, str) else str(response.content)
     cited = rag_specialist.garantir_citacao(text, rag.fontes)
