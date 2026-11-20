@@ -394,6 +394,9 @@ async def supervisor_node(state: GraphState) -> dict:
         }
 
     ativos = {e.value for e in especialistas_ativos(settings.rag_enabled)}
+    # O rag roda no maximo 1 vez por turno (M-03): a nota diz "NAO redespache",
+    # mas isso e pedido ao LLM; aqui e garantido em codigo.
+    rag_usado = rag_specialist.ja_consultado(state.get("internal_scratchpad") or [])
     dispatches = []
     for tc in response.tool_calls:
         if tc["name"] != DispatchSpecialist.__name__:
@@ -404,6 +407,11 @@ async def supervisor_node(state: GraphState) -> dict:
             # pode alucinar o nome. Descarta - nunca roteia.
             _logger.warning("supervisor_node: despacho para especialista inativo descartado: %r", tc["args"].get("specialist"))
             continue
+        if tc["args"].get("specialist") == SpecialistName.RAG.value:
+            if rag_usado:
+                _logger.warning("supervisor_node: redespacho do rag no mesmo turno descartado")
+                continue
+            rag_usado = True
         dispatches.append(tc)
 
     if not dispatches:
@@ -878,7 +886,8 @@ async def synthesize_final_node(state: GraphState) -> dict:
         api_key=settings.openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
     )
-    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.REGRAS_DO_MANUAL if rag.com_trechos else "")
+    # Sempre que o rag rodou (com trecho, sem trecho ou com erro) - B-01.
+    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.REGRAS_DO_MANUAL if rag.notas else "")
     response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=prompt)])
     text = response.content if isinstance(response.content, str) else str(response.content)
     cited = rag_specialist.garantir_citacao(text, rag.fontes)

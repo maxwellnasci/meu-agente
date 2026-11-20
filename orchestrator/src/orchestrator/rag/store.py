@@ -50,11 +50,15 @@ def _connect(path: Path, *, readonly: bool) -> sqlite3.Connection:
         conn = sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
     else:
         conn = sqlite3.connect(path)
-    conn.enable_load_extension(True)
     try:
-        sqlite_vec.load(conn)
-    finally:
-        conn.enable_load_extension(False)
+        conn.enable_load_extension(True)
+        try:
+            sqlite_vec.load(conn)
+        finally:
+            conn.enable_load_extension(False)
+    except BaseException:
+        conn.close()  # B-03: sem a extensao, a conexao nao serve; nao vaza
+        raise
     return conn
 
 

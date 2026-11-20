@@ -5,6 +5,7 @@ real das variantes roda fora do pytest:
 `python -m orchestrator.rag.evaluate --comparar-variantes`.
 """
 
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from test_rag_engine import FakeEmbedder
 
 from orchestrator.rag import evaluate, ingest
 from orchestrator.rag.chunking import chunk_corpus
-from orchestrator.rag.search import fts_query_normalizada, search
+from orchestrator.rag.search import fts_query, fts_query_normalizada, search
 from orchestrator.rag.store import build_index, open_index, read_bm25_config
 from orchestrator.rag.text import (
     DEFAULT_BM25,
@@ -168,3 +169,61 @@ def test_comparar_variantes_vetorial_e_controle(chunks):
     assert all(v == vetorial["baseline"] for v in vetorial.values())
     md = evaluate.relatorio_variantes(por_variante)
     assert md.count("\n| ") >= 4 and "Mudancas em relacao ao baseline" in md
+
+
+# --- M-01 / M-02 (2a revisao adversaria): mesma tokenizacao que o FTS5 ------------------
+
+CONSULTAS = [
+    "olha o POP-06 e o f-12",
+    'NEAR(x* -y : "z") AND OR',
+    "trocar_produto veja_POP-06_aqui _F-18",
+    unicodedata.normalize("NFD", "diluição e ferias até 18h"),
+    "Diluição: ÁGUA sanitária?",
+    "",
+    "?!",
+]
+
+
+@pytest.mark.parametrize("cfg", VARIANTES, ids=lambda c: c.nome)
+def test_underscore_e_separador_como_no_unicode61(cfg):
+    """M-01: `_` e separador no tokenizer do FTS5; no regex era letra (`\\w`)."""
+    assert normalizar("trocar_produto", cfg) == normalizar("trocar produto", cfg)
+    assert [t for t, codigo in tokens("veja_POP-06_aqui e _F-18_", cfg) if codigo] == ["pop 06", "f 18"]
+
+
+@pytest.mark.parametrize("cfg", VARIANTES, ids=lambda c: c.nome)
+def test_nfd_e_nfc_dao_os_mesmos_termos(cfg):
+    """M-02: pergunta em NFD (macOS/iOS) nao pode fatiar palavra acentuada."""
+    for palavra in ("diluição", "Órgão", "pão de açúcar"):
+        assert normalizar(unicodedata.normalize("NFD", palavra), cfg) == normalizar(palavra, cfg)
+
+
+def test_fts_query_e_a_query_normalizada_do_baseline():
+    """M-02: uma funcao so. `fts_query` = `fts_query_normalizada` sem stopwords
+    nem stemming (antes eram duas implementacoes, e so uma tirava o acento)."""
+    for consulta in CONSULTAS:
+        assert fts_query(consulta) == fts_query_normalizada(consulta, BASELINE), consulta
+    assert fts_query(unicodedata.normalize("NFD", "diluição")) == '"diluicao"'
+
+
+def test_busca_baseline_com_pergunta_em_nfd_acha_o_mesmo_que_em_nfc(tmp_path, chunks):
+    alvo = ("pop-05-higienizacao-e-seguranca-alimentar.md", "2. Diluição dos produtos de limpeza")
+    conn = _indice(tmp_path, chunks, BASELINE)
+    try:
+        nfc = [h.chave for h in search(conn, "diluição", modo="bm25", k=5)]
+        nfd = [h.chave for h in search(conn, unicodedata.normalize("NFD", "diluição"), modo="bm25", k=5)]
+    finally:
+        conn.close()
+    assert nfc[0] == alvo and nfd == nfc
+
+
+def test_busca_com_underscore_aplica_stemming_em_cada_palavra(tmp_path, chunks):
+    """"trocar_produtos" -> "troc" + "produt" (antes: "trocar_produt", e o
+    FTS5 procurava "trocar", que nao existe no indice com stemming)."""
+    alvo = ("pop-03-troca-e-devolucao.md", "1. Onde é feita a troca")
+    conn = _indice(tmp_path, chunks, SO_STEM)
+    try:
+        achados = [h.chave for h in search(conn, "trocar_produtos", modo="bm25", k=50)]
+    finally:
+        conn.close()
+    assert alvo in achados

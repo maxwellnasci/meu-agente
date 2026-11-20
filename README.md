@@ -20,7 +20,7 @@ multi-agente com controles de segurança determinísticos** em volta do LLM — 
 | **Segurança de agentes (OWASP LLM Top 10)** | Gate de confirmação com TTL e uso único para ações em produção; allowlist de argumentos vindos do LLM; gate de alvos protegidos; limites de entrada | [SECURITY.md](SECURITY.md) |
 | **Auditoria com provas** | 17 achados registrados (severidade, evidência, status — inclusive os que seguem abertos). Os de maior severidade têm PoC offline e correção guiada por teste (red → green): path traversal controlado pelo LLM, bypass de guardrail, confirmação fraca de ações em produção, injeção de shell no CI | [docs/SEGURANCA_AUDITORIA_2026-11-02.md](docs/SEGURANCA_AUDITORIA_2026-11-02.md) |
 | **Engenharia de produção** | Webhook com HMAC, anti-replay, fila por remetente; deploy via imagem publicada (GHCR); provisionamento multi-cliente; moldes de servidor dedicado sem portas expostas | [`extensions/`](extensions/), [`deployments/`](deployments/servidor-dedicado/), [`scripts/provision-client.sh`](scripts/provision-client.sh) |
-| **Qualidade e supply chain** | 559 testes herméticos (Python 3.11 e 3.14), ruff, bandit, pip-audit, gitleaks (histórico completo semanal), shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Qualidade e supply chain** | 603 testes herméticos (Python 3.11 e 3.14), ruff, bandit, pip-audit, gitleaks (histórico completo semanal), shellcheck, actions fixadas por SHA | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | **Pós-incidentes documentados** | Falhas reais viraram documentos: o bug do "coma eterno", a investigação de travamento de hooks e a criação indevida de workflow no n8n | [docs/RESOLUCAO_BUG_COMA_ETERNO.md](docs/RESOLUCAO_BUG_COMA_ETERNO.md), [docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md](docs/CASE_BUG4_INVESTIGACAO_COMPLETA.md), [docs/archive/P0_CONTENCAO_N8N_2026-09-06.md](docs/archive/P0_CONTENCAO_N8N_2026-09-06.md) |
 
 ## RAG: manual de procedimentos
@@ -54,7 +54,9 @@ manual de procedimentos não cobre isso" em vez de inventar.
 - critérios de decisão pré-registrados antes de cada medição, e só eles
   decidem;
 - revisão adversária por outro modelo (Gemini, via Antigravity) nas etapas de
-  fundação; as missões mais recentes ainda aguardam revisão;
+  fundação e, numa 2ª rodada, nas Missões 3–7: nenhum achado alto, 7 médios e 3
+  baixos, todos corrigidos com um teste que falhava antes da correção
+  ([docs/RAG.md](docs/RAG.md), *2ª revisão adversária*);
 - testes com rede bloqueada, LLM e embedder falsos, sem chamada a modelo real
   no pytest.
 
@@ -94,7 +96,7 @@ SQLite (checkpointer) · LangSmith (tracing opcional) — **TypeScript** (plugin
 ## Estrutura
 
 ```
-orchestrator/            cérebro LangGraph (FastAPI) + 559 testes
+orchestrator/            cérebro LangGraph (FastAPI) + 603 testes
 extensions/              plugins TypeScript do gateway
   whatsapp-cloud/          canal WhatsApp oficial (webhook assinado)
   orchestrator-bridge/     ferramenta ask_orchestrator

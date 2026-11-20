@@ -5,6 +5,7 @@ O cross-encoder real (download + medicao) roda fora do pytest:
 """
 
 import logging
+import threading
 from pathlib import Path
 
 import pytest
@@ -157,21 +158,38 @@ def test_no_aplica_o_rerank_configurado(indice, monkeypatch):
     assert falso.chamadas == 2  # carregado 1 vez, usado 2
 
 
+PERGUNTA_RERANK = "caixa abertura fechamento sangria"
+
+
+def _busca_sem_reranker_configurado(monkeypatch) -> list[SearchHit]:
+    """Referencia dos testes de fallback (M-06, 2a revisao adversaria): a busca
+    com `rag_rerank_model` VAZIO, nunca outra execucao do proprio fallback. E
+    top_k (3) != candidatos (20), para o fallback provar que devolve `k`."""
+    monkeypatch.setattr(settings, "rag_top_k", 3)
+    monkeypatch.setattr(settings, "rag_rerank_candidatos", 20)
+    monkeypatch.setattr(settings, "rag_rerank_model", None)
+    sem = rag_specialist.buscar_trechos(PERGUNTA_RERANK)
+    assert len(sem) == 3 and all(h.modo == "bm25" for h in sem)
+    return sem
+
+
 def test_modelo_que_nao_carrega_cai_para_a_busca_sem_rerank(indice, monkeypatch, caplog):
-    monkeypatch.setattr(settings, "rag_rerank_model", "modelo-quebrado")
-    sem = rag_specialist.buscar_trechos("caixa abertura fechamento sangria")
+    sem = _busca_sem_reranker_configurado(monkeypatch)
 
     def falha(nome, cache):
         raise ImportError("sem fastembed")
 
+    monkeypatch.setattr(settings, "rag_rerank_model", "modelo-quebrado")
     monkeypatch.setattr(rag_specialist, "reranker_factory", falha)
     with caplog.at_level(logging.WARNING, logger="orchestrator.graph.rag_specialist"):
-        com_falha = rag_specialist.buscar_trechos("caixa abertura fechamento sangria")
-    assert [h.chave for h in com_falha] == [h.chave for h in sem[:5]]
+        com_falha = rag_specialist.buscar_trechos(PERGUNTA_RERANK)
+    assert com_falha == sem  # mesmos trechos, ordem, rank, score e modo
     assert "nao carregou" in caplog.text and "SEM rerank" in caplog.text
 
 
 def test_score_que_falha_cai_para_a_busca_sem_rerank(indice, monkeypatch, caplog):
+    sem = _busca_sem_reranker_configurado(monkeypatch)
+
     class Explode(RerankerFalso):
         def score(self, pergunta, textos):
             raise RuntimeError("onnx")
@@ -179,8 +197,8 @@ def test_score_que_falha_cai_para_a_busca_sem_rerank(indice, monkeypatch, caplog
     monkeypatch.setattr(settings, "rag_rerank_model", "modelo-x")
     monkeypatch.setattr(rag_specialist, "reranker_factory", lambda nome, cache: Explode())
     with caplog.at_level(logging.WARNING, logger="orchestrator.graph.rag_specialist"):
-        hits = rag_specialist.buscar_trechos("caixa abertura fechamento sangria")
-    assert len(hits) == 5 and all(h.modo == "bm25" for h in hits)
+        hits = rag_specialist.buscar_trechos(PERGUNTA_RERANK)
+    assert hits == sem
     assert "reranker falhou" in caplog.text
 
 
@@ -196,3 +214,85 @@ async def test_rag_desligado_nunca_carrega_o_reranker(indice, monkeypatch):
     monkeypatch.setattr(rag_specialist, "reranker_factory", lambda *a: pytest.fail("carregou com o rag desligado"))
     out = await specialist_rag_node({"messages": [], "pending_specialists": [{"specialist": "rag", "instructions": "q"}]})
     assert out["last_error"] == "especialista rag desligado neste ambiente"
+
+
+# --- M-04 (2a revisao adversaria): caches com lock e falha de carga memorizada -----------
+
+
+def _carga_concorrente(monkeypatch, nome_da_fabrica, carregar, produto):
+    """A 1a thread entra na fabrica e fica PRESA la dentro; a 2a chega com o
+    cache ainda vazio. Sem lock, a 2a tambem chama a fabrica (2 modelos ONNX
+    carregando ao mesmo tempo). Deterministico: Event, nao sleep."""
+    entrou, solta = threading.Event(), threading.Event()
+    chamadas = []
+
+    def fabrica(nome, cache):
+        chamadas.append(nome)
+        entrou.set()
+        solta.wait(5)
+        return produto(nome)
+
+    monkeypatch.setattr(rag_specialist, nome_da_fabrica, fabrica)
+    resultados = []
+    t1 = threading.Thread(target=lambda: resultados.append(carregar()))
+    t1.start()
+    assert entrou.wait(5)
+    t2 = threading.Thread(target=lambda: resultados.append(carregar()))
+    t2.start()
+    t2.join(0.3)  # tempo para a 2a thread chegar a fabrica, se nada a segurar
+    solta.set()
+    t1.join(5)
+    t2.join(5)
+    return chamadas, resultados
+
+
+def test_embedder_carrega_uma_vez_com_consultas_concorrentes(monkeypatch):
+    monkeypatch.setattr(rag_specialist, "_embedders", {})
+    chamadas, resultados = _carga_concorrente(
+        monkeypatch, "embedder_factory", lambda: rag_specialist._embedder_do_indice({"model_name": "m"}), FakeEmbedder
+    )
+    assert chamadas == ["m"]
+    assert len(resultados) == 2 and resultados[0] is resultados[1]
+
+
+def test_reranker_carrega_uma_vez_com_consultas_concorrentes(monkeypatch):
+    monkeypatch.setattr(rag_specialist, "_rerankers", {})
+    monkeypatch.setattr(settings, "rag_rerank_model", "modelo-x")
+    chamadas, resultados = _carga_concorrente(
+        monkeypatch, "reranker_factory", rag_specialist._reranker, lambda nome: RerankerFalso(model_name=nome)
+    )
+    assert chamadas == ["modelo-x"]
+    assert len(resultados) == 2 and resultados[0] is resultados[1]
+
+
+def test_falha_de_carga_do_reranker_e_memorizada(indice, monkeypatch, caplog):
+    """Modelo invalido / sem fastembed / sem rede: tenta carregar UMA vez, nao
+    a cada consulta (cada tentativa pode ser um download na worker thread)."""
+    tentativas = []
+
+    def falha(nome, cache):
+        tentativas.append(nome)
+        raise ImportError("sem fastembed")
+
+    monkeypatch.setattr(settings, "rag_rerank_model", "modelo-quebrado")
+    monkeypatch.setattr(rag_specialist, "reranker_factory", falha)
+    with caplog.at_level(logging.WARNING, logger="orchestrator.graph.rag_specialist"):
+        for _ in range(3):
+            assert len(rag_specialist.buscar_trechos(PERGUNTA_RERANK)) == settings.rag_top_k
+    assert tentativas == ["modelo-quebrado"]
+    assert caplog.text.count("nao carregou") == 1
+
+
+def test_outro_modelo_configurado_tenta_carregar_de_novo(indice, monkeypatch):
+    """A falha memorizada vale por (modelo, cache_dir): trocar o modelo tenta de novo."""
+    tentativas = []
+
+    def falha(nome, cache):
+        tentativas.append(nome)
+        raise ImportError("sem fastembed")
+
+    monkeypatch.setattr(rag_specialist, "reranker_factory", falha)
+    for nome in ("modelo-a", "modelo-a", "modelo-b"):
+        monkeypatch.setattr(settings, "rag_rerank_model", nome)
+        rag_specialist.buscar_trechos(PERGUNTA_RERANK)
+    assert tentativas == ["modelo-a", "modelo-b"]

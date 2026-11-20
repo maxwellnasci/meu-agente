@@ -22,7 +22,12 @@ from dataclasses import dataclass
 
 import snowballstemmer
 
-_TOKEN = re.compile(r"\b(pop|f|q|p)-(\d{2})\b|(\w+)", re.UNICODE)
+# Palavra = letras/digitos SEM o `_` (`[^\W_]`), como no tokenizer `unicode61`
+# do FTS5, onde `_` e separador (M-01, 2a revisao adversaria). Com `\w`, o
+# "trocar_produto" virava um token so ("trocar_produt") e o `\b` do codigo
+# nao via a borda em "veja_POP-06_aqui". O texto chega aqui ja SEM acento
+# (`sem_acento`, NFKD): NFC e NFD dao os mesmos termos (M-02).
+_TOKEN = re.compile(r"(?<![^\W_])(pop|f|q|p)-(\d{2})(?![^\W_])|([^\W_]+)", re.UNICODE)
 
 
 def sem_acento(texto: str) -> str:

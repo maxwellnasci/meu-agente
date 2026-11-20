@@ -5,7 +5,9 @@
 # pelo nome do container (sem depender de porta exposta no host).
 #
 # Uso:
-#   cp .env.example .env   # nunca commite o .env real (gitignored)
+#   cp .env.example .env                              # interpolacao deste compose
+#   cp orchestrator/.env.example orchestrator/.env    # env_file do orquestrador
+#   (nunca commite um .env real; todos sao gitignored)
 #   docker compose up -d --build
 #   curl http://localhost:8000/health
 #

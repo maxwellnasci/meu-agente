@@ -72,7 +72,7 @@ def avaliar(conn, perguntas: Sequence[dict], embedder: Embedder | None, *, k: in
     for modo in modos:
         for p in perguntas:
             ranking = [h.chave for h in search(conn, p["pergunta"], modo=modo, embedder=embedder,
-                                               k=CANDIDATOS, colecao=colecao)]
+                                               k=max(k, CANDIDATOS), colecao=colecao)]
             esperadas = fontes(p)
             posicoes = {f"{a} :: {s}": (ranking.index((a, s)) + 1 if (a, s) in ranking else None)
                         for a, s in sorted(esperadas)}

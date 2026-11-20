@@ -27,7 +27,7 @@ from orchestrator.rag.store import (
     open_index,
     read_meta,
 )
-from orchestrator.rag.text import DEFAULT_BM25
+from orchestrator.rag.text import DEFAULT_BM25, Bm25Config
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "rag"
 CORPUS = FIXTURES / "supermercado"
@@ -221,14 +221,31 @@ def test_ingest_recusa_o_checkpoints_e_fica_fora_dele(tmp_path):
 
 
 def test_fts_query_codigo_vira_frase_e_operadores_nao_passam():
-    assert fts_query("olha o POP-06 e o f-12") == '"pop 06" OR "f 12" OR "olha" OR "o" OR "e"'
+    # Ordem de aparicao (desde a unificacao com fts_query_normalizada, M-02);
+    # num OR a ordem nao muda o casamento nem o bm25().
+    assert fts_query("olha o POP-06 e o f-12") == '"olha" OR "o" OR "pop 06" OR "e" OR "f 12"'
     q = fts_query('NEAR(x* -y : "z") AND OR')
     assert q == '"near" OR "x" OR "y" OR "z" OR "and" OR "or"'
 
 
-@pytest.mark.parametrize("pergunta", ['"', "*", "-:()", "", "   ", 'NEAR("a" "b")', "a AND", "^x", "col:valor"])
-def test_bm25_nao_quebra_com_entrada_hostil(indice, pergunta):
-    search(indice, pergunta, modo="bm25")
+ENTRADAS_HOSTIS = ['"', "*", "-:()", "", "   ", 'NEAR("a" "b")', "a AND", "^x", "col:valor", "a_b*", 'x"_"y']
+
+
+@pytest.fixture(scope="module", params=[DEFAULT_BM25, Bm25Config(stopwords=False, stemming=False)],
+                ids=["padrao-stemming", "baseline-sem-stemming"])
+def indice_por_variante(request, tmp_path_factory, chunks):
+    """B-02 (2a revisao adversaria): o indice padrao tem stemming, e so o
+    baseline (sem normalizacao) leva a query de `fts_query` ao MATCH do FTS5."""
+    db = tmp_path_factory.mktemp("hostil") / "rag_index.sqlite"
+    build_index(chunks, FakeEmbedder(), db, request.param)
+    conn = open_index(db)
+    yield conn
+    conn.close()
+
+
+@pytest.mark.parametrize("pergunta", ENTRADAS_HOSTIS)
+def test_bm25_nao_quebra_com_entrada_hostil(indice_por_variante, pergunta):
+    search(indice_por_variante, pergunta, modo="bm25")
 
 
 def test_bm25_sem_termo_devolve_vazio(indice):
@@ -357,3 +374,45 @@ def test_importar_o_rag_nao_carrega_fastembed(tmp_path):
 def test_fake_embedder_cumpre_o_protocolo():
     assert isinstance(FakeEmbedder(), Embedder)
     assert chunking.Chunk is Chunk
+
+
+# --- B-03 (2a revisao adversaria): higiene ---------------------------------------------
+
+
+def test_conexao_e_fechada_se_a_extensao_vec_nao_carregar(tmp_path, monkeypatch):
+    from orchestrator.rag import store
+
+    abertas = []
+    connect_real = sqlite3.connect
+
+    def espiao(*args, **kwargs):
+        conn = connect_real(*args, **kwargs)
+        abertas.append(conn)
+        return conn
+
+    def sem_vec0(conn):
+        raise sqlite3.OperationalError("sqlite-vec indisponivel")
+
+    monkeypatch.setattr(store.sqlite3, "connect", espiao)
+    monkeypatch.setattr(store.sqlite_vec, "load", sem_vec0)
+    with pytest.raises(sqlite3.OperationalError, match="sqlite-vec"):
+        store._connect(tmp_path / "x.sqlite", readonly=False)
+    (conn,) = abertas
+    with pytest.raises(sqlite3.ProgrammingError):  # fechada, nao vazou
+        conn.execute("SELECT 1")
+
+
+def test_avaliar_busca_pelo_menos_k_trechos(monkeypatch):
+    """Com --k maior que CANDIDATOS (50), a busca precisa trazer k, senao o
+    recall@k seria medido sobre so 50."""
+    pedidos = []
+
+    def search_espiao(conn, pergunta, *, k, **kwargs):
+        pedidos.append(k)
+        return []
+
+    monkeypatch.setattr(evaluate, "search", search_espiao)
+    p = {"id": "q", "tipo": "direta", "pergunta": "x", "arquivo_fonte": ["a.md"], "secao_fonte": ["1. A"]}
+    evaluate.avaliar(None, [p], None, k=60, modos=["bm25"])
+    evaluate.avaliar(None, [p], None, k=5, modos=["bm25"])
+    assert pedidos == [60, evaluate.CANDIDATOS]
