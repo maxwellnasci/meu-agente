@@ -211,7 +211,8 @@ def _llms_falsos(sem_rag: set[str], sem_citar: set[str]):
 @pytest.fixture
 def ambiente_grafo(tmp_path, monkeypatch):
     db = _montar_indice(CORPUS, tmp_path / "rag_index.sqlite")
-    for campo in ("n8n_url", "n8n_api_key", "openclaw_gateway_url", "openclaw_gateway_token", "rag_enabled"):
+    for campo in ("n8n_url", "n8n_api_key", "openclaw_gateway_url", "openclaw_gateway_token", "rag_enabled",
+                  "rag_regras_versao"):
         monkeypatch.setattr(settings, campo, getattr(settings, campo))  # restaura no teardown
     monkeypatch.setattr(settings, "rag_index_path", str(db))
     monkeypatch.setattr(settings, "rag_search_mode", "bm25")
@@ -627,7 +628,7 @@ def test_respostas_que_falham_na_primeira_pergunta_nao_gravam_arquivo(tmp_path, 
         raise av.FalhaInicial("1a pergunta falhou")
 
     monkeypatch.setattr(av, "etapa_respostas", falha)
-    assert av.main(["--executar", "--etapa", "respostas"]) == 2
+    assert av.main(["--executar", "--etapa", "respostas", "--regras", "v1"]) == 2
     assert "nada gravado" in capsys.readouterr().err
     assert not list(tmp_path.glob("respostas-*.json"))
 

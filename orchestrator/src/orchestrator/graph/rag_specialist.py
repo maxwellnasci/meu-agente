@@ -82,6 +82,36 @@ REGRAS_DO_MANUAL = (
     "a consulta ao manual falhou agora e que o usuario confirme com o encarregado. Nao invente o procedimento."
 )
 
+# Missao 9 (docs/RAG.md): v2 = v1 INTEIRA + a regra 6 de formato (padrao do Max,
+# medido pela metrica (g) de fixtures/rag/formato_v1.yaml). A v1 fica intacta
+# (hash gravado nas respostas da Missao 8) e selecionavel por
+# `settings.rag_regras_versao`; o padrao so muda se os criterios pre-registrados
+# da Missao 9 passarem.
+_REGRA_FORMATO_V2 = (
+    "\n6. FORMATO da resposta (as regras 1 a 5 valem antes desta; o formato nunca muda o conteudo):\n"
+    "   a) Se a pergunta e de sim/nao e os trechos respondem, a PRIMEIRA palavra da resposta e \"Sim\" ou "
+    "\"Não\", conforme os trechos. Se os trechos nao respondem (regra 4) ou a consulta falhou (regra 5), "
+    "NAO comece por Sim nem por Não: comece pela frase exata da regra 4 ou, no caso da regra 5, por "
+    "\"A consulta ao manual falhou\".\n"
+    "   b) Resposta principal: o essencial em ate 3 linhas de no maximo 80 caracteres cada, CONTANDO a "
+    "citacao (POP-XX, secao \"...\"). Sem lista e sem titulo na resposta principal.\n"
+    "   c) Complemento so se for necessario para o usuario agir (ex.: um passo ou formulario obrigatorio), "
+    "separado da resposta principal por UMA LINHA EM BRANCO. Se nao for necessario, nao escreva complemento. "
+    "O complemento tambem segue as regras 2 e 3.\n"
+    "   d) A ULTIMA linha da resposta, depois de uma linha em branco, e uma oferta curta de detalhes que "
+    "termina em \"?\" (ex.: \"Quer mais detalhes?\"). Nada depois dela, nem citacao."
+)
+REGRAS_DO_MANUAL_V2 = REGRAS_DO_MANUAL + _REGRA_FORMATO_V2
+REGRAS_POR_VERSAO = {"v1": REGRAS_DO_MANUAL, "v2": REGRAS_DO_MANUAL_V2}
+
+
+def regras_do_manual(versao: str | None = None) -> str:
+    """Regras do manual da versao pedida (padrao: `settings.rag_regras_versao`)."""
+    v = versao or settings.rag_regras_versao
+    if v not in REGRAS_POR_VERSAO:
+        raise ValueError(f"versao de regras desconhecida: {v!r} (validas: {', '.join(REGRAS_POR_VERSAO)})")
+    return REGRAS_POR_VERSAO[v]
+
 _POP = re.compile(r"^pop-(\d{2})", re.IGNORECASE)
 _CITACAO_POP = re.compile(r"\bPOP-(\d{2})\b", re.IGNORECASE)
 _DELIMITADOR_FORJADO = re.compile(r"<\s*/?\s*trecho", re.IGNORECASE)
