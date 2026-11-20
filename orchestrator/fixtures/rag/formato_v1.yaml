@@ -1,0 +1,64 @@
+# Metrica (g) FORMATO da Missao 8 (docs/RAG.md) - v1, padrao do Max,
+# pre-registrada em 20/11/2026 ANTES do calculo (mas DEPOIS da coleta: as 20
+# respostas de 19/11 ja existiam e foram lidas quando este criterio foi
+# escrito). O sha256 deste arquivo e conferido pelo script, que recusa rodar se
+# nao bater. Mudar qualquer linha = formato_v2 com novo pre-registro.
+#
+# Checagem DETERMINISTICA (sem LLM) na resposta CRUA (sem o anexo "Fontes
+# consultadas"). E LINHA DE BASE: as regras atuais nao pedem este formato,
+# entao espera-se nota baixa. A mudanca de formato e a proxima missao.
+#
+# Preparo comum: cada linha (segmento entre "\n") e limpa de markdown -
+# `*`, `_` e `` ` `` saem em qualquer posicao; `#`, `>` e o marcador de lista
+# ("-", "+", "•", "1." ou "1)" seguido de espaco) saem do inicio - e a linha e
+# aparada. Para (a) e (c) ela ainda passa por `normalizar()` (sem acento,
+# minusculas).
+#
+# (a) sim_nao - so nas perguntas de `perguntas_sim_nao`: a 1a linha nao vazia,
+#     ja limpa e normalizada, casa `regex_inicio` (palavra inteira "sim" ou
+#     "nao" logo no inicio; "Sim," "Nao." "Nao," "Nao deve..." passam;
+#     "Simples" e "Segundo o manual... nao" nao). So formato: se a conclusao
+#     esta certa e a metrica (f).
+# (b) principal_curta - todas as 17 com fonte: o "principal" e o texto ANTES
+#     da 1a linha em branco (o "complemento" comeca na 1a linha em branco;
+#     sem linha em branco, a resposta inteira e o principal). Cada linha nao
+#     vazia do principal vale ceil(caracteres / largura_linha) linhas
+#     (caracteres contados depois da limpeza de markdown, sem normalizar).
+#     Cada item de lista e uma linha propria. Acerto: total <= max_linhas.
+#     A largura existe para que um paragrafo de 600 caracteres numa linha so
+#     NAO conte como "1 linha".
+# (c) oferece_detalhes - 17 com fonte + 3 sem_resposta (n=20): descartam-se,
+#     do fim para o inicio, as linhas vazias e as linhas SO de citacao (o que
+#     sobra depois de tirar `regex_citacao` e `regex_rotulo_citacao` nao tem
+#     letra nem numero, ex.: "Fonte: (POP-07, secao "X")"). A ultima linha que
+#     sobra precisa TERMINAR com "?" e casar `regex_oferta`.
+#     Limitacoes conhecidas (falso negativo aceito): oferta sem "?" ("Posso
+#     detalhar se quiser."), oferta que nao e a ultima linha, oferta com outro
+#     verbo ("quer que eu mande o formulario?").
+# Total (n=17): a pergunta com fonte acerta se passa em TODOS os criterios que
+#     se aplicam a ela ((a) so se for sim/nao, (b) e (c) sempre). As 3
+#     sem_resposta ficam so no (c). Pergunta ausente conta como erro.
+
+versao: 1
+
+# Perguntas FECHADAS de sim/nao, com a resposta_esperada do gabarito
+# comecando pela palavra "Sim" ou "Nao" como confirmacao ("Nao." em q01, q02,
+# q04 e q10; "Sim," em q05).
+perguntas_sim_nao: [q01, q02, q04, q05, q10]
+# Fora, de proposito:
+#   q07: pergunta alternativa ("e caso de F-07 OU recebo assim mesmo?"), mesmo
+#        com o gabarito comecando por "Nao recebe";
+#   q16: composta ("qual a diferenca...? a amarela qualquer repositor pode
+#        colar?"); a 1a pergunta e aberta.
+# Nota: a linha da metrica (f) no pre-registro de 19/11 cita o Sim/Nao de q01,
+# q02, q04 e q05 e nao cita a q10. Aquele texto nao e editado; a q10 entra aqui
+# porque e sim/nao fechada ("vou ter problema?") e o gabarito comeca por "Nao."
+
+regex_inicio: '^(sim|nao)\b'
+
+max_linhas: 3
+largura_linha: 80
+
+regex_oferta: '(\bdetalh|\bexpli(c|qu)|\baprofund|\bsaber mais\b|\bmais informac)'
+regex_citacao: '\(?\bpop ?-? ?\d+[^)\n]*\)?|secao\s*"[^"]*"|secao \d+'
+regex_rotulo_citacao: '\b(fontes?|consultad[ao]s?|no manual|referencias?)\b'

@@ -1,0 +1,70 @@
+# Fatos-chave da metrica (b) da Missao 8 (docs/RAG.md) - v1, aprovados pelo
+# Max em 19/11/2026 e congelados ANTES da primeira execucao. O sha256 deste
+# arquivo vai no JSON de respostas.
+#
+# Checagem DETERMINISTICA na resposta CRUA do LLM (sem o anexo "Fontes
+# consultadas" que o codigo acrescenta), depois de `normalizar()` e de
+# remover os titulos de secao citados entre aspas (seção "..."), para que
+# citar a secao "2. Sangria" nao conte como dizer "sangria":
+#   - sem acento e minusculas ("preço" -> "preco", "úteis" -> "uteis");
+#   - os sinais − (U+2212), – e — viram "-"; espaco nao separavel vira espaco;
+#   - aspas tipograficas viram aspas retas; espacos repetidos viram um.
+# `padrao` e uma regex Python sobre o texto ja normalizado. Acerto da
+# pergunta = TODOS os fatos encontrados (tudo ou nada); a fracao tambem e
+# reportada. Limitacao: o "Sim/Nao" do inicio da resposta nao e checado aqui
+# (vai na metrica (f), correcao pelo juiz).
+
+versao: 1
+fatos:
+  q01:
+    - {nome: "14h", padrao: '\b14 ?(h\b|horas?\b|:00)'}
+    - {nome: "F-03", padrao: '\bf ?-? ?03\b'}
+  q02:
+    - {nome: "-12 °C", padrao: '((?<![a-z0-9])- ?12\b|menos 12\b|\b12 ?(°|º)? ?(c|graus)? negativos)'}
+    - {nome: "F-07", padrao: '\bf ?-? ?07\b'}
+  q03:
+    - {nome: "-18 °C", padrao: '((?<![a-z0-9])- ?18\b|menos 18\b|\b18 ?(°|º)? ?(c|graus)? negativos)'}
+  q04:
+    - {nome: "24 h", padrao: '\b24 ?(h\b|horas?\b)'}
+  q05:
+    - {nome: "7 dias", padrao: '\b(7|sete) dias\b'}
+  q06:
+    - {nome: "F-12", padrao: '\bf ?-? ?12\b'}
+    - {nome: "9h", padrao: '\b0?9 ?(h\b|horas?\b|:00)'}
+    - {nome: "16h", padrao: '\b16 ?(h\b|horas?\b|:00)'}
+  q07:
+    - {nome: "F-07", padrao: '\bf ?-? ?07\b'}
+    - {nome: "recusa", padrao: '\brecus'}
+  q08:
+    - {nome: "R$ 200", padrao: '(r\$ ?200(,00)?(?![0-9])|\b200(,00)? reais\b)'}
+    - {nome: "F-01", padrao: '\bf ?-? ?01\b'}
+  q09:
+    - {nome: "R$ 800", padrao: '(r\$ ?800(,00)?(?![0-9])|\b800(,00)? (reais|conto)\b)'}
+    - {nome: "sangria", padrao: '\bsangria'}
+  q10:
+    - {nome: "R$ 5", padrao: '(r\$ ?5(,00)?(?![0-9])|\b(5|cinco)(,00)? reais\b)'}
+    - {nome: "F-02", padrao: '\bf ?-? ?02\b'}
+  q11:
+    - {nome: "15 min", padrao: '\b(15|quinze) ?(min\b|minutos?\b)'}
+    - {nome: "10 ml", padrao: '\b10 ?ml\b'}
+  q12:
+    - {nome: "menor preço", padrao: '\bmenor (preco|valor)\b'}
+    - {nome: "F-18", padrao: '\bf ?-? ?18\b'}
+    - {nome: "30 min", padrao: '\b(30|trinta) ?(min\b|minutos?\b)'}
+  q13:
+    - {nome: "revogado ou substituído", padrao: '\b(revogad|substituid)'}
+    - {nome: "POP-07", padrao: '\bpop ?-? ?07\b'}
+  q14:
+    - {nome: "30%", padrao: '\b30 ?(%|por cento)'}
+    - {nome: "amarela ou Oferta do Dia", padrao: '(\bamarela\b|oferta do dia)'}
+  q15:
+    - {nome: "R$ 20", padrao: '(r\$ ?20(,00)?(?![0-9])|\b(20|vinte)(,00)? reais\b)'}
+    - {nome: "F-09", padrao: '\bf ?-? ?09\b'}
+    - {nome: "não conformidade", padrao: '\bnao[- ]conformidade'}
+  q16:
+    - {nome: "encarte", padrao: '\bencarte'}
+    - {nome: "encarregado de perecíveis", padrao: '\bencarregad[oa]s? de pereciveis\b'}
+  q17:
+    - {nome: "CPF", padrao: '\bcpf\b'}
+    - {nome: "2 dias úteis", padrao: '\b(2|dois) dias uteis\b'}
+    - {nome: "Pix", padrao: '\bpix\b'}

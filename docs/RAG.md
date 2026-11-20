@@ -1,10 +1,15 @@
 # RAG MVP — Especialista de Procedimentos (Supermercado Bom Preço)
 
-Status: **Missão 7 concluída** (reranking medido e **não adotado**: falhou no
-critério de latência p95 ≤ 1,5 s). Missões 3–7 integradas no `master` (PR #1).
-A **2ª revisão adversária** (Gemini, via Antigravity) achou 7 problemas MÉDIOS
-e 3 BAIXOS, nenhum ALTO; todos corrigidos na branch `fix/rag-revisao` (sem
-commit ainda, ver *2ª revisão adversária*). **Padrão do agente: híbrido com contexto no BM25 + embedding, sem
+Status: **Missão 8: respostas geradas (19/11) e juiz rodado (20/11, com
+`--sem-calibracao`).** A calibração cega parou em 1 de 8 itens, então as
+métricas do juiz saem **não calibradas**. A exceção é uma calibração
+**parcial e não cega** dos 5 casos graves, em que o Max concordou com o juiz
+em 5 de 5 (ver *Calibração parcial: graves e achados*). A
+métrica (g), formato, foi pré-registrada em 20/11 (ver *Missão 8*). Missão 7 concluída
+(reranking medido e **não adotado**: falhou no critério de latência p95 ≤
+1,5 s). Missões 3–7 integradas no `master` (PR #1). A **2ª revisão
+adversária** (Gemini, via Antigravity) achou 7 problemas MÉDIOS e 3 BAIXOS,
+nenhum ALTO; todos corrigidos e integrados no `master` (`ef80857`, PR #2). **Padrão do agente: híbrido com contexto no BM25 + embedding, sem
 rerank** (16/17 de recall@5; MRR@20 0,602). O `rag` segue **desligado por
 padrão** (`ORCHESTRATOR_RAG_ENABLED=false`) e **não há deploy**. Antes de
 qualquer deploy há pendências obrigatórias (ver *Pendências*).
@@ -262,7 +267,9 @@ campo em `config.py` e nos dois `.env.example`, depois o valor no `.env`.
 | Missão 5 (`7cc5657`) | 527 passed, 1 skipped, 1 xfailed (+38: invariantes do registro nos 2 estados da chave, especialista rag, smoke isolado, `.env.example` carregável, índice falso na blindagem) |
 | Missão 6 (`5b49ffb`) | 546 passed, 1 skipped, 1 xfailed (+19 em `test_rag_contextual.py`: geração, vazamento, indexação com contexto, controles, o `contextos.json` real e o padrão novo do ingest) |
 | Missão 7 (`e8c3f27`) | 559 passed, 1 skipped, 1 xfailed (+13 em `test_rag_rerank.py`: reordenação, métricas, veredito e fallback do reranker) |
-| 2ª revisão adversária (`fix/rag-revisao`, sem commit) | **603 passed, 1 skipped, 1 xfailed** (+44: um teste vermelho por achado, ver *2ª revisão adversária*) |
+| 2ª revisão adversária (`ef80857`) | 603 passed, 1 skipped, 1 xfailed (+44: um teste vermelho por achado, ver *2ª revisão adversária*) |
+| Missão 8 (sem commit) | **657 passed, 1 skipped, 1 xfailed** (+54 em `test_rag_avaliar_respostas.py`: modo padrão sem custo, fatos-chave e normalização, citação, sem_resposta, resposta crua × anexo, isolamento do gabarito no juiz de fidelidade, hashes congelados, orçamento e `usage` no formato real do LangChain, falha de infraestrutura, parada na 1ª falha, calibração cega e limiar de concordância) |
+| Missão 8, desvio e (g) de 20/11 (sem commit) | **697 passed, 1 skipped, 1 xfailed** (+40 em `test_rag_avaliar_respostas.py`: hash do `formato_v1.yaml`, (g-a)/(g-b)/(g-c) com casos de borda sintéticos, denominadores fixos da (g), `--sem-calibracao` grava `nao_calibrada` e sem a flag o juiz continua recusando, relatório rotula o juiz não calibrado, concordância incompleta sai com erro limpo) |
 
 Comando: `cd orchestrator && python -m pytest -q`. A suíte precisa do repo
 inteiro: `test_provision_client.py` usa `scripts/` da raiz. Com a rede
@@ -608,6 +615,33 @@ fonte e obedeceu ao "não sei". **Duas perguntas não são avaliação.** Não
 dizem nada sobre taxa de acerto, consistência entre execuções ou as outras
 18 perguntas. A avaliação das respostas (as 17 com fonte e as 3
 `sem_resposta`, pelo `criterio_acerto`) é a **Missão 8**.
+
+## Smoke test real (19/11/2026)
+
+Repetição do smoke depois da 2ª revisão adversária (pendência: as
+`REGRAS_DO_MANUAL` mudaram, B-01). Desta vez no padrão atual, modo **híbrido**,
+`deepseek/deepseek-chat` via OpenRouter. Rodado pelo Max
+com `python -m orchestrator.rag.smoke --executar "..."`. A de 18/11 (acima)
+foi com BM25 e o texto antigo das regras, e fica como está.
+
+| Pergunta | Caminho no grafo | Resposta (resumo) | Resultado |
+|---|---|---|---|
+| **q12** (preço da prateleira × caixa) | não registrado no relato | correta no modo híbrido | acertou |
+| **q19** (multa do fornecedor atrasado) | não registrado no relato | disse que o manual "não cobre", mas acrescentou "consulte compras ou jurídico" | acertou pelo `criterio_acerto` (não inventou valor), com **conhecimento externo leve** |
+| **q18** (dias de férias) | sem o `specialist_rag` (o caminho geral respondeu) | o caminho geral respondeu a regra da CLT de memória | **fora do rag**: o supervisor não acionou o rag; a resposta veio de conhecimento externo |
+
+**Achado (q18): o gabarito mede a busca; ninguém mede o roteamento.** O
+recall@5 das Missões 3–7 parte do princípio de que a pergunta chega ao rag.
+Na q18, ela nem chegou, e a regra "não sei" (que só vale com o manual
+consultado) não se aplicou. Isso entra como métrica (a) da Missão 8. (Este registro é o relato do Max;
+os caminhos exatos no grafo e a saída completa não foram guardados, e é isso
+que o JSON versionado da Missão 8 passa a fazer.)
+
+**Decisão de produto em aberto: "escopo fechado" para deploy de cliente.** No
+deploy de um cliente, uma pergunta de procedimento ou RH sem resposta no
+manual deveria virar "não está no manual, fale com o RH", em vez de uma
+resposta de conhecimento geral. Não é correção desta missão (a Missão 8 só
+mede): vira missão própria, com pré-registro (ver *Pendências*).
 
 ## Missão 6 — Contextual retrieval (pré-registro, ANTES da medição)
 
@@ -1077,6 +1111,371 @@ não mudaram, porque nenhum número mudou.
 - O texto das `REGRAS_DO_MANUAL` mudou (B-01) e o smoke real (18/11) foi com o
   texto antigo: ver *Pendências*.
 
+## Missão 8 — Avaliação de ponta a ponta (pré-registro, ANTES da medição)
+
+Registrado em 19/11/2026, **antes** de qualquer `--executar`, com os 3
+ajustes do Max (métrica f, calibração com 8, juiz fixado). Esta missão
+**mede, não otimiza**: nenhuma mudança de prompt ou de roteamento. As
+correções (ex.: escopo fechado) viram missão própria, com pré-registro.
+Nenhum critério abaixo muda depois de medir (critério novo depois da medição
+é recusado; custo vira pendência, não veto).
+
+**Execução.** `orchestrator/src/orchestrator/rag/avaliar_respostas.py` roda as
+20 perguntas do gabarito pelo grafo **inteiro** com o LLM real, com o
+isolamento do smoke: n8n e gateway neutralizados no `settings`, `rag_enabled`
+ligado só no processo, `MemorySaver` e um `thread_id` novo por pergunta.
+
+Ordem obrigatória (a calibração é **cega**):
+
+```bash
+cd orchestrator
+python -m orchestrator.rag.avaliar_respostas                               # 0. plano + custo (grátis)
+python -m orchestrator.rag.avaliar_respostas --executar --etapa respostas  # 1. pago: 60 chamadas DeepSeek
+python -m orchestrator.rag.avaliar_respostas --calibracao                  # 2. grátis: gera as 8 p/ o Max
+#                                                                            3. o Max marca fixtures/rag/m8/calibracao_v1.yaml
+python -m orchestrator.rag.avaliar_respostas --executar --etapa julgar --sem-calibracao  # 4. pago: 40 chamadas do juiz (desvio de 20/11)
+python -m orchestrator.rag.avaliar_respostas --concordancia                # 5. grátis: Max × juiz (NÃO se aplica após o desvio)
+python -m orchestrator.rag.avaliar_respostas --relatorio                   # 6. grátis: todas as métricas
+```
+
+- **A cegueira é garantida em código, não só pedida.** O `--etapa julgar`
+  recusa rodar enquanto a calibração não estiver toda marcada. O log do juiz
+  mostra só progresso e custo, sem veredito. O `--relatorio` omite as
+  métricas do juiz enquanto a calibração não estiver marcada.
+- **Falha de infraestrutura.** Um erro de LLM que o próprio nó captura (ex.:
+  429 ou timeout no supervisor, que cai no fallback do openclaw e pareceria
+  uma decisão de roteamento) fica registrado em `erros_llm`, por um callback,
+  e marcado como **infra** no relatório. A regra pré-registrada: **conta como
+  erro** em todas as métricas, **sem nova rodada**. Chamada do juiz que falha
+  fica **pendente**: não conta como acerto e é listada.
+- **Parada na 1ª falha.** Se a primeira pergunta, ou a primeira chamada do
+  juiz, falhar (chave errada, schema recusado pelo provedor…), a etapa para
+  **sem gravar** o arquivo.
+
+- Saídas versionadas em `orchestrator/fixtures/rag/m8/`
+  (`respostas-<data>.json`, `julgamento-<data>.json`, `calibracao_v1.yaml`,
+  `concordancia-<data>.json`). O script **não sobrescreve** resultado medido.
+- O JSON de respostas guarda, por pergunta, o caminho no grafo, os trechos
+  (posição, POP, seção, texto), a resposta crua e a final, o modelo, o `usage`
+  e o custo de cada chamada, e a data. Da execução, guarda o SHA do git (com
+  marca de árvore suja), os hashes do gabarito, dos fatos-chave, das
+  `REGRAS_DO_MANUAL`, dos prompts do supervisor e do synthesize_final e da
+  tool, além da meta e do modo do índice. Nunca a chave.
+- O grafo roda com `graph.ainvoke` mais um callback (caminho e `usage`), e
+  não com `astream_events`, para o LLM responder sem streaming e devolver o
+  `usage`. Os nós são os mesmos.
+- **Resposta crua × final:** o `garantir_citacao` anexa "Fontes consultadas…"
+  quando o LLM não cita. Medir a citação no texto final daria acerto por
+  construção. Por isso um espião, só no processo do script, guarda o texto do
+  LLM antes do anexo. **Todas as métricas usam a resposta crua**, menos a
+  citação final, que é só informativa.
+- **Orçamento:** US$ 1,00 por etapa paga, somado do `usage` real (o `cost` do
+  OpenRouter, ou tokens × tabela de 19/11). Estourou, interrompe e grava o
+  parcial, marcado como incompleto.
+- **N = 1.** O `synthesize_final` não define temperatura (vale o padrão do
+  provedor) e isso não muda nesta missão. Cada resposta é **uma amostra**:
+  uma rodada não diz nada sobre consistência entre execuções.
+- O provedor que o OpenRouter escolheu para o `deepseek-chat` não aparece no
+  `response_metadata` do langchain: fica registrado o modelo devolvido.
+
+**Métricas.** Os denominadores são fixos pelo gabarito: uma pergunta que falta
+ou que não passou pelo rag conta como **erro**, nunca é excluída.
+
+| Métrica | n | Como |
+|---|---|---|
+| (a) roteamento | 20 | % em que o `specialist_rag` aparece no caminho (também por tipo) |
+| (b) fatos-chave | 17 | Determinística, `fixtures/rag/fatos_chave_v1.yaml` (aprovados pelo Max). **Tudo ou nada** por pergunta; a fração média também é reportada |
+| (c) citação | 17 | Determinística, com o critério do `garantir_citacao` (`_cita_fonte_completa`): o POP e o título de **cada** seção da `secao_fonte` (numa multi_secao, as duas). Métrica principal: **citação espontânea**, na crua. Sem rag, conta como erro |
+| (d) fidelidade | 20 | Juiz LLM **sem o gabarito**. Duas taxas: **fiel estrito** (nenhuma afirmação fora dos trechos) e **sem afirmação grave** |
+| (e) sem_resposta | 3 | Primeiro a regra determinística, depois o juiz de correção com o `criterio_acerto`. As discordâncias entre os dois são listadas |
+| (f) correção | 17 | Juiz LLM que **vê** a `resposta_esperada`: a conclusão está certa? Inclui o Sim/Não da q01, q02, q04 e q05 |
+| (g) formato | 5 / 17 / 20; total 17 | **Acrescentada em 20/11**, depois da coleta e antes do cálculo (ver *Desvios e acréscimo de 20/11*). Determinística, sem LLM, na resposta crua |
+
+**Detalhes de (b):**
+- antes de comparar, o texto é normalizado: sem acento, em minúsculas, com
+  −/–/— viram "-" e aspas tipográficas viram retas;
+- os títulos de seção citados entre aspas (`seção "2. Sangria"`) são
+  removidos, para citar a seção não contar como dizer o fato; os códigos de
+  POP ficam (a q13 exige "POP-07");
+- o "Sim/Não" não é checado aqui: vai na (f).
+
+**Detalhes de (c):** herda a limitação B-03, em que um título de uma palavra
+("Sangria") mais "(POP-04)" passa como citação completa.
+
+**Detalhes de (e), regra determinística:**
+- a resposta precisa ter uma frase de recusa ("não cobre", "não sei", "não
+  trata", "não prevê", "não fala", "não define", "não menciona", "não
+  estabelece", "não traz", "não especifica", "não há informação/previsão/
+  regra/menção");
+- cada número da resposta precisa aparecer nos trechos recuperados. As
+  citações (POP-XX, seção "…", seção N) não contam. Sem trecho, qualquer
+  número é erro.
+
+**Juiz.**
+- Modelo: `google/gemini-3.8-flash` via OpenRouter, de **outro provedor** que
+  o que responde (DeepSeek), com temperatura 0, `reasoning.effort = low`,
+  saída em JSON schema strict. Tudo fica registrado no `julgamento-*.json`.
+- Dois prompts **congelados**, cada um com sha256 conferido pelo script, que
+  recusa rodar se o hash não bater. Mudar o prompt = v2 com novo pré-registro.
+
+| Prompt | Vê | sha256 |
+|---|---|---|
+| `fixtures/rag/juiz_fidelidade_v1.md`, a (d) | pergunta, trechos, resposta crua. **Nunca** a `resposta_esperada`, o `criterio_acerto`, o `aceita_tambem` nem os fatos | `3657408ae718107075f778f840376293baeea06f9fe18871574b1d7e4ffc63be` |
+| `fixtures/rag/juiz_correcao_v1.md`, a (f) e a (e) pelo juiz | pergunta, gabarito (com `criterio_acerto`/`aceita_tambem` nas sem_resposta), resposta crua. **Não** vê os trechos | `8cf37eb0cce76c11a28211be7e99075cb5b2bbddcebb82b1aabd7702ecd04a80` |
+
+- **Rubrica da fidelidade.** O juiz só classifica cada afirmação; o veredito
+  sai em código.
+  - **Grave:** número, prazo, valor, percentual, código ou passo de
+    procedimento que não está nos trechos.
+  - **Leve:** encaminhamento genérico, sem fato operacional (ex.: o "consulte
+    compras ou jurídico" da q19 de 19/11). Conta como **não fiel** no estrito,
+    mas não no "sem grave".
+  - Dizer que "o manual não cobre X" não é afirmação; isso quem mede é a (e).
+  - Sem trecho nenhum (como na q18 pelo caminho geral), toda afirmação
+    factual fica sem suporte.
+- Os dados entram no prompt delimitados, e um delimitador forjado dentro
+  deles é neutralizado.
+
+**Calibração humana** (o Max marca; só depois o script compara).
+- **8 respostas**, por uma regra fixa que **não olha o juiz**: q18, q19 e q15;
+  a primeira direta que errou a (b); a primeira direta que acertou a (b); e as
+  próximas por id até fechar 8. Isso garante pelo menos 1 multi_secao e 1
+  sem_resposta.
+- O `calibracao_v1.yaml` sai **só do JSON de respostas**, antes de o juiz
+  rodar, e não contém nenhum veredito. O Max marca, em cada
+  item, **fiel** (no sentido estrito) e **correta** (a conclusão bate com o
+  gabarito; nas sem_resposta, vale o `criterio_acerto`), sim ou não, com uma
+  frase de justificativa.
+- **Limiar, por dimensão:** ≥ 7/8 é aceitável; ≤ 6/8 fica registrado como
+  **juiz não confiável**, **sem ajustar o prompt** para concordar. Com n = 8,
+  o número é ruído nos dois sentidos.
+
+### Desvios e acréscimo de 20/11/2026 (decididos pelo Max, registrados ANTES do juiz)
+
+Registrado antes de qualquer `--executar --etapa julgar`. Nenhum veredito do
+juiz existia quando este bloco foi escrito.
+
+**1. Desvio: calibração humana interrompida após 1 item.**
+- O que aconteceu: o Max marcou só a **q01** e parou. Veredito: **fiel =
+  sim** (sem justificativa escrita); **correta = não**, porque a resposta não
+  diz "não" antes das condições. Os outros 7 itens (q02, q03, q04, q10, q15,
+  q18, q19) ficaram em branco de propósito. A q01 está registrada em
+  `fixtures/rag/m8/calibracao_v1.yaml`.
+- Motivo: custo de tempo.
+- Consequência: o juiz roda **sem calibração humana completa**. As métricas
+  (d), (e) pelo juiz e (f) saem marcadas **"não calibradas"**: o limiar de
+  ≥ 7/8 não foi medido, então não dá para dizer se o juiz é confiável. O
+  passo 5 (`--concordancia`) não se aplica e recusa rodar com a marcação
+  incompleta. Um único item não é calibração: a q01 não vira dado de
+  concordância.
+- Como fica no código: o `--etapa julgar` continua recusando por padrão. Ele
+  só roda com a flag explícita `--sem-calibracao`, que grava no
+  `julgamento-*.json` o bloco `"calibracao": {"status": "nao_calibrada",
+  "motivo": …, "itens_marcados": ["q01"], "itens_previstos": 8}`. Sem a
+  flag, o JSON grava `{"status": "calibrada"}`. O `--relatorio` lê esse
+  status. Com `nao_calibrada`, mostra as métricas do juiz com o rótulo
+  "NÃO calibrada" e uma nota. No caminho original, continua omitindo o juiz
+  enquanto a calibração não estiver marcada.
+- O resto do pré-registro de 19/11 não muda: o juiz, os prompts e hashes, a
+  rubrica, o orçamento e as regras de falha.
+
+**2. Acréscimo: métrica (g) formato, o padrão de resposta do Max.**
+
+Pré-registrada **antes do cálculo**, mas **depois da coleta**. As 20 respostas
+de 19/11 já existiam e foram lidas na sessão em que o critério foi escrito.
+Para não ajustar o critério aos dados, os verificadores foram testados **só com
+textos sintéticos**, e nenhum (g) foi calculado sobre o `respostas-*.json`
+antes deste registro. É uma **linha de base**: as regras atuais não pedem esse
+formato, então se espera nota baixa.
+
+- Critério congelado em `orchestrator/fixtures/rag/formato_v1.yaml`, com as
+  regex e os parâmetros dentro do arquivo, sha256
+  `6f5605e7e4fc4ae7fc63f3f4613a16c618577718ad0bd00f3c87961115bd2def`. O
+  script recusa rodar se o hash não bater. Mudar = `formato_v2` com novo
+  pré-registro. O `fatos_chave_v1.yaml` **não** foi tocado: o hash dele
+  continua o de 19/11.
+- Checagem por código, sem LLM, na **resposta crua** (sem o anexo "Fontes
+  consultadas").
+- **Limpeza comum.** A resposta é cortada em linhas no `\n`. Em cada linha:
+  `*`, `_` e `` ` `` saem de qualquer posição; `#`, `>` e o marcador de lista
+  (`-`, `+`, `•`, `1.` ou `1)` seguido de espaço) saem do início; depois a
+  linha é aparada. Em (a) e (c), a linha também passa pelo `normalizar()` da
+  (b) (sem acento, minúsculas).
+
+| Critério | n | Acerto |
+|---|---|---|
+| (g-a) Sim/Não primeiro | 5: q01, q02, q04, q05, q10 | A 1ª linha não vazia começa pela **palavra inteira** "sim" ou "não" (`^(sim\|nao)\b` no texto normalizado). Passam: "Não.", "**Não**, …", "Sim, …", "Não deve…". Não passam: "Segundo o manual, não…" e "Simples". É só formato: se a conclusão está certa é a (f) |
+| (g-b) principal curta | 17 com fonte | **Principal** = o texto antes da 1ª linha em branco. O **complemento** começa na 1ª linha em branco; sem linha em branco, a resposta inteira é o principal. **Linha** = cada linha não vazia do principal, já limpa, vale `ceil(caracteres / 80)` linhas. Cada item de lista é uma linha. Acerto: total ≤ **3** |
+| (g-c) oferece detalhes | 20: 17 com fonte + 3 sem_resposta | Do fim para o início, descartam-se as linhas vazias e as linhas **só de citação**: o que sobra depois de tirar POP/seção e "Fonte(s)", "consultadas", "no manual" e "referência(s)" não tem letra nem número. A última linha que sobra precisa **terminar com "?"** e conter `detalh`, `explic`/`expliqu`, `aprofund`, `saber mais` ou `mais informaç` |
+| (g) total | 17 com fonte | Passa em **todos** os critérios que se aplicam à pergunta: a (g-a) só nas 5 de sim/não; a (g-b) e a (g-c) sempre. As 3 sem_resposta ficam só na (g-c) |
+
+- Denominadores fixos, como nas outras métricas: pergunta ausente conta como
+  **erro** em todos os critérios. A (g) não depende do rag: formato é formato.
+- **Escolha das 5 de sim/não.** Entram as perguntas **fechadas** de sim/não, e
+  o gabarito confirma (começa por "Não." ou "Sim,"). A **q07** fica fora
+  porque é uma pergunta alternativa ("é caso de F-07 **ou** recebo assim
+  mesmo?"), mesmo com o gabarito começando por "Não recebe". A **q16** fica
+  fora porque é composta e a 1ª pergunta é aberta. A **q10** ("vou ter
+  problema?") entra: é sim/não fechada, com o gabarito "Não.". A linha da (f)
+  de 19/11 cita só q01, q02, q04 e q05 e **não é editada**; a diferença fica
+  só registrada aqui.
+- **Por que 80 caracteres.** A largura existe para que um parágrafo de 600
+  caracteres numa linha só não passe como "1 linha". 80 é a largura de
+  referência e é **leniente**: no celular (WhatsApp, cerca de 35 a 45
+  caracteres por linha), 3 linhas de 80 viram 6 ou 7 linhas na tela.
+- **Limitações conhecidas** (falso negativo aceito, já que é uma linha de
+  base):
+  - na (g-c): oferta sem "?" ("Posso detalhar se quiser."), oferta que não é a
+    última linha e oferta com outro verbo ("quer que eu mande o formulário?");
+  - na (g-a): "1ª frase" é medida como "1ª linha", o que dá no mesmo para
+    "começa com".
+- **Correção feita antes do registro.** Na 1ª versão, a regex da (g-c) tinha
+  só `explic`, e um teste sintético mostrou que "quer que eu explique?" não
+  casava. Ela passou a ter `expli(c|qu)`. Isso aconteceu antes de qualquer
+  cálculo sobre os dados reais, e o hash acima já é o da versão corrigida.
+
+**3. Sem mudança de prompt nem de regra agora.** As `REGRAS_DO_MANUAL`, os
+prompts do supervisor e do `synthesize_final` e os do juiz ficam como estão
+(os hashes do JSON de respostas continuam valendo). A mudança para o formato
+do Max é a **próxima missão**, com pré-registro próprio, medida contra esta
+linha de base da (g), com o mesmo `formato_v1.yaml`.
+
+### Resultado da Missão 8 (`--relatorio`, 20/11/2026) — juiz NÃO calibrado
+
+Saída literal de `python -m orchestrator.rag.avaliar_respostas --relatorio`,
+com `respostas-2026-11-19.json` e `julgamento-2026-11-20.json` (status
+`nao_calibrada`). Nas métricas do juiz, (d), (e) pelo juiz e (f), o rótulo
+**NÃO calibrada** vem do próprio script. N = 1 por pergunta.
+
+| Métrica | Resultado |
+|---|---|
+| (a) roteamento: rag acionado | 19/20 (direta 14/14, multi_secao 3/3, sem_resposta 2/3) |
+| (b) fatos-chave, tudo ou nada | 16/17 (fração média 0.94) |
+| (c) citação espontânea (resposta crua) | 16/17 |
+| (c) citação final (com anexo, informativa) | 16/17 |
+| (d) fidelidade estrita (juiz — **NÃO calibrada**) | 12/20 |
+| (d) sem afirmação grave (juiz — **NÃO calibrada**) | 15/20 |
+| (e) sem_resposta, determinística | 2/3 |
+| (e) sem_resposta, juiz (criterio_acerto — **NÃO calibrada**) | 2/3 |
+| (f) correção (juiz vê o gabarito — **NÃO calibrada**) | 16/17 |
+| (g-a) formato: 1ª linha começa por Sim/Não (q01, q02, q04, q05, q10) | 0/5 |
+| (g-b) formato: principal ≤ 3 linhas de 80 caracteres | 13/17 |
+| (g-c) formato: termina oferecendo detalhes (17 + 3 sem_resposta) | 0/20 (com fonte 0/17) |
+| (g) formato total (todos os critérios aplicáveis) | 0/17 |
+
+| q | tipo | rag | fatos ausentes | cita (crua/final) | fiel | sem grave | correta | sem_resp det | formato a/b/c (linhas) |
+|---|---|---|---|---|---|---|---|---|---|
+| q01 | direta | sim | — | sim/sim | sim | sim | sim | — | não/sim/não (2) |
+| q02 | direta | sim | — | sim/sim | sim | sim | sim | — | não/sim/não (3) |
+| q03 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (3) |
+| q04 | direta | sim | — | sim/sim | sim | sim | sim | — | não/sim/não (1) |
+| q05 | direta | sim | — | sim/sim | não | não | sim | — | não/não/não (4) |
+| q06 | direta | sim | — | sim/sim | não | sim | sim | — | n/a/não/não (5) |
+| q07 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/não/não (7) |
+| q08 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (2) |
+| q09 | direta | sim | — | sim/sim | não | não | sim | — | n/a/sim/não (2) |
+| q10 | direta | sim | R$ 5, F-02 | não/não | não | não | não | — | não/sim/não (2) |
+| q11 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (3) |
+| q12 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/não/não (5) |
+| q13 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (3) |
+| q14 | direta | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (3) |
+| q15 | multi_secao | sim | — | sim/sim | não | não | sim | — | n/a/sim/não (2) |
+| q16 | multi_secao | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (1) |
+| q17 | multi_secao | sim | — | sim/sim | sim | sim | sim | — | n/a/sim/não (2) |
+| q18 | sem_resposta | não | n/a | n/a | não | não | não | não (números fora: 1, 12, 14, 15, 18, 2, 2024, 23, 24, 3, 30, 32, 4, 5, 6) | n/a/sim/não (3) |
+| q19 | sem_resposta | sim | n/a | n/a | não | sim | sim | sim | n/a/não/não (6) |
+| q20 | sem_resposta | sim | n/a | n/a | não | sim | sim | sim | n/a/sim/não (2) |
+
+**Juiz NÃO calibrado** (desvio de 20/11/2026: calibração humana interrompida após 1 de 8 itens, por custo de tempo; ver docs/RAG.md). As métricas (d), (e) pelo juiz e (f) não têm concordância humana medida.
+
+**Notas de leitura:**
+- **Calibração parcial: graves, 5/5.** O Max conferiu, **depois de ver o
+  juiz**, as 5 respostas com "sem afirmação grave = não": q05, q09, q10, q15
+  e q18. Concordou nas 5. Isso dá alguma confiança na coluna **"sem grave" =
+  não**, e só nela. As 15 respostas marcadas "sem grave = sim", a fidelidade
+  estrita, a (e) pelo juiz e a (f) seguem **não calibradas** (ver
+  *Calibração parcial: graves e achados*).
+- **Único item da calibração cega, a q01: o Max e o juiz discordam na (f).**
+  O juiz marcou a q01 **correta**. O Max a marcou **não correta**, porque a
+  resposta não diz "não" antes das condições. Com 1 item não há taxa, mas o
+  16/17 da (f) tem pelo menos esta divergência conhecida. Pela leitura do Max,
+  seria 15/17. Parte dela é formato: a (g-a) da q01 também deu "não".
+- **A citação não garante a verdade (q10).** A resposta cita o POP-04 §5 com
+  uma frase que não está lá. A (c) deu "não" na q10 só porque a seção do
+  gabarito (§6) não foi citada; ela não verifica se a frase está na seção
+  citada. Quem pegou o problema foi o juiz de fidelidade.
+- **(a) roteamento 19/20.** A q18 (férias) foi pelo caminho geral e respondeu
+  CLT de memória, o mesmo achado do smoke de 19/11.
+- **(g) formato 0/17** é linha de base, como era esperado. A (g-a) deu 0/5 e a
+  (g-c) 0/20. A (g-b) deu 13/17, porque a maioria das respostas já tem o 1º
+  parágrafo curto, mas o complemento não é separado nem oferecido.
+
+### Calibração parcial: graves e achados (20/11/2026, DEPOIS do juiz)
+
+Registrado depois de rodar o juiz (`fixtures/rag/m8/julgamento-2026-11-20.json`,
+status `nao_calibrada`).
+
+**Calibração parcial: graves.** O Max conferiu os **5 casos em que o juiz achou
+afirmação grave** (q05, q09, q10, q15 e q18) e **concordou com o juiz nos 5
+(5/5)**.
+- **Não é cega.** O Max marcou **depois de ver os vereditos do juiz** (a frase
+  marcada, a justificativa e o trecho mais próximo). Isso é diferente da
+  calibração pré-registrada, que era cega, tinha 8 itens e media fiel e
+  correta.
+- **Cobre só uma dimensão:** se o que o juiz marcou como grave é grave mesmo,
+  ou seja, a precisão do "grave". **Não** mede o falso negativo, isto é, as
+  afirmações graves que o juiz deixou passar nas outras 15 respostas.
+- **O resto continua não calibrado:** a fidelidade estrita, o "sem grave"
+  das outras 15, a (e) pelo juiz e a (f). O limiar pré-registrado de ≥ 7/8
+  não se aplica aqui, e esse 5/5 não substitui a calibração.
+- Está registrada no `calibracao_v1.yaml`, no bloco
+  `calibracao_parcial_graves`. Os blocos `marcacao` dos 8 itens não foram
+  tocados: continua marcada só a q01, e o `--concordancia` continua sem se
+  aplicar.
+- Detalhe que pesa na leitura: na q05 e na q15, a revisão pós-juiz achou que
+  os casos eram **defensáveis, mas no limite**. Na q05, a nota fiscal existe
+  no manual (POP-03 §2), mas não estava nos trechos; e "semana passada ainda
+  está no prazo" é uma inferência. Na q15, os fatos existem, mas com o prazo
+  ("imediatamente" × "no mesmo turno") e a pessoa (fiscal × atendente)
+  trocados. O Max ficou com o juiz nos dois.
+
+**Achados** (do Max, na conferência dos graves; a contagem da q01 foi
+conferida no `respostas-2026-11-19.json`):
+
+| q | Achado | Tipo |
+|---|---|---|
+| q10 | **Citação falsa.** A resposta atribui ao POP-04 §5 ("Fechamento do caixa") a frase "Qualquer divergência deve ser registrada no sistema e comunicada ao supervisor imediatamente", que não existe lá; "supervisor" não aparece no manual. A regra certa (até R$ 5,00, tolerância: anotar no F-02) está no POP-04 §6, que **não foi recuperado** | geração (e busca) |
+| q09 | **Erro de conta e pessoa errada.** Diz que o operador recolhe "aproximadamente R$ 100,00". A sangria deixa só o fundo de R$ 200,00, então seriam ~R$ 700,00. E quem recolhe é o **fiscal de caixa** (POP-04 §2) | geração |
+| q05 | **Problema de busca.** A seção da nota fiscal (POP-03 §2, "Documento obrigatório") **não foi recuperada**, e a resposta afirmou a exigência sem trecho | busca |
+| q01 | **Contexto ruidoso.** Dos 5 trechos, só o POP-01 §2 (Horário da doca) responde. Dois são irrelevantes e ficaram fora da resposta: POP-07 §1 (preços) e POP-02 §2 (ronda de validade). Dois são tangenciais e **viraram complemento** ("Além disso…"): POP-01 §7 (prazo para guardar) e POP-01 §4 (temperatura), junto com os 40 min de doca do próprio §2. *O relato do Max foi "3 dos 5 irrelevantes viraram complemento". Pelo JSON, são 4 de 5 sem relação com a pergunta, e 2 deles viraram complemento.* | contexto |
+
+**Próximas missões propostas** (só propostas: nada implementado). Uma
+variável por vez, cada uma com pré-registro próprio e medida contra a
+Missão 8:
+1. **Formato do Max:** resposta curta, depois o complemento, depois a oferta
+   de detalhes. É medida pela (g) (`formato_v1.yaml`), sem perder (b), (c),
+   (d) e (f).
+2. **Limpeza de contexto:** menos trechos (`top_k` menor) e/ou filtro de
+   relevância. A hipótese é que reduz o complemento com trecho tangencial
+   (q01) e os erros que aparecem com contexto ruidoso. O efeito na busca
+   precisa ser medido, porque menos trechos pode piorar casos como a q05 e a
+   q10, em que a seção certa **já não veio**.
+
+Por que uma de cada vez: se as duas mudarem juntas, uma mudança na (g) ou na
+(d) não tem causa atribuível.
+
+**Custo estimado (teto),** calculado pelo próprio script com o tamanho real
+dos prompts, a ~3 caracteres por token, e com os preços públicos do
+OpenRouter em 19/11 (DeepSeek $0,26/$1,03 e Gemini 3.8 Flash $0,83/$4,13 por
+milhão de tokens de entrada/saída):
+
+| Etapa | Chamadas | Teto |
+|---|---|---|
+| Respostas (DeepSeek) | 60 | US$ 0,05 |
+| Juiz: fidelidade | 20 | ~US$ 0,26 |
+| Juiz: correção (17 da f + 3 da e) | 20 | ~US$ 0,17 |
+| **Total** | 100 | **≤ US$ 0,48** (típico bem abaixo) |
+
 ## Pendências
 
 **Obrigatórias antes de qualquer deploy** (custo do padrão híbrido + contexto,
@@ -1103,11 +1502,23 @@ decidido na Missão 6, e do reranking, Missão 7):
 - **Gerar o índice no deploy** com `ingest --contexto-em ambos`: a imagem não
   tem `fixtures/` nem índice (pendência já registrada abaixo).
 
-- Rodar o smoke real de novo: as `REGRAS_DO_MANUAL` mudaram na 2ª revisão
-  (B-01, regra 5 para o caso ERRO) e o smoke de 18/11 usou o texto antigo.
-- Missão 8: avaliação das respostas com o LLM real (citação, as 17 com fonte
-  e as 3 `sem_resposta` pelo `criterio_acerto`). O smoke de 18/11 cobriu só
-  a q12 e a q19.
+- ~~Rodar o smoke real de novo~~: **feito em 19/11** (ver *Smoke test real
+  (19/11/2026)*), no modo híbrido e com as regras novas.
+- Missão 8: as respostas foram geradas em 19/11 e o juiz rodou em 20/11
+  (`--sem-calibracao`). A calibração cega parou em 1/8. A calibração parcial
+  dos graves, não cega, deu 5/5. O `--relatorio` está registrado em
+  *Resultado da Missão 8*, com as métricas do juiz **não calibradas**.
+- **Próximas missões propostas, uma variável por vez:** (1) o formato do Max
+  (resposta, complemento e oferta de detalhes), medida pela (g); (2) a limpeza
+  de contexto (menos trechos ou filtro de relevância). Ver *Calibração
+  parcial: graves e achados*.
+- **Roteamento (achado do smoke de 19/11):** na q18, o supervisor não acionou
+  o rag e o caminho geral respondeu a CLT de memória. A Missão 8 mede isso
+  como métrica (a); a correção não é desta missão.
+- **Decisão de produto em aberto, "escopo fechado" para deploy de cliente:**
+  pergunta de procedimento ou RH sem resposta no manual → "não está no manual,
+  fale com o RH". Vira missão própria, com pré-registro e medida contra a
+  Missão 8 como baseline.
 - Deploy: a imagem Docker não tem `fixtures/` nem o índice. Falta decidir onde o
   índice é gerado (no build ou num volume) e se o extra `rag` entra na imagem
   (só se o modo deixar de ser BM25).

@@ -39,8 +39,23 @@ manual de procedimentos não cobre isso" em vez de inventar.
 | + reranking (cross-encoder): MRR 0,60 → 0,81 | 16/17, **não adotado** (p95 de 10 s) |
 
 > Cada passo é **1 pergunta em 17**, dentro do ruído: é tendência, não prova
-> estatística. A tabela mede só a busca; a avaliação das respostas ainda não
-> foi feita (o smoke test real cobriu 2 perguntas).
+> estatística. A tabela mede só a busca; as respostas estão no bloco abaixo.
+
+**Avaliação de ponta a ponta (20/11/2026)**: as 20 perguntas do gabarito
+passaram pelo grafo inteiro com LLM real, uma amostra por pergunta. Os
+critérios foram fixados antes de medir.
+
+| Métrica | Resultado |
+|---|---|
+| Roteamento para o `rag` | 19/20 (a q18, sobre férias, foi pelo caminho geral e respondeu CLT de memória) |
+| Fatos-chave (determinística) | 16/17 |
+| Correção (juiz LLM, **não calibrado**) | 16/17 (na q01, o único item da calibração cega, o humano discordou do juiz) |
+| Sem afirmação grave (juiz, **não calibrado**) | 15/20; os 5 graves foram conferidos por humano depois do juiz, com 5/5 de acordo |
+| Formato do Max (Sim/Não primeiro, resposta curta, oferta de detalhes) | 0/17: é a linha de base, e a melhoria é a próxima missão |
+
+Aprendizado: **citação não garante verdade.** Na q10, a resposta citou o
+POP-04 §5 com uma frase que não existe nessa seção. Só um juiz de fidelidade,
+que compara a resposta com os trechos, pega isso.
 
 **Aprendizados:**
 - O híbrido empatou com o BM25 e depois perdeu para ele (com stemming); só
