@@ -190,7 +190,9 @@ class Settings(BaseSettings):
     # Regras do manual no synthesize_final (Missao 9): v1 = Missao 8, sem
     # formato; v2 = v1 + formato do Max (Sim/Nao primeiro, principal curta,
     # oferta de detalhes). O padrao so muda pela regra pre-registrada (docs/RAG.md).
-    rag_regras_versao: Literal["v1", "v2"] = "v1"
+    # v3 (Missao 10) = "pensa primeiro, formata depois": etapa 1 com as regras v1
+    # (interna) + etapa 2 que so reescreve no formato (PROMPT_FORMATADOR_V3).
+    rag_regras_versao: Literal["v1", "v2", "v3"] = "v1"
 
     @field_validator("rag_rerank_model", mode="before")
     @classmethod

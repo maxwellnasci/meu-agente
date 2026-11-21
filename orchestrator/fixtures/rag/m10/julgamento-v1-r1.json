@@ -1,0 +1,2850 @@
+{
+  "versao": 1,
+  "missao": 10,
+  "data": "2026-11-21T09:45:45-03:00",
+  "juiz": {
+    "modelo": "google/gemini-3.8-flash",
+    "temperatura": 0,
+    "reasoning_effort": "low",
+    "saida": "json_schema strict"
+  },
+  "hashes": {
+    "prompt_fidelidade": "3657408ae718107075f778f840376293baeea06f9fe18871574b1d7e4ffc63be",
+    "prompt_correcao": "8cf37eb0cce76c11a28211be7e99075cb5b2bbddcebb82b1aabd7702ecd04a80",
+    "respostas": "92c141d34be0cef2f9681ce2d06afdc715f0de7060f79a49d1f4caffade62c28"
+  },
+  "respostas_data": "2026-11-21T09:41:54-03:00",
+  "calibracao": {
+    "status": "nao_calibrada",
+    "motivo": "desvio de 20/11/2026 decidido pelo Max: calibracao humana interrompida apos 1 item (q01) por custo de tempo; metricas do juiz NAO calibradas (docs/RAG.md, Missao 8)",
+    "itens_marcados": [
+      "q01"
+    ],
+    "itens_previstos": 8
+  },
+  "alvo": "resposta_final",
+  "custo_usd": 0.07128825,
+  "orcamento_usd": 0.15,
+  "abortado_por_orcamento": false,
+  "fidelidade": {
+    "q01": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "O horário normal para recebimento de fornecedores é das 6h às 14h, de segunda a sábado.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Como o caminhão chegou às 15h (fora do horário regular), você só pode receber se tiver uma autorização por escrito do gerente de loja, registrada no Formulário F-03 (Recebimento Extraordinário).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Sem essa autorização, o recebimento não pode ser realizado neste horário.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Cada caminhão tem no máximo 40 minutos de doca.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Para produtos perecíveis, você precisará verificar a temperatura conforme os parâmetros do manual.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 4
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta encontram respaldo direto nos trechos 1 (regras de horário da doca e Formulário F-03) e 4 (aferição de temperatura no recebimento)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 388,
+          "prompt_tokens": 1741,
+          "total_tokens": 2129,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00276075,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00276075,
+            "upstream_inference_prompt_cost": 0.00130575,
+            "upstream_inference_completions_cost": 0.001455
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1741,
+          "output_tokens": 388,
+          "total_tokens": 2129,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00276075,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q02": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "O frango congelado marcando -10°C no termômetro deve ser recusado, pois a temperatura máxima aceitável para congelados na chegada é de -12°C ou menos",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Sinais de descongelamento como gelo acumulado, embalagem molhada ou produto amolecido são motivos para recusa, mesmo que a temperatura esteja dentro do limite",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "As três medições de temperatura (início, meio e fim do caminhão) devem ser anotadas no registro F-07",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta estão estritamente amparadas pelo Trecho 1 (POP-01, seção 4)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 278,
+          "prompt_tokens": 1810,
+          "total_tokens": 2088,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0024,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0024,
+            "upstream_inference_prompt_cost": 0.0013575,
+            "upstream_inference_completions_cost": 0.0010425
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1810,
+          "output_tokens": 278,
+          "total_tokens": 2088,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0024,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 3,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q03": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "A temperatura da câmara e expositor de congelados (freezer) na loja deve ser mantida em −18 °C ou menos.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "As temperaturas são lidas e anotadas três vezes ao dia (7h, 13h e 19h) na Planilha P-06 (Controle de Temperatura).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "Se o expositor ficar fora da faixa por mais de 2 horas, os produtos devem ser retirados e avaliados pela nutricionista antes de voltarem à venda.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta estão presentes e diretamente suportadas pelo trecho n=2 (POP-05, seção 4)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 275,
+          "prompt_tokens": 1689,
+          "total_tokens": 1964,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.002298,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.002298,
+            "upstream_inference_prompt_cost": 0.00126675,
+            "upstream_inference_completions_cost": 0.00103125
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1689,
+          "output_tokens": 275,
+          "total_tokens": 1964,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.002298,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 3,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q04": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Se o queijo estava vencido na data da compra, há troca ou reembolso imediato, sem limite de prazo.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Se o queijo estava vencido na data da compra, o cliente recebe também um vale-compras de R$ 20,00.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Se o queijo está dentro da validade, o prazo de troca é de 24 horas a partir da compra.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 5
+          },
+          {
+            "texto": "Se houver defeito de qualidade (cheiro, cor, mofo) no produto perecível dentro da validade, ele pode ser trocado em até 24 horas.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 5
+          },
+          {
+            "texto": "Se o queijo foi fracionado por pedido do cliente no balcão de frios, não tem troca, exceto por defeito de qualidade dentro de 24 horas.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 4
+          },
+          {
+            "texto": "Verifique qual desses casos se aplica para prosseguir com a troca ou orientar o cliente adequadamente.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "Todas as regras operacionais, prazos e valores informados na resposta são diretamente suportados pelos trechos 1, 4 e 5. Apenas a instrução final de verificação consiste em uma orientação genérica de atendimento não descrita textualmente nos trechos."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 493,
+          "prompt_tokens": 1696,
+          "total_tokens": 2189,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00312075,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00312075,
+            "upstream_inference_prompt_cost": 0.001272,
+            "upstream_inference_completions_cost": 0.00184875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1696,
+          "output_tokens": 493,
+          "total_tokens": 2189,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00312075,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": true,
+      "n_afirmacoes": 6,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    },
+    "q05": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Produtos não perecíveis (como produtos de higiene) podem ser trocados por arrependimento dentro de 7 dias corridos após a compra, desde que estejam lacrados e em perfeito estado.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 4
+          },
+          {
+            "texto": "A compra feita na semana passada com o produto não aberto está garantida como dentro do prazo de 7 dias corridos.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Basta a cliente levar o shampoo (com a nota fiscal, se possível) até o atendimento de trocas da loja.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          },
+          {
+            "texto": "Se o shampoo estiver vencido (data de validade anterior à compra), a troca ou reembolso é imediato, sem limite de tempo.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Em caso de produto já vencido vendido, a cliente recebe um vale-compras de R$ 20,00.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          }
+        ],
+        "justificativa": "O trecho 4 estabelece o prazo de 7 dias corridos para arrependimento em produtos não perecíveis lacrados (higiene), mas não é possível afirmar com certeza que 'semana passada' está dentro dos 7 dias corridos sem saber o dia exato. Além disso, a instrução sobre levar com nota fiscal ao atendimento de trocas não consta nos trechos fornecidos. As regras sobre produto vencido estão totalmente suportadas pelo trecho 1."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 464,
+          "prompt_tokens": 1604,
+          "total_tokens": 2068,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.002943,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.002943,
+            "upstream_inference_prompt_cost": 0.001203,
+            "upstream_inference_completions_cost": 0.00174
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1604,
+          "output_tokens": 464,
+          "total_tokens": 2068,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.002943,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": false,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 2,
+      "n_inconsistentes": 0
+    },
+    "q06": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Na ronda de validade, você deve anotar os itens encontrados no Formulário F-12 (Controle de Validade), registrando o código de barras, lote, data de validade e quantidade de cada produto.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O formulário preenchido deve ser entregue ao encarregado de perecíveis até as 9h (para a ronda da manhã) ou até as 16h (para a ronda da tarde).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "A ronda da manhã cobre todo o setor de perecíveis.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "A ronda da tarde cobre apenas laticínios, frios e padaria.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Se tiver dúvidas sobre o preenchimento do F-12, consulte o encarregado.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "As informações operacionais sobre anotação no Formulário F-12, dados a registrar, prazos e cobertura das rondas estão plenamente suportadas pelo trecho 1 (POP-02). A recomendação de consultar o encarregado em caso de dúvidas é um encaminhamento genérico não mencionado expressamente nos trechos, sendo classificada com gravidade leve."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 438,
+          "prompt_tokens": 1520,
+          "total_tokens": 1958,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0027825,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0027825,
+            "upstream_inference_prompt_cost": 0.00114,
+            "upstream_inference_completions_cost": 0.0016425
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1520,
+          "output_tokens": 438,
+          "total_tokens": 1958,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0027825,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": true,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    },
+    "q07": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "quando a nota fiscal vem com preço diferente do pedido (como no caso do arroz mais caro), a carga do item deve ser recusada",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "o conferente deve preencher o Formulário F-07 (Divergência de Recebimento)",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Não há margem de tolerância para divergência de preço, apenas para quantidade (até 2%)",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "esse é sim um caso para o F-07, e você não deve receber a mercadoria com o preço divergente",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O procedimento correto é recusar o item e preencher o formulário de divergência",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta estão diretamente suportadas pelo trecho n=1 (POP-01, seção '3. Conferência da nota fiscal'), que estabelece que divergência de preço resulta na recusa da carga do item e preenchimento do formulário F-07, com tolerância de até 2% restrita à quantidade."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 413,
+          "prompt_tokens": 1478,
+          "total_tokens": 1891,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00265725,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00265725,
+            "upstream_inference_prompt_cost": 0.0011085,
+            "upstream_inference_completions_cost": 0.00154875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1478,
+          "output_tokens": 413,
+          "total_tokens": 1891,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00265725,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q08": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "No momento da abertura do caixa, a gaveta deve conter um fundo de troco de R$ 200,00.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O fundo de troco é composto por R$ 100,00 em notas (mistura de R$ 2, R$ 5 e R$ 10).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O fundo de troco é composto por R$ 100,00 em moedas.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "Essa quantia deve ser contada na frente do tesoureiro.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "Essa quantia deve ser registrada no Formulário F-01 (Abertura de Caixa) antes do início do turno.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          }
+        ],
+        "justificativa": "Todas as informações presentes na resposta foram devidamente confirmadas e suportadas pelo trecho n=2 (POP-04, seção 1)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 381,
+          "prompt_tokens": 1619,
+          "total_tokens": 2000,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.002643,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.002643,
+            "upstream_inference_prompt_cost": 0.00121425,
+            "upstream_inference_completions_cost": 0.00142875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1619,
+          "output_tokens": 381,
+          "total_tokens": 2000,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.002643,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q09": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Quando a gaveta ultrapassa R$ 800,00 em dinheiro, o PDV bloqueia novas vendas em dinheiro até a sangria ser feita.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "No caso de estar com quase R$ 900,00, o valor a recolher é de aproximadamente R$ 100,00.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "O fiscal de caixa e o operador assinam o comprovante de sangria impresso pelo PDV.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O malote da sangria vai direto para o cofre da tesouraria, sem passar pela mão de outra pessoa.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O fundo de troco padrão é de R$ 200,00 (R$ 100 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100 em moedas).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          }
+        ],
+        "justificativa": "A maior parte das afirmações decorre fielmente do POP-04 (seções de Sangria e Abertura do caixa). Porém, a resposta calculou incorretamente o valor excedente como sendo 'aproximadamente R$ 100,00' considerando um fundo de troco de R$ 200,00 (pois 900 - 200 seria 700 e não 100), inventando um valor incorreto que não é suportado pelas regras dos trechos."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 559,
+          "prompt_tokens": 1700,
+          "total_tokens": 2259,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00337125,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00337125,
+            "upstream_inference_prompt_cost": 0.001275,
+            "upstream_inference_completions_cost": 0.00209625
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1700,
+          "output_tokens": 559,
+          "total_tokens": 2259,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00337125,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": false,
+      "n_afirmacoes": 6,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    },
+    "q10": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Você deve preencher o Formulário F-02 (Fechamento de Caixa).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "O tesoureiro irá recontar todo o dinheiro na sua frente.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Recomendo informar imediatamente ao tesoureiro sobre a diferença no momento da conferência para que ele oriente sobre os próximos passos.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "O trecho 1 confirma a necessidade de preenchimento do formulário F-02 e a recontagem pelo tesoureiro na frente do operador. A orientação para avisar o tesoureiro sobre a quebra/diferença de caixa não consta nos trechos fornecidos, configurando recomendação genérica não suportada de gravidade leve."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 274,
+          "prompt_tokens": 1610,
+          "total_tokens": 1884,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.002235,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.002235,
+            "upstream_inference_prompt_cost": 0.0012075,
+            "upstream_inference_completions_cost": 0.0010275
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1610,
+          "output_tokens": 274,
+          "total_tokens": 1884,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.002235,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": true,
+      "n_afirmacoes": 3,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    },
+    "q11": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Para a sanitização de hortifrúti com hipoclorito de sódio 2,5%, o tempo de contato recomendado é de 15 minutos.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          },
+          {
+            "texto": "A diluição correta para a sanitização de hortifrúti é de 10 ml de hipoclorito de sódio 2,5% por litro de água.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          },
+          {
+            "texto": "Não se deve misturar cloro com detergente ou com produtos à base de amônia.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta estão presentes e suportadas diretamente pelo trecho n=3 (POP-05, seção '2. Diluição dos produtos de limpeza')."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 269,
+          "prompt_tokens": 1640,
+          "total_tokens": 1909,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00223875,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00223875,
+            "upstream_inference_prompt_cost": 0.00123,
+            "upstream_inference_completions_cost": 0.00100875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1640,
+          "output_tokens": 269,
+          "total_tokens": 1909,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00223875,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 3,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q12": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Quando o preço na prateleira estiver mais barato do que o valor que passou no caixa, o procedimento é cobrar o menor preço (o valor da prateleira).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O operador deve chamar o fiscal para autorizar a correção no PDV.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O fiscal irá registrar a divergência no Formulário F-18 (Divergência de Preço).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O repositor tem até 30 minutos para corrigir a etiqueta.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta estão presentes e diretamente suportadas pelo Trecho 2 (POP-07, seção '3. Divergência entre etiqueta e caixa')."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 307,
+          "prompt_tokens": 1570,
+          "total_tokens": 1877,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00232875,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00232875,
+            "upstream_inference_prompt_cost": 0.0011775,
+            "upstream_inference_completions_cost": 0.00115125
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1570,
+          "output_tokens": 307,
+          "total_tokens": 1877,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00232875,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 4,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q13": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "O POP-06 foi revogado em 2025 e substituído pelo POP-07 (\"Preços, Etiquetas e Promoções\"), conforme versão 1.4 vigente desde 05/03/2026.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Você precisará confirmar com o encarregado ou gerência comercial se há um local específico (intranet, painel físico, pasta compartilhada etc.) onde os POPs ativos são arquivados para consulta.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "A informação sobre a revogação e substituição do POP-06 pelo POP-07 está presente no trecho 1. O encaminhamento para confirmar o local de arquivamento dos POPs com o encarregado ou gerência é um conselho genérico sem base direta nos trechos (gravidade leve)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 262,
+          "prompt_tokens": 1460,
+          "total_tokens": 1722,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0020775,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0020775,
+            "upstream_inference_prompt_cost": 0.001095,
+            "upstream_inference_completions_cost": 0.0009825
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1460,
+          "output_tokens": 262,
+          "total_tokens": 1722,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0020775,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": true,
+      "n_afirmacoes": 2,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    },
+    "q14": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Para um iogurte que falta 3 dias para vencer, o desconto aplicado deve ser de 30%, conforme a tabela de rebaixa de preço para laticínios.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "A rebaixa só pode ser feita pelo encarregado de perecíveis.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "Deve ser usada a etiqueta amarela 'Oferta do Dia'.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "No dia do vencimento, o produto deve ser retirado da área de venda.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          }
+        ],
+        "justificativa": "Todas as informações fornecidas na resposta estão expressamente descritas no trecho 2 (POP-02, seção 3)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 294,
+          "prompt_tokens": 1741,
+          "total_tokens": 2035,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00240825,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00240825,
+            "upstream_inference_prompt_cost": 0.00130575,
+            "upstream_inference_completions_cost": 0.0011025
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1741,
+          "output_tokens": 294,
+          "total_tokens": 2035,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00240825,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 4,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q15": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "O cliente que comprou um leite vencido tem direito à troca ou reembolso imediato, independentemente do prazo decorrido desde a compra.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O cliente recebe um vale-compras de R$ 20,00 como pedido de desculpas.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O fiscal deve registrar a ocorrência no Formulário F-09 (Registro de Ocorrência do Cliente).",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "O fiscal deve avisar a Gerência de Perecíveis sobre o problema.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "O fiscal deve abrir um registro de não conformidade e informar o encarregado de perecíveis no mesmo turno.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Se o cliente não tiver o cupom fiscal, é necessário localizar a compra no sistema pelo CPF associado ao programa 'Cliente Bom Preço'.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 5
+          },
+          {
+            "texto": "Caso não seja possível localizar pelo CPF e não haja cupom, ainda é oferecida a possibilidade de registrar a reclamação no F-09.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 5
+          }
+        ],
+        "justificativa": "No Trecho 2, quem lança a ocorrência no F-09 e avisa a Gerência de Perecíveis é o atendente, não o fiscal; ao atribuir essas tarefas ao fiscal, a resposta altera o procedimento operacional previsto no manual."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 528,
+          "prompt_tokens": 1545,
+          "total_tokens": 2073,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00313875,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00313875,
+            "upstream_inference_prompt_cost": 0.00115875,
+            "upstream_inference_completions_cost": 0.00198
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1545,
+          "output_tokens": 528,
+          "total_tokens": 2073,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00313875,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": false,
+      "n_afirmacoes": 7,
+      "n_nao_suportadas": 2,
+      "n_inconsistentes": 0
+    },
+    "q16": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "A etiqueta amarela indica a 'Oferta do Dia', aplicada quando há rebaixa de preço por proximidade da validade.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "A etiqueta amarela só pode ser colada/aplicada pelo encarregado de perecíveis.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "A rebaixa com etiqueta amarela possui porcentagens específicas de desconto conforme os dias restantes para o vencimento.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "A etiqueta vermelha indica promoções do encarte semanal.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "A etiqueta vermelha é usada em promoções por quantidade, como 'Leve 3, Pague 2' (quando aplicável, informando por exemplo 'itens sortidos').",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 4
+          },
+          {
+            "texto": "Qualquer repositor não pode colar a etiqueta amarela.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "As etiquetas vermelhas são parte das promoções regulares e seguem os procedimentos normais de atualização de preços.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 5
+          }
+        ],
+        "justificativa": "Todas as afirmações feitas na resposta encontram respaldo direto nos trechos fornecidos dos manuais POP-01, POP-02 e POP-07."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 492,
+          "prompt_tokens": 1747,
+          "total_tokens": 2239,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00315525,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00315525,
+            "upstream_inference_prompt_cost": 0.00131025,
+            "upstream_inference_completions_cost": 0.001845
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1747,
+          "output_tokens": 492,
+          "total_tokens": 2239,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00315525,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 7,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q17": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Sem o cupom fiscal, a troca só pode ser feita se a compra estiver registrada no sistema com o CPF do cliente pelo programa 'Cliente Bom Preço'.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          },
+          {
+            "texto": "Caso não tenha sido informado o CPF na compra e não haja cupom, não é possível realizar a troca.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          },
+          {
+            "texto": "Para compras em dinheiro acima de R$ 300,00, o reembolso é feito por Pix em até 2 dias úteis.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "O cliente pode optar por um vale-troca no valor do produto, válido por 60 dias.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 2
+          },
+          {
+            "texto": "Sem cupom e sem CPF, o atendente oferece abrir uma reclamação no Formulário F-09 (Registro de Ocorrência do Cliente).",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 3
+          }
+        ],
+        "justificativa": "Todas as afirmações factuais e procedimentais apresentadas na resposta encontram respaldo direto nos trechos 2 e 3 do POP-03."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 393,
+          "prompt_tokens": 1682,
+          "total_tokens": 2075,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00273525,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00273525,
+            "upstream_inference_prompt_cost": 0.0012615,
+            "upstream_inference_completions_cost": 0.00147375
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1682,
+          "output_tokens": 393,
+          "total_tokens": 2075,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00273525,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 5,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q18": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "No Brasil, as férias são proporcionais ao tempo de trabalho após completar 12 meses (o período aquisitivo).",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Se você completou o período aquisitivo de 12 meses, tem direito a 30 dias corridos de férias.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Se ainda não completou os 12 meses, as férias serão proporcionais ao tempo trabalhado.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Caso você tenha tido mais de 5 faltas injustificadas no período aquisitivo, isso pode reduzir o número de dias de férias a que você tem direito.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Se trabalhou 6 meses, pode ter direito a 15 dias de férias no cálculo proporcional.",
+            "suportada": false,
+            "gravidade": "grave",
+            "trecho": 0
+          },
+          {
+            "texto": "Algumas empresas ou categorias profissionais podem ter regras específicas sobre férias em convenção coletiva ou acordo.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          },
+          {
+            "texto": "Para um cálculo mais preciso, é ideal consultar o RH da sua empresa ou verificar seu contrato de trabalho.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "Nenhum trecho do manual foi fornecido. Portanto, todas as afirmações factuais e orientações feitas na resposta não possuem suporte documental."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 489,
+          "prompt_tokens": 1004,
+          "total_tokens": 1493,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00258675,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00258675,
+            "upstream_inference_prompt_cost": 0.000753,
+            "upstream_inference_completions_cost": 0.00183375
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1004,
+          "output_tokens": 489,
+          "total_tokens": 1493,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00258675,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": false,
+      "n_afirmacoes": 7,
+      "n_nao_suportadas": 7,
+      "n_inconsistentes": 0
+    },
+    "q19": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Os trechos tratam de horários de doca, procedimentos com produtos sem etiqueta, sangria de caixa, atualização de preços e tratamento de produtos vencidos",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          }
+        ],
+        "justificativa": "A declaração de que o manual não cobre o assunto não deve ser listada conforme a regra 3a. A afirmação restante resume corretamente o conteúdo abordado nos trechos fornecidos (POP-01, POP-07, POP-04 e POP-03)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 154,
+          "prompt_tokens": 1425,
+          "total_tokens": 1579,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00164625,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00164625,
+            "upstream_inference_prompt_cost": 0.00106875,
+            "upstream_inference_completions_cost": 0.0005775
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1425,
+          "output_tokens": 154,
+          "total_tokens": 1579,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00164625,
+      "erro": null,
+      "fiel_estrito": true,
+      "sem_grave": true,
+      "n_afirmacoes": 1,
+      "n_nao_suportadas": 0,
+      "n_inconsistentes": 0
+    },
+    "q20": {
+      "juiz": {
+        "afirmacoes": [
+          {
+            "texto": "Três diferenças acima de R$ 5,00 no mesmo mês resultam em uma reciclagem obrigatória de 4 horas com a tesouraria.",
+            "suportada": true,
+            "gravidade": "nenhuma",
+            "trecho": 1
+          },
+          {
+            "texto": "Para casos de demissão por esse motivo, é necessário confirmar com o encarregado ou com o setor de RH da empresa.",
+            "suportada": false,
+            "gravidade": "leve",
+            "trecho": 0
+          }
+        ],
+        "justificativa": "A primeira afirmação sobre a reciclagem após 3 diferenças acima de R$ 5,00 no mesmo mês está explicitamente descrita no trecho 1. A recomendação de procurar o encarregado ou RH é um direcionamento genérico que não consta no texto fornecido, sendo classificada como de gravidade leve."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 228,
+          "prompt_tokens": 1554,
+          "total_tokens": 1782,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0020205,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0020205,
+            "upstream_inference_prompt_cost": 0.0011655,
+            "upstream_inference_completions_cost": 0.000855
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 1554,
+          "output_tokens": 228,
+          "total_tokens": 1782,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0020205,
+      "erro": null,
+      "fiel_estrito": false,
+      "sem_grave": true,
+      "n_afirmacoes": 2,
+      "n_nao_suportadas": 1,
+      "n_inconsistentes": 0
+    }
+  },
+  "correcao": {
+    "q01": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta coincide perfeitamente com o gabarito, informando que não pode receber por estar fora do horário (que é das 6h às 14h), a menos que haja autorização por escrito do gerente de loja registrada no Formulário F-03."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 91,
+          "prompt_tokens": 776,
+          "total_tokens": 867,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00092325,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00092325,
+            "upstream_inference_prompt_cost": 0.000582,
+            "upstream_inference_completions_cost": 0.00034125
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 776,
+          "output_tokens": 91,
+          "total_tokens": 867,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00092325,
+      "erro": null,
+      "correta": true
+    },
+    "q02": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta conclui corretamente que a carga deve ser recusada, menciona o limite de temperatura (-12°C) e a anotação no registro F-07, em conformidade com o gabarito."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 79,
+          "prompt_tokens": 741,
+          "total_tokens": 820,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.000852,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.000852,
+            "upstream_inference_prompt_cost": 0.00055575,
+            "upstream_inference_completions_cost": 0.00029625
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 741,
+          "output_tokens": 79,
+          "total_tokens": 820,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.000852,
+      "erro": null,
+      "correta": true
+    },
+    "q03": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta informou corretamente a temperatura essencial de −18 °C ou menos solicitada na pergunta e presente no gabarito."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 61,
+          "prompt_tokens": 698,
+          "total_tokens": 759,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00075225,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00075225,
+            "upstream_inference_prompt_cost": 0.0005235,
+            "upstream_inference_completions_cost": 0.00022875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 698,
+          "output_tokens": 61,
+          "total_tokens": 759,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00075225,
+      "erro": null,
+      "correta": true
+    },
+    "q04": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta explica corretamente que o prazo para troca de perecíveis é de 24 horas e que, tendo sido comprado anteontem, o prazo já expirou para o caso padrão, ressalvando corretamente as exceções previstas (como produto já vencido no ato da compra)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 93,
+          "prompt_tokens": 854,
+          "total_tokens": 947,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00098925,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00098925,
+            "upstream_inference_prompt_cost": 0.0006405,
+            "upstream_inference_completions_cost": 0.00034875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 854,
+          "output_tokens": 93,
+          "total_tokens": 947,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00098925,
+      "erro": null,
+      "correta": true
+    },
+    "q05": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta confirma que é possível trocar (Sim), menciona o prazo de 7 dias corridos por arrependimento de produto não perecível e a condição de estar lacrado/em perfeito estado, coincidindo perfeitamente com o gabarito."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 86,
+          "prompt_tokens": 781,
+          "total_tokens": 867,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00090825,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00090825,
+            "upstream_inference_prompt_cost": 0.00058575,
+            "upstream_inference_completions_cost": 0.0003225
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 781,
+          "output_tokens": 86,
+          "total_tokens": 867,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00090825,
+      "erro": null,
+      "correta": true
+    },
+    "q06": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta contém todas as informações essenciais presentes no gabarito: anotação no Formulário F-12 com código de barras, lote, validade e quantidade, além dos prazos de entrega ao encarregado de perecíveis (até as 9h e até as 16h)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 98,
+          "prompt_tokens": 781,
+          "total_tokens": 879,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00095325,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00095325,
+            "upstream_inference_prompt_cost": 0.00058575,
+            "upstream_inference_completions_cost": 0.0003675
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 781,
+          "output_tokens": 98,
+          "total_tokens": 879,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00095325,
+      "erro": null,
+      "correta": true
+    },
+    "q07": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta coincide perfeitamente com o gabarito: informa que a mercadoria deve ser recusada (não receber), que deve ser preenchido o formulário F-07 e que a tolerância de até 2% se aplica apenas à quantidade e não ao preço."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 92,
+          "prompt_tokens": 764,
+          "total_tokens": 856,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.000918,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.000918,
+            "upstream_inference_prompt_cost": 0.000573,
+            "upstream_inference_completions_cost": 0.000345
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 764,
+          "output_tokens": 92,
+          "total_tokens": 856,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.000918,
+      "erro": null,
+      "correta": true
+    },
+    "q08": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta contém todos os pontos essenciais do gabarito: o valor total de R$ 200,00, a divisão de R$ 100,00 em notas (R$ 2, R$ 5 e R$ 10) e R$ 100,00 em moedas, a conferência com o tesoureiro e o registro no formulário F-01."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 125,
+          "prompt_tokens": 749,
+          "total_tokens": 874,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0010305,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0010305,
+            "upstream_inference_prompt_cost": 0.00056175,
+            "upstream_inference_completions_cost": 0.00046875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 749,
+          "output_tokens": 125,
+          "total_tokens": 874,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0010305,
+      "erro": null,
+      "correta": true
+    },
+    "q09": {
+      "juiz": {
+        "correta": false,
+        "pontos_errados_ou_ausentes": [
+          "A resposta assume que o operador de caixa é o fiscal de caixa e diz para recolher apenas aproximadamente R$ 100,00, contradizendo o procedimento de deixar apenas o fundo de troco (se a gaveta tem R$ 900,00 e o fundo é R$ 200,00, recolhem-se cerca de R$ 700,00, e não R$ 100,00).",
+          "Instrução incorreta sobre quem executa a ação: o operador deve chamar o fiscal de caixa para realizar a sangria."
+        ],
+        "justificativa": "A resposta confunde o operador com o fiscal de caixa e erra o cálculo do valor a ser recolhido na sangria ao afirmar que seriam recolhidos apenas cerca de R$ 100,00 para deixar o fundo de troco de R$ 200,00 em uma gaveta com R$ 900,00."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 248,
+          "prompt_tokens": 868,
+          "total_tokens": 1116,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.001581,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.001581,
+            "upstream_inference_prompt_cost": 0.000651,
+            "upstream_inference_completions_cost": 0.00093
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 868,
+          "output_tokens": 248,
+          "total_tokens": 1116,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.001581,
+      "erro": null,
+      "correta": false
+    },
+    "q10": {
+      "juiz": {
+        "correta": false,
+        "pontos_errados_ou_ausentes": [
+          "Não informou que não haverá problema.",
+          "Não mencionou a tolerância para diferenças de até R$ 5,00.",
+          "Afirmou incorretamente que o manual não cobre o que acontece nessa situação."
+        ],
+        "justificativa": "A resposta não respondeu objetivamente à pergunta (se vai ter problema ou não) e afirmou desconhecer a regra, deixando de informar que diferenças de até R$ 5,00 estão dentro da margem de tolerância e apenas exigem anotação no formulário F-02."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 152,
+          "prompt_tokens": 723,
+          "total_tokens": 875,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00111225,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00111225,
+            "upstream_inference_prompt_cost": 0.00054225,
+            "upstream_inference_completions_cost": 0.00057
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 723,
+          "output_tokens": 152,
+          "total_tokens": 875,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00111225,
+      "erro": null,
+      "correta": false
+    },
+    "q11": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta forneceu o tempo exato (15 minutos) e incluiu a diluição correta especificada no gabarito (10 ml por litro de água com hipoclorito de sódio 2,5%)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 83,
+          "prompt_tokens": 686,
+          "total_tokens": 769,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00082575,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00082575,
+            "upstream_inference_prompt_cost": 0.0005145,
+            "upstream_inference_completions_cost": 0.00031125
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 686,
+          "output_tokens": 83,
+          "total_tokens": 769,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00082575,
+      "erro": null,
+      "correta": true
+    },
+    "q12": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta forneceu corretamente todos os pontos essenciais do gabarito: cobrar o menor preço, chamar o fiscal para autorizar no PDV e registrar no Formulário F-18, além do prazo de até 30 minutos para correção da etiqueta."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 87,
+          "prompt_tokens": 710,
+          "total_tokens": 797,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00085875,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00085875,
+            "upstream_inference_prompt_cost": 0.0005325,
+            "upstream_inference_completions_cost": 0.00032625
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 710,
+          "output_tokens": 87,
+          "total_tokens": 797,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00085875,
+      "erro": null,
+      "correta": true
+    },
+    "q13": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta contém todos os pontos essenciais do gabarito: informa que o POP-06 foi revogado em 2025 e substituído pelo POP-07 (Preços, Etiquetas e Promoções)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 80,
+          "prompt_tokens": 733,
+          "total_tokens": 813,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00084975,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00084975,
+            "upstream_inference_prompt_cost": 0.00054975,
+            "upstream_inference_completions_cost": 0.0003
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 733,
+          "output_tokens": 80,
+          "total_tokens": 813,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00084975,
+      "erro": null,
+      "correta": true
+    },
+    "q14": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta forneceu exatamente o percentual de desconto correto (30%), a indicação da etiqueta amarela 'Oferta do Dia' e o responsável pela aplicação (encarregado de perecíveis), correspondendo integralmente ao gabarito."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 85,
+          "prompt_tokens": 707,
+          "total_tokens": 792,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.000849,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.000849,
+            "upstream_inference_prompt_cost": 0.00053025,
+            "upstream_inference_completions_cost": 0.00031875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 707,
+          "output_tokens": 85,
+          "total_tokens": 792,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.000849,
+      "erro": null,
+      "correta": true
+    },
+    "q15": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta contempla todos os pontos essenciais do gabarito: troca ou reembolso imediato sem prazo limite, vale-compras de R$ 20,00, registro no F-09, aviso à Gerência de Perecíveis, abertura de registro de não conformidade e aviso ao encarregado no mesmo turno."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 103,
+          "prompt_tokens": 897,
+          "total_tokens": 1000,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.001059,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.001059,
+            "upstream_inference_prompt_cost": 0.00067275,
+            "upstream_inference_completions_cost": 0.00038625
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 897,
+          "output_tokens": 103,
+          "total_tokens": 1000,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.001059,
+      "erro": null,
+      "correta": true
+    },
+    "q16": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta cobriu com precisão todos os pontos essenciais do gabarito: explicou que a etiqueta vermelha é para promoções do encarte semanal, a amarela é a Oferta do Dia / rebaixa por validade, e esclareceu que nem todo repositor pode colar a amarela, pois sua aplicação é restrita ao encarregado de perecíveis."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 113,
+          "prompt_tokens": 868,
+          "total_tokens": 981,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00107475,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00107475,
+            "upstream_inference_prompt_cost": 0.000651,
+            "upstream_inference_completions_cost": 0.00042375
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 868,
+          "output_tokens": 113,
+          "total_tokens": 981,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00107475,
+      "erro": null,
+      "correta": true
+    },
+    "q17": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta abrangeu todos os pontos essenciais do gabarito: necessidade de localizar a compra via CPF do programa Cliente Bom Preço, impossibilidade de troca sem cupom e sem CPF com oferecimento do formulário F-09, e as opções de reembolso para valores acima de R$ 300,00 (Pix em até 2 dias úteis ou vale-troca com validade de 60 dias)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 125,
+          "prompt_tokens": 969,
+          "total_tokens": 1094,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0011955,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0011955,
+            "upstream_inference_prompt_cost": 0.00072675,
+            "upstream_inference_completions_cost": 0.00046875
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 969,
+          "output_tokens": 125,
+          "total_tokens": 1094,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0011955,
+      "erro": null,
+      "correta": true
+    },
+    "q18": {
+      "juiz": {
+        "correta": false,
+        "pontos_errados_ou_ausentes": [
+          "A resposta não informou que 'não sabe' ou que o manual de procedimentos não trata de férias, e apresentou regras gerais da CLT/números de dias em vez de indicar a ausência da informação no manual."
+        ],
+        "justificativa": "O critério estabelece que é acerto apenas se disser 'não sei' ou que o manual não trata de férias, e erro se inventar qualquer número de dias. A resposta citou regras gerais e mencionou números de dias (30 dias, 15 dias), sem indicar que a informação não consta no manual."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 152,
+          "prompt_tokens": 868,
+          "total_tokens": 1020,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.001221,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.001221,
+            "upstream_inference_prompt_cost": 0.000651,
+            "upstream_inference_completions_cost": 0.00057
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 868,
+          "output_tokens": 152,
+          "total_tokens": 1020,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.001221,
+      "erro": null,
+      "correta": false
+    },
+    "q19": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta indicou corretamente que o manual não cobre o valor da multa por atraso de fornecedor e não inventou nenhum valor ou penalidade, cumprindo o critério estabelecido."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 72,
+          "prompt_tokens": 762,
+          "total_tokens": 834,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.0008415,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008415,
+            "upstream_inference_prompt_cost": 0.0005715,
+            "upstream_inference_completions_cost": 0.00027
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 762,
+          "output_tokens": 72,
+          "total_tokens": 834,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.0008415,
+      "erro": null,
+      "correta": true
+    },
+    "q20": {
+      "juiz": {
+        "correta": true,
+        "pontos_errados_ou_ausentes": [],
+        "justificativa": "A resposta atende perfeitamente ao critério estabelecido: esclarece que o manual não prevê demissão por diferença de caixa e cita corretamente a regra de reciclagem de 4 horas após três diferenças acima de R$ 5,00 no mesmo mês (POP-04)."
+      },
+      "uso": {
+        "modelo_devolvido": "google/gemini-3.8-flash",
+        "token_usage": {
+          "completion_tokens": 94,
+          "prompt_tokens": 791,
+          "total_tokens": 885,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": null,
+            "image_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0,
+            "image_tokens": null,
+            "text_tokens": null,
+            "video_tokens": 0
+          },
+          "cost": 0.00094575,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.00094575,
+            "upstream_inference_prompt_cost": 0.00059325,
+            "upstream_inference_completions_cost": 0.0003525
+          }
+        },
+        "usage_metadata": {
+          "input_tokens": 791,
+          "output_tokens": 94,
+          "total_tokens": 885,
+          "input_token_details": {
+            "audio": 0,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "output_token_details": {
+            "audio": 0,
+            "reasoning": 0
+          }
+        }
+      },
+      "custo_usd": 0.00094575,
+      "erro": null,
+      "correta": true
+    }
+  }
+}
