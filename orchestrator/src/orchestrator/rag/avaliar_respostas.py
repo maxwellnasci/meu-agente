@@ -55,6 +55,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import unicodedata
 import uuid
 from collections.abc import Callable, Sequence
@@ -253,6 +254,13 @@ def extrair_trechos(scratchpad: Sequence[str]) -> list[dict]:
     return trechos
 
 
+def _nome_formatador() -> str:
+    # Import tardio, como no resto do modulo: rag_specialist carrega o settings (.env).
+    from orchestrator.graph.rag_specialist import NOME_FORMATADOR_V3
+
+    return NOME_FORMATADOR_V3
+
+
 class FalhaInicial(RuntimeError):
     """A primeira pergunta/chamada da etapa falhou: nada e gravado."""
 
@@ -266,7 +274,11 @@ class ColetorGrafo(BaseCallbackHandler):
         self.caminho: list[str] = []
         self.chamadas: list[dict] = []
         self.erros_llm: list[dict] = []
+        # Missao 10: erro na etapa 2 (formatador v3) NAO e falha de infra: o no
+        # cai para a resposta da etapa 1 e ela conta normalmente (pre-registro).
+        self.erros_etapa2: list[dict] = []
         self._no_da_chamada: dict = {}
+        self._inicio: dict = {}  # run_id -> (run_name, time.monotonic())
 
     def on_chain_start(self, serialized, inputs, *, run_id=None, metadata=None, **kwargs):
         nome = kwargs.get("name") or (serialized or {}).get("name")
@@ -275,6 +287,11 @@ class ColetorGrafo(BaseCallbackHandler):
 
     def on_chat_model_start(self, serialized, messages, *, run_id=None, metadata=None, **kwargs):
         self._no_da_chamada[run_id] = (metadata or {}).get("langgraph_node")
+        self._inicio[run_id] = (kwargs.get("name"), time.monotonic())
+
+    def _fim(self, run_id) -> tuple[str | None, float | None]:
+        nome, t0 = self._inicio.pop(run_id, (None, None))
+        return nome, (None if t0 is None else time.monotonic() - t0)
 
     def on_llm_end(self, response, *, run_id=None, **kwargs):
         saida = getattr(response, "llm_output", None) or {}
@@ -286,15 +303,23 @@ class ColetorGrafo(BaseCallbackHandler):
         meta = getattr(msg, "response_metadata", None) or {}
         modelo = saida.get("model_name") or meta.get("model_name")
         uso = saida.get("token_usage") or meta.get("token_usage")
+        nome, duracao = self._fim(run_id)
         self.chamadas.append({
             "no": self._no_da_chamada.pop(run_id, None),
+            "nome": nome,
+            "duracao_s": duracao,
             "modelo_devolvido": modelo,
             "token_usage": uso,
             "usage_metadata": getattr(msg, "usage_metadata", None),
         })
 
     def on_llm_error(self, error, *, run_id=None, **kwargs):
-        self.erros_llm.append({"no": self._no_da_chamada.pop(run_id, None), "erro_tipo": type(error).__name__})
+        no = self._no_da_chamada.pop(run_id, None)
+        nome, duracao = self._fim(run_id)
+        if nome == _nome_formatador():
+            self.erros_etapa2.append({"no": no, "erro_tipo": type(error).__name__, "duracao_s": duracao})
+            return
+        self.erros_llm.append({"no": no, "erro_tipo": type(error).__name__})
 
 
 def custo_usd(modelo_pedido: str, token_usage: dict | None, usage_metadata: dict | None = None) -> float:
@@ -325,9 +350,13 @@ def _hashes_do_sistema(settings) -> dict:
         "gabarito": juiz.sha256_arquivo(GABARITO),
         "fatos_chave": juiz.sha256_arquivo(FATOS_CHAVE),
         # Missao 9: hash das regras EFETIVAMENTE injetadas no synth (a v1 da o
-        # mesmo hash gravado na Missao 8).
+        # mesmo hash gravado na Missao 8). Missao 10: a v3 injeta a v1 na etapa 1.
         "regras_versao": settings.rag_regras_versao,
-        "regras_do_manual": sha256_texto(rag_specialist.regras_do_manual(settings.rag_regras_versao)),
+        "regras_do_manual": sha256_texto(rag_specialist.regras_da_etapa1(settings.rag_regras_versao)),
+        # Missao 10: textos da etapa 2 (gravados sempre; so a v3 os usa).
+        "formatador_aplicado": rag_specialist.usa_formatador(settings.rag_regras_versao),
+        "prompt_formatador_v3": sha256_texto(rag_specialist.PROMPT_FORMATADOR_V3),
+        "mensagem_formatador_v3": sha256_texto(rag_specialist.MENSAGEM_FORMATADOR_V3),
         "prompt_supervisor": sha256_texto(nodes.supervisor_system_prompt(True)),
         "prompt_synthesize": sha256_texto(nodes._SYNTHESIZE_SYSTEM_PROMPT),
         "tool_dispatch": sha256_texto(json.dumps(dispatch_tool(True), sort_keys=True, ensure_ascii=False)),
@@ -355,14 +384,24 @@ async def responder_pergunta(graph, item: dict) -> dict:
 
     coletor = ColetorGrafo()
     cruas: list[str] = []
+    etapa2: list[dict] = []
     original = rag_specialist.garantir_citacao
+    original_fmt = rag_specialist.formatar_v3
 
     def espiao(resposta, fontes):
         cruas.append(resposta)
         return original(resposta, fontes)
 
+    async def espiao_fmt(llm, pergunta, resposta_completa):
+        # Missao 10: guarda a resposta INTERNA da etapa 1 e o resultado da etapa 2
+        # (None = falhou: o no entregou a etapa 1). Repassa sem mudar nada.
+        saida = await original_fmt(llm, pergunta, resposta_completa)
+        etapa2.append({"etapa1": resposta_completa, "saida": saida})
+        return saida
+
     config = {"configurable": {"thread_id": f"m8-{item['id']}-{uuid.uuid4().hex[:8]}"}, "callbacks": [coletor]}
     rag_specialist.garantir_citacao = espiao
+    rag_specialist.formatar_v3 = espiao_fmt
     erro = None
     estado: dict = {}
     try:
@@ -372,6 +411,7 @@ async def responder_pergunta(graph, item: dict) -> dict:
         erro = f"{type(exc).__name__}: {exc}"
     finally:
         rag_specialist.garantir_citacao = original
+        rag_specialist.formatar_v3 = original_fmt
 
     scratchpad = estado.get("internal_scratchpad") or []
     final = estado.get("final_result")
@@ -393,7 +433,27 @@ async def responder_pergunta(graph, item: dict) -> dict:
         "erros_llm": coletor.erros_llm,
         "falha_de_infra": bool(erro or coletor.erros_llm),
         "chamadas_llm": coletor.chamadas,
+        # Missao 10 (v3): etapa 1 interna, etapa 2 e tempos por chamada do synth.
+        "etapa2_aplicada": bool(etapa2),
+        "etapa2_falhou": bool(etapa2) and etapa2[-1]["saida"] is None,
+        "resposta_etapa1": etapa2[-1]["etapa1"] if etapa2 else None,
+        "erros_etapa2": coletor.erros_etapa2,
+        **_tempos_do_synth(coletor),
     }
+
+
+def _tempos_do_synth(coletor: ColetorGrafo) -> dict:
+    """Duracao (s) das chamadas do synthesize_final: etapa 1 = a chamada do synth
+    sem run_name; etapa 2 = a do formatador (com erro tambem: timeout e latencia).
+    tempo_synth_s = soma das duas (na v1, so a etapa 1)."""
+    synth = [c for c in coletor.chamadas if c.get("no") == "synthesize_final"]
+    e1 = [c["duracao_s"] for c in synth if c.get("nome") != _nome_formatador() and c.get("duracao_s") is not None]
+    e2 = [c["duracao_s"] for c in synth if c.get("nome") == _nome_formatador() and c.get("duracao_s") is not None]
+    e2 += [e["duracao_s"] for e in coletor.erros_etapa2 if e.get("duracao_s") is not None]
+    t1 = e1[-1] if e1 else None
+    t2 = e2[-1] if e2 else None
+    return {"tempo_etapa1_s": t1, "tempo_etapa2_s": t2,
+            "tempo_synth_s": None if t1 is None and t2 is None else (t1 or 0.0) + (t2 or 0.0)}
 
 
 def _custo_das_chamadas(chamadas: list[dict], settings) -> float:
@@ -404,7 +464,8 @@ def _custo_das_chamadas(chamadas: list[dict], settings) -> float:
 
 
 async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO_USD, graph_factory=None,
-                          responder: Callable = responder_pergunta, log=print, regras: str = "v1") -> dict:
+                          responder: Callable = responder_pergunta, log=print, regras: str = "v1",
+                          aceitas: Sequence[str] = ("v1", "v2")) -> dict:
     from langgraph.checkpoint.memory import MemorySaver
 
     from orchestrator.config import settings
@@ -415,7 +476,10 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
     settings.rag_enabled = True  # SO neste processo; o .env continua como esta
     # Missao 9: a versao das regras vem SEMPRE do argumento (um
     # ORCHESTRATOR_RAG_REGRAS_VERSAO no .env nao vaza para a medicao).
-    rag_specialist.regras_do_manual(regras)  # recusa versao desconhecida antes de gastar
+    # `aceitas`: a Missao 9 so conhece v1/v2; a Missao 10 passa ("v1", "v3").
+    if regras not in aceitas:
+        raise ValueError(f"versao {regras!r} nao aceita nesta avaliacao (aceitas: {', '.join(aceitas)})")
+    rag_specialist.regras_da_etapa1(regras)  # recusa versao desconhecida antes de gastar
     settings.rag_regras_versao = regras
     graph = (graph_factory or builder.build_graph)(MemorySaver())
 
@@ -440,6 +504,7 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
         },
         "hashes": _hashes_do_sistema(settings),
         "custo_usd": 0.0,
+        "custo_etapa2_usd": 0.0,  # Missao 10: ja incluido no custo_usd; relatado separado
         "orcamento_usd": orcamento,
         "abortado_por_orcamento": False,
         "perguntas": [],
@@ -449,8 +514,11 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
         if i == 0 and r.get("falha_de_infra"):
             raise FalhaInicial(f"a 1a pergunta ({item['id']}) falhou: erro={r.get('erro')} erros_llm={r.get('erros_llm')}")
         r["custo_usd"] = _custo_das_chamadas(r["chamadas_llm"], settings)
+        r["custo_etapa2_usd"] = _custo_das_chamadas(
+            [c for c in r["chamadas_llm"] if c.get("nome") == _nome_formatador()], settings)
         saida["perguntas"].append(r)
         saida["custo_usd"] += r["custo_usd"]
+        saida["custo_etapa2_usd"] += r["custo_etapa2_usd"]
         log(f"{item['id']}: {' -> '.join(r['caminho']) or '(sem caminho)'}  US$ {r['custo_usd']:.4f}"
             + ("  INFRA " + str(r.get("erro") or r.get("erros_llm")) if r.get("falha_de_infra") else ""))
         if saida["custo_usd"] > orcamento:
@@ -461,7 +529,12 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
 
 
 async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, orcamento: float = ORCAMENTO_USD,
-                       llm_factory=juiz.criar_llm, log=print, calibracao: dict | None = None) -> dict:
+                       llm_factory=juiz.criar_llm, log=print, calibracao: dict | None = None,
+                       alvo: str = "resposta_crua") -> dict:
+    # `alvo`: campo julgado. Missoes 8/9: a crua. Missao 10: a FINAL (o que o
+    # usuario recebe: etapa 2 + garantir_citacao na v3), nas duas versoes.
+    if alvo not in ("resposta_crua", "resposta_final"):
+        raise ValueError(f"alvo do juiz desconhecido: {alvo!r}")
     pf, pc = juiz.prompt_fidelidade(), juiz.prompt_correcao()
     llm_f, llm_c = llm_factory(api_key, pf), llm_factory(api_key, pc)
     por_id = {g["id"]: g for g in gabarito}
@@ -476,6 +549,7 @@ async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, o
         "respostas_data": respostas.get("data"),
         # "calibrada" (caminho pre-registrado) ou "nao_calibrada" (--sem-calibracao, desvio de 20/11).
         "calibracao": calibracao or {"status": "calibrada"},
+        "alvo": alvo,
         "custo_usd": 0.0,
         "orcamento_usd": orcamento,
         "abortado_por_orcamento": False,
@@ -495,13 +569,13 @@ async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, o
 
     primeira = True
     for r in respostas["perguntas"]:
-        if r.get("resposta_crua") is None:
+        if r.get(alvo) is None:
             continue
-        f = await chamar(llm_f, juiz.montar_fidelidade(pf, r["pergunta"], r["trechos"], r["resposta_crua"]))
+        f = await chamar(llm_f, juiz.montar_fidelidade(pf, r["pergunta"], r["trechos"], r[alvo]))
         if f["juiz"] is not None:
             f.update(juiz.veredito_fidelidade(f["juiz"]))
         saida["fidelidade"][r["id"]] = f
-        c = await chamar(llm_c, juiz.montar_correcao(pc, por_id[r["id"]], r["resposta_crua"]))
+        c = await chamar(llm_c, juiz.montar_correcao(pc, por_id[r["id"]], r[alvo]))
         if c["juiz"] is not None:
             c["correta"] = bool(c["juiz"].get("correta"))
         saida["correcao"][r["id"]] = c
@@ -809,8 +883,12 @@ def estimar_custo(perguntas: Sequence[dict], top_k: int, router_model: str, gene
     maior = max(len(p["pergunta"]) for p in perguntas)
     sup1 = tokens(len(nodes.supervisor_system_prompt(True)) + len(json.dumps(dispatch_tool(True))) + maior + 200)
     sup2 = sup1 + tokens(400)
-    synth = tokens(len(nodes._SYNTHESIZE_SYSTEM_PROMPT) + len(rag_specialist.regras_do_manual(regras))
+    synth = tokens(len(nodes._SYNTHESIZE_SYSTEM_PROMPT) + len(rag_specialist.regras_da_etapa1(regras))
                    + top_k * CHARS_POR_TRECHO + maior + 400)
+    # Missao 10 (v3): etapa 2 = prompt do formatador + pergunta + a resposta da
+    # etapa 1 (teto: SAIDA_SYNTH tokens) e saida de ate SAIDA_SYNTH tokens.
+    etapa2 = (tokens(len(rag_specialist.PROMPT_FORMATADOR_V3) + len(rag_specialist.MENSAGEM_FORMATADOR_V3) + maior)
+              + SAIDA_SYNTH) if rag_specialist.usa_formatador(regras) else 0
     pf, pc = juiz.prompt_fidelidade(), juiz.prompt_correcao()
     jf = tokens(len(pf.sistema) + len(pf.usuario) + len(json.dumps(pf.schema)) + top_k * CHARS_POR_TRECHO + 2000)
     jc = tokens(len(pc.sistema) + len(pc.usuario) + len(json.dumps(pc.schema)) + 1500 + 2000)
@@ -820,15 +898,18 @@ def estimar_custo(perguntas: Sequence[dict], top_k: int, router_model: str, gene
         pe, ps = PRECOS.get(modelo, PRECO_DESCONHECIDO)
         return (ent * pe + sai * ps) / 1_000_000
 
+    resp_etapa2 = n * usd(general_model, etapa2, SAIDA_SYNTH) if etapa2 else 0.0
     resp = n * (usd(router_model, sup1, SAIDA_SUPERVISOR[0]) + usd(router_model, sup2, SAIDA_SUPERVISOR[1])
-                + usd(general_model, synth, SAIDA_SYNTH))
+                + usd(general_model, synth, SAIDA_SYNTH)) + resp_etapa2
     jfid = n * usd(juiz.JUIZ_MODELO, jf, SAIDA_JUIZ_FIDELIDADE)
     jcor = n * usd(juiz.JUIZ_MODELO, jc, SAIDA_JUIZ_CORRECAO)
     return {
         "tokens_por_pergunta": {"supervisor_1": sup1, "supervisor_2": sup2, "synthesize": synth,
-                                "juiz_fidelidade": jf, "juiz_correcao": jc},
-        "chamadas": {"respostas": 3 * n, "juiz": 2 * n},
-        "teto_usd": {"respostas": resp, "juiz_fidelidade": jfid, "juiz_correcao": jcor, "total": resp + jfid + jcor},
+                                "juiz_fidelidade": jf, "juiz_correcao": jc,
+                                **({"formatador_v3": etapa2} if etapa2 else {})},
+        "chamadas": {"respostas": (4 if etapa2 else 3) * n, "juiz": 2 * n},
+        "teto_usd": {"respostas": resp, "juiz_fidelidade": jfid, "juiz_correcao": jcor, "total": resp + jfid + jcor,
+                     **({"respostas_etapa2": resp_etapa2} if etapa2 else {})},
     }
 
 

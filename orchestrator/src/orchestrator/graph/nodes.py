@@ -887,10 +887,20 @@ async def synthesize_final_node(state: GraphState) -> dict:
         base_url="https://openrouter.ai/api/v1",
     )
     # Sempre que o rag rodou (com trecho, sem trecho ou com erro) - B-01.
-    # Versao das regras: settings.rag_regras_versao (Missao 9; padrao v1).
-    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.regras_do_manual() if rag.notas else "")
+    # Versao das regras: settings.rag_regras_versao (Missao 9; padrao v1; a v3
+    # da Missao 10 usa as regras v1 nesta etapa).
+    system = _SYNTHESIZE_SYSTEM_PROMPT + (rag_specialist.regras_da_etapa1() if rag.notas else "")
     response = await llm.ainvoke([SystemMessage(content=system), HumanMessage(content=prompt)])
     text = response.content if isinstance(response.content, str) else str(response.content)
+    # Missao 10 (v3): a resposta acima e INTERNA; uma 2a chamada so a reescreve no
+    # formato, vendo so a pergunta e essa resposta (nunca os trechos). So quando o
+    # rag trouxe trechos: resposta fixa, caminho geral e erro seguem como na v1.
+    # Falhou (excecao/vazio) -> o usuario recebe a resposta da etapa 1.
+    if rag.com_trechos and rag_specialist.usa_formatador():
+        formatada = await rag_specialist.formatar_v3(llm, task_description, text)
+        if formatada is not None:
+            text = formatada
+            response = AIMessage(content=text)
     cited = rag_specialist.garantir_citacao(text, rag.fontes)
     if cited != text:
         text = cited
