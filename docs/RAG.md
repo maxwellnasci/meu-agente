@@ -2093,6 +2093,42 @@ fixar o limite** (o p95 da v1 já está gravado nos JSONs de `m10/`). A lição
 v3 continua reprovada. Ela também reprovou em b) e c), que não dependem disso.
 
 
+## Exploração com subagentes (sem API) — prova final lacrada
+
+Registrado em 21/11/2026, **antes de qualquer exploração**. Motivo: a v1
+(padrão) errou a q02 (frango congelado a −10 °C; o certo é recusar) em 2 de
+6 amostras (ver *Achados* da Missão 10). As correções vão ser exploradas com os
+subagentes do Antigravity, treinando num grupo pequeno de perguntas. Esta
+prova final é o teste que eles **nunca** podem ver.
+
+- **Arquivo:** `prova10-v1.yaml`, 10 perguntas, guardado **fora deste
+  repositório**. As perguntas não estão em nenhum arquivo do repo (código,
+  teste, log ou docs).
+- **sha256:** `819c0eb716736837c9d78e179aa8058869c48db89cd55879a9b1df5fece6b33f`.
+- **Composição** (conferida por código ao gerar):
+  - todas são de Sim/Não com número, limite ou prazo, respondíveis pelos 6 POPs
+    de `fixtures/rag/supermercado/`;
+  - 5 têm resposta esperada "Sim" e 5 "Não";
+  - 5 têm temperatura negativa, misturando casos dentro e fora do limite;
+  - cada pergunta tem a fonte (POP e título exato da seção) e o trecho literal
+    que prova a resposta. Os dois foram conferidos no arquivo do POP;
+  - nenhuma passa de `difflib` ratio 0,6 contra as 20 perguntas do gabarito
+    (q01–q20); a maior similaridade foi 0,462.
+
+**Regras (vinculantes):**
+
+1. O arquivo fica **fora do repositório** e o Antigravity (e qualquer
+   subagente dele) **não pode lê-lo**: nem o arquivo, nem as perguntas
+   coladas num prompt.
+2. O treino da exploração usa **só as 6 perguntas de treino**.
+3. A prova final roda **uma vez, no fim** da exploração.
+4. Mudar o arquivo, qualquer byte, cria a **prova10-v2**, com hash novo
+   registrado aqui **antes** do uso. Antes de rodar, confira o sha256 acima.
+
+**Aviso:** os resultados com subagentes (Gemini) são **exploração, não
+medição**. Qualquer mudança no padrão passa depois por pré-registro neste
+documento e por medição com a chave de API, no molde das Missões 8–10.
+
 ## Pendências
 
 **Missão 9 (registrado ANTES de rodar; não muda nada agora, a variável é uma só):**
