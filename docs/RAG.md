@@ -1928,11 +1928,170 @@ continua aceitando só v1/v2, como fixam os testes da Missão 9. Os dois usam as
 mesmas funções (`etapa_respostas` com `aceitas=("v1", "v3")`, e `etapa_julgar`
 com `alvo="resposta_final"`).
 
-**Status (21/11/2026):** pré-registrado; código e testes prontos (suíte com a
-rede bloqueada; cada proteção nova foi conferida numa cópia com a proteção
-quebrada). O texto do formatador foi trocado pela redação da v2 (decisão do
-Max, acima) antes de qualquer execução. **Nenhuma execução paga.** A v1
-continua padrão.
+**Status (21/11/2026):** **medido; v3 NÃO adotada; v1 continua padrão.**
+Pré-registro e código commitados em `7811a78` antes de medir (o texto do
+formatador foi trocado pela redação da v2 antes de qualquer execução). Ver
+*Resultado da Missão 10* abaixo.
+
+### Resultado da Missão 10 (`missao10 --comparar`, 21/11/2026)
+
+Saída literal, com os 8 JSONs de `orchestrator/fixtures/rag/m10/`. A
+comparação é **válida**: passou em todas as checagens de integridade. Isso
+inclui versão e hash das regras, elo julgamento → respostas, juiz v1,
+`indice_meta` igual ao da Missão 8, hash do formatador e da mensagem, nenhuma
+etapa 2 na v1 e juiz com `alvo = resposta_final`. As 4 respostas gravaram o
+mesmo commit, `7811a78`.
+A v1-r1 gravou `sujo: false`; as outras três gravaram `sujo: true`. A
+explicação provável são os próprios JSONs das rodadas anteriores, ainda fora
+do git, em `fixtures/rag/m10/`. Hoje, esse é o único caminho fora do commit, e
+o código é idêntico ao `7811a78`. Juiz NÃO calibrado, como nas Missões 8 e 9.
+Nenhuma etapa 2 falhou e não houve falha de infra.
+
+```text
+| Métrica | v1-r1 | v3-r1 | v1-r2 | v3-r2 | média v1 | média v3 |
+|---|---|---|---|---|---|---|
+| (g) formato total (n=17) | 0 | 16 | 1 | 16 | 0.5 | 16.0 |
+| (b) fatos-chave (n=17) | 16 | 11 | 13 | 12 | 14.5 | 11.5 |
+| (f) correção (n=17) | 15 | 14 | 14 | 15 | 14.5 | 14.5 |
+| (d) sem grave (n=20) | 16 | 16 | 15 | 17 | 15.5 | 16.5 |
+| (d) fiel estrito (n=20) | 11 | 16 | 11 | 14 | 11.0 | 15.0 |
+| (c) citação espontânea (n=17) | 16 | 16 | 15 | 15 | 15.5 | 15.5 |
+| custo das respostas (US$) | 0.0330 | 0.0389 | 0.0327 | 0.0398 | 0.0328 | 0.0394 |
+| … só a etapa 2 (US$) | 0.0000 | 0.0060 | 0.0000 | 0.0060 | — | 0.0060 |
+
+- a) formato v3 > v1: sim
+- b) sem queda > 1: (b) fatos-chave CAIU, (f) correção ok, (d) sem grave ok, (d) fiel estrito ok, (c) citação espontânea ok
+- c) nenhum Sim/Não errado na v3: NÃO (q02 r1: veio sim, esperado nao)
+- d) custo v3 ≤ 2.0x v1: sim (1.20x)
+- e) p95 da etapa 2 ≤ 4.0 s: NÃO (8.09 s; n=40)
+- latência do synth (informativo, não decide): v1 synth p50 3.06 s / p95 8.29 s (n=40); v3 etapa 1 p50 3.56 s / p95 11.36 s (n=40); v3 etapa 2 p50 2.66 s / p95 8.09 s (n=40); v3 synth (1+2) p50 6.80 s / p95 16.69 s (n=40)
+
+Diagnóstico (não decide): etapa 1 começou por Sim/Não →
+- v3-r1 q05: etapa 1 sim, etapa 2 sim: manteve
+- v3-r2 q05: etapa 1 sim, etapa 2 sim: manteve
+
+**Decisão pela regra pré-registrada: v3 NÃO vira padrão.** Custo total medido: US$ 0.3983.
+```
+
+**Decisão pela regra pré-registrada: v3 NÃO vira padrão.** Reprovou em três
+critérios:
+
+- b) fatos-chave: caiu 3,0 (14,5 → 11,5), acima do limite de 1,0;
+- c) "Sim" na q02 da r1;
+- e) p95 da etapa 2 de 8,09 s, acima do limite de 4,0 s.
+
+Passou em a) (formato 0,5 → 16,0) e em d) (custo 1,20 × a v1). Custo total
+medido: US$ 0,3983, dentro do teto de US$ 1,00.
+
+### Achados (não decidem nada; hipóteses para a próxima missão)
+
+Diagnóstico **grátis**, sem LLM, só lendo os 8 JSONs. O que está em
+**Medido** é saída de código: as mesmas funções da métrica
+(`checar_fatos`, `primeira_palavra`, `evaluate.percentil`). O que está em
+**Hipótese** não foi testado.
+
+**a) q02 e q04, lado a lado.**
+
+| | q02 (frango a −10 °C; certo: recusar) | q04 (queijo de anteontem; certo: Não) |
+|---|---|---|
+| v1-r1 | "**deve ser recusado**" | sem Sim/Não; "como foi comprado anteontem, já passou o prazo" |
+| v3-r1, etapa 1 | "o frango congelado marcando -10 °C no termômetro **deve ser aceito**" | "isso pode estar fora do prazo"; "a troca pode não ser possível devido ao prazo de 24 horas" |
+| v3-r1, etapa 2 (crua) | "Sim, o frango congelado marcando -10 °C deve ser aceito, pois está dentro do limite de -12 °C" | "Não. Produtos perecíveis como queijos têm prazo de troca de 24 horas" |
+| v1-r2 | "o frango congelado marcando -10 °C no termômetro **deve ser aceito**" | sem Sim/Não; "Fora das 24 horas: só é possível trocar se o queijo estava vencido" |
+| v3-r2, etapa 1 | "o produto **não deve ser aceito**, pois está acima do limite permitido" | "já ultrapassou esse prazo e não é possível realizar a troca" |
+| v3-r2, etapa 2 (crua) | "Não. O frango a -10°C não pode ser aceito, pois excede o limite de -12°C" | "Não, pois o prazo para troca de produtos perecíveis é de 24 horas" |
+
+- *Medido:* na q02 da v3-r1, **a etapa 1 já concluiu "aceitar"**. A linha
+  exata é "o frango congelado marcando -10 °C no termômetro **deve ser
+  aceito**, pois a temperatura máxima permitida para congelados na chegada é
+  de -12 °C". A etapa 2 **não inverteu**: manteve a conclusão da etapa 1, como
+  manda a regra A. O erro é da etapa 1.
+- *Medido:* a **v1-r2 errou a q02 do mesmo jeito** ("deve ser aceito"). O c)
+  só conta a v3, como na Missão 9, e por isso esse erro não aparece no
+  critério.
+- *Medido:* somando as 6 amostras de raciocínio com regras v1 e sem
+  formato, a q02 concluiu "aceito" em 2. As 6 são: v1 da Missão 9 r1/r2, v1
+  da Missão 10 r1/r2 e a etapa 1 da v3 r1/r2. As 2 são a v1-r2 e a etapa 1 da
+  v3-r1 da Missão 10. As duas da Missão 9 disseram "recusado".
+- *Medido:* na q04, a v3 respondeu "Não" nas 2 rodadas, o que é o certo. A
+  v2 da Missão 9 tinha errado com "Sim" nas 2.
+- *Hipótese:* o erro da q02 não vem do formato. É uma falha de raciocínio do
+  synth (comparar −10 com "até −12"), que aparece também sem restrição de
+  formato. A hipótese da Missão 9 ("decidir antes de raciocinar") **explica a
+  q04, mas não a q02**.
+
+**b) Fatos-chave que a v3 perdeu e a v1 da mesma rodada não perdeu**
+(`checar_fatos`, mesma normalização da métrica (b), aplicado à crua da v3, à
+etapa 1 e à crua da v1).
+
+| rodada | q | fato ausente na crua da v3 | classe | complemento na crua? |
+|---|---|---|---|---|
+| r1 | q02 | F-07 | não estava nem na etapa 1 | sim |
+| r1 | q07 | recusa | estava na etapa 1 e a etapa 2 cortou | sim |
+| r1 | q09 | R$ 800 | estava na etapa 1 e a etapa 2 cortou | sim |
+| r1 | q11 | 10 ml | estava na etapa 1 e a etapa 2 cortou | sim |
+| r1 | q15 | não conformidade | não estava nem na etapa 1 | sim |
+| r2 | q02 | F-07 | não estava nem na etapa 1 | sim |
+| r2 | q17 | 2 dias úteis | estava na etapa 1 e a etapa 2 cortou | sim |
+
+- *Medido:* **4 cortados pela etapa 2** e **3 que nem a etapa 1 trazia**.
+  Nos 4 cortados, a crua tinha complemento e o fato não estava nem na
+  principal nem nele: **nem o complemento trouxe o fato**.
+- *Medido, por pergunta:*
+  - **q07:** a crua diz "você não deve receber o arroz". O sentido de recusa
+    ficou, mas a palavra que a métrica procura sumiu.
+  - **q09:** a crua **começa por "O manual de procedimentos não cobre
+    isso."**, mas a etapa 1 respondeu com R$ 800 e o passo a passo da sangria.
+  - **q11:** "10 ml por litro" sumiu.
+  - **q17:** "em até 2 dias úteis" sumiu, e ficou "por Pix ou vale-troca".
+- *Medido:* a etapa 2 abriu com a frase de "não cobre" sem que a etapa 1
+  tivesse **nenhuma** expressão de recusa em 2 respostas: q09 r1 e q11 r2.
+  Nas outras que abriram assim (q10 e q20, nas 2 rodadas), a etapa 1 dizia
+  "não especifica" ou "não menciona".
+- *Hipótese:* o limite de 3 linhas, junto com o complemento "só se for
+  necessário para agir", faz a etapa 2 descartar números (10 ml, R$ 800,
+  2 dias úteis). A regra a), que manda começar pela frase exata de "não
+  cobre", é aplicada a respostas que não dizem isso.
+
+**c) Latência.**
+
+- *Medido:*
+  - p95 do synth da v1: 8,29 s (p50 3,06 s, n = 40);
+  - p95 da etapa 2: 8,09 s (p50 2,66 s, n = 40);
+  - p95 da etapa 1 da v3: 11,36 s (p50 3,56 s), embora seja a mesma chamada
+    da v1;
+  - p95 do synth inteiro da v3 (1 + 2): 16,69 s (p50 6,80 s).
+- *Medido:* as 5 maiores latências da etapa 2:
+
+| rodada | q | etapa 2 | entrada (resposta da etapa 1) | saída | etapa 1 |
+|---|---|---|---|---|---|
+| r2 | q01 | 10,44 s | 541 caracteres | 322 caracteres | 6,24 s |
+| r2 | q13 | 9,95 s | 427 | 201 | 7,16 s |
+| r2 | q04 | 8,09 s | 1.150 | 241 | 6,24 s |
+| r1 | q08 | 7,24 s | 373 | 203 | 2,11 s |
+| r1 | q02 | 6,86 s | 802 | 238 | 3,11 s |
+
+- Sem conclusão de causa. Só um fato: a maior entrada (1.150 caracteres) não é
+  a mais lenta.
+
+**d) Roteamento: perguntas que foram pelo caminho geral, sem rag.**
+
+- *Medido:* v1-r1: q18. v3-r1: nenhuma. v1-r2: q09. v3-r2: nenhuma.
+- *Medido:* com o rag em todas as 20 perguntas da v3, a etapa 2 rodou 20
+  vezes por rodada (n = 40).
+- *Medido:* a q09 da v1-r2 (sem rag) conta como erro de roteamento só na v1.
+  O roteamento varia entre rodadas, como na Missão 9.
+
+### Lição de método (Missão 10)
+
+O limite de **4,0 s** do critério e) foi fixado **sem medir antes** a latência
+da linha de base. O synth da v1 já tem p95 de **8,29 s**. Com esse limite, a
+etapa 2 teria de ser duas vezes mais rápida que a chamada que ela resume.
+**Na próxima missão com critério de latência, medir a linha de base antes de
+fixar o limite** (o p95 da v1 já está gravado nos JSONs de `m10/`). A lição
+**não muda o resultado**: o critério e) foi pré-registrado e é vinculante, e a
+v3 continua reprovada. Ela também reprovou em b) e c), que não dependem disso.
+
 
 ## Pendências
 
