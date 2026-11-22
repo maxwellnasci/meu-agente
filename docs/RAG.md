@@ -2129,9 +2129,235 @@ prova final é o teste que eles **nunca** podem ver.
 medição**. Qualquer mudança no padrão passa depois por pré-registro neste
 documento e por medição com a chave de API, no molde das Missões 8–10.
 
+## Ferramenta de limites — Parte 1: temperaturas (22/11/2026)
+
+**Por quê.** No mini-teste de 21/11 (`docs/exploracao/mini-teste-q02.md`), a v1
+aceitou frango congelado a −10 °C em 7 de 10 amostras. O limite é −12 °C, então
+o certo era recusar. Mudar o prompt (v4) não resolveu. A partir de agora, a
+**comparação de número sai do modelo e vai para o código**. Esta parte é só
+Python puro: nenhuma chamada a LLM, nada de grafo, nada de prompt.
+
+### Desenho das 3 partes
+
+1. **Tabela e conta (esta parte).** Uma tabela de dados com o trecho literal
+   do POP e uma conta em `Decimal`, com prova por oráculo independente e por
+   mutantes.
+2. **O modelo só extrai.** Da pergunta, o modelo tira só `contexto`,
+   `categoria` e o valor, e nunca compara. Isso é medido com pré-registro
+   próprio. O `ler_temperatura` já devolve `None` na dúvida, e esse `None`
+   precisa virar "não sei", não um chute.
+3. **Ligar no agente e medir de novo.** O mini-teste q02/q04 roda de novo e,
+   no fim, a prova lacrada (`prova10-v1`, uma vez só, ver a seção acima).
+
+### O que existe (Parte 1)
+
+- **Tabela:** `orchestrator/fixtures/rag/limites/temperaturas_v1.yaml`. São 7
+  regras: 4 do POP-01, seção "4. Temperatura na chegada", e 3 do POP-05, seção
+  "4. Temperatura de armazenamento e exposição".
+  - Cada regra tem `id`, `pop`, `secao`, `contexto`, `categoria`, `sinonimos`,
+    `tipo` (`maximo` | `faixa`), `min`/`max` como **string**, `inclusivo` com
+    a justificativa, `trecho_literal` e `ressalvas`.
+  - O arquivo guarda o `sha256` de cada seção de origem. É o mesmo cálculo do
+    `chunk_sha256` do `contextos.json`.
+- **Conta:** `orchestrator/src/orchestrator/rag/limites.py`.
+  - `ler_temperatura(texto) -> Decimal | None`.
+  - `verificar_temperatura(contexto, categoria, valor) -> Resultado`. O
+    `Resultado` traz `veredito` (DENTRO | FORA | SEM_REGRA), `limite`, `frase`,
+    `pop`, `secao`, `regra_id` e `ressalvas`.
+  - No recebimento, a frase termina em "aceitar" ou "recusar". No
+    armazenamento, em "dentro da faixa" ou "fora da faixa". Exemplo: "−10 °C
+    está ACIMA de −12 °C, o máximo para congelados no recebimento: recusar".
+  - `float` na entrada dá `TypeError`. O YAML com número cru (sem aspas) é
+    recusado.
+- **Prova:** `orchestrator/tests/test_rag_limites.py`, 96 testes.
+  - **Oráculo independente:** as 7 regras foram reescritas à mão com if/else,
+    sem ler o YAML. A grade vai de −30 °C a +30 °C com passo 0,5 (121 valores
+    por regra), mais cada limite exato e o limite ± 0,1. São **874 casos e 874
+    batem**. O teste exige exatamente 874, então uma grade vazia não passa.
+  - **Casos do erro real**, com "-" e com "−": −10 → FORA/recusar, −12 →
+    DENTRO/aceitar, −12,1 → DENTRO, −11,9 → FORA.
+  - **Precisão:** casos em que `float` erraria, como −11,99999999999999999999
+    para congelados.
+  - **Integridade da tabela contra os POPs:**
+    - cada trecho está, idêntico, na seção de origem;
+    - o sha256 de cada seção bate;
+    - cada `min`/`max` aparece no trecho;
+    - toda temperatura escrita nas seções de origem é limite de alguma regra.
+- **Mutantes** ("teste que nunca falha é bug"). Cada proteção foi quebrada
+  numa cópia e um teste real falhou. A rodada em cópias (cópia de `orchestrator/`
+  + `pytest tests/test_rag_limites.py -k "not mutante"`, com um controle sem
+  mutação passando 86/86) foi feita **uma vez**, em 22/11, com um script
+  temporário, não versionado. A prova **reproduzível** fica na suíte: os mesmos 9
+  mutantes estão nos meta-testes `test_mutante_*`. Como ler a tabela: no M1, a
+  falha de `test_carregador_recusa_tabela_malformada` é artefato (o trecho que
+  ele procura sumiu), não detecção. No M7, quase todas as falhas são
+  `AttributeError` ao formatar float, e a detecção pelo motivo certo é
+  `test_tipos_decimal_e_recusa_de_float`.
+
+  | Mutante (numa cópia) | Testes que falharam |
+  |---|---|
+  | M1. Sinal invertido no YAML (`max: "-12"` → `"12"`) | oráculo, caso real, integridade |
+  | M2. Sinal perdido no código (`ler_temperatura` ignora o menos) | caso real, `ler_temperatura` |
+  | M3. Inclusivo trocado no YAML (congelados, recebimento) | oráculo, caso real (−12) |
+  | M4. Inclusivo trocado no código (`>` vira `>=`) | oráculo, caso real (−12) |
+  | M5. Regra mais parecida (`difflib`) no lugar de SEM_REGRA | SEM_REGRA |
+  | M6. `float` no lugar de `Decimal` (valor) | oráculo, precisão |
+  | M7. `float` no lugar de `Decimal` (limites da tabela) | tipos, oráculo, precisão, caso real |
+  | M8. `trecho_literal` adulterado ("−" unicode → "-" ASCII) | integridade |
+  | M9. POP editado (POP-01, seção 4: "3" → "5 volumes por lote") | integridade (sha256) |
+
+### Pontos de interpretação (decididos na Parte 1)
+
+1. **Recebimento (POP-01).** "Aceitar até X" e "Recusar acima de X" usam o
+   mesmo X, então o **X exato é aceito**. No caso dos congelados, a frase "é
+   recusado mesmo que o termômetro marque −12 °C ou menos" confirma.
+2. **Armazenamento (POP-05).** "−18 °C ou menos" inclui o −18. Nas faixas, "de
+   0 °C a 4 °C" e "de 0 °C a 8 °C" **incluem as duas pontas**. Essa é uma
+   leitura do português ("de X a Y"), porque o POP não diz isso com outras
+   palavras.
+3. **Descongelamento.** O congelado com sinal de descongelamento é recusado
+   mesmo dentro do limite. A conta só vê o número, então a frase continua
+   terminando em "aceitar" e o trecho vai em `Resultado.ressalvas`. A Parte 3
+   precisa mostrar isso.
+4. **Hortifrúti.** O POP-01 diz "sem limite". Como não há número, não há regra,
+   e a conta devolve SEM_REGRA.
+5. **Laticínios e frios.** No recebimento são duas categorias (`laticinios`
+   10 °C e `frios_fatiados` 8 °C). No armazenamento, o POP-05 junta as duas
+   numa regra só (`laticinios_e_frios`, de 0 °C a 8 °C), e "laticínios",
+   "frios" e "frios fatiados" apontam para ela. No recebimento, "frios"
+   sozinho dá SEM_REGRA.
+6. **Sinônimos deixados de fora (na dúvida, não):**
+   - "queijo": o POP-05, seção 3, fatia queijo no fatiador de frios;
+   - "frios" no recebimento;
+   - "frango resfriado": o POP-03 separa "carne e frango";
+   - "leite": pode ser UHT.
+7. **Resfriados no recebimento** só têm máximo (7 °C), porque o POP-01 não dá
+   mínimo. Um resfriado a −5 °C dá "aceitar".
+8. **`trecho_literal` é uma lista.** Para a tabela do POP-01, a lista tem a
+   linha de cabeçalho ("Aceitar até | Recusar acima de") e a linha da
+   categoria, porque a linha sozinha não prova o "até".
+9. **`ler_temperatura`.**
+   - Além do pedido, aceita "10 graus negativos", "+4", "−10 ºC" (com "º") e
+     a frase inteira com um só número, como a da q02.
+   - Devolve `None` para:
+     - "10 abaixo de zero";
+     - o traço "–" (en dash: pode ser sinal ou faixa);
+     - "- 10" (sinal solto ou marcador de lista);
+     - qualquer texto com dois números;
+     - comparativos ("até", "acima", "abaixo", "menos de");
+     - duplo negativo;
+     - °F;
+     - mais de 2 casas decimais ou milhar.
+10. **`verificar_temperatura` aceita `int`** além de `Decimal`. Só `float`,
+    `bool` e `str` são recusados. O `contexto` é só "recebimento" ou
+    "armazenamento". Qualquer outro, inclusive "exposição", dá SEM_REGRA.
+
+### Inventário dos outros limites numéricos (só listado, NÃO implementado)
+
+É o mapa das próximas partes. Cada trecho foi conferido por código contra o
+arquivo do POP. Quando o trecho atravessa uma quebra de linha do arquivo, ela
+foi juntada com um espaço. Total: **72 entradas** (POP-01: 12, POP-02: 12,
+POP-03: 14, POP-04: 13, POP-05: 13, POP-07: 8), fora as 7 temperaturas desta
+parte. **64 são limites numéricos.** As outras **8 não são limite numérico** e
+estão aqui como contexto para as próximas partes: hortifrúti "sem limite", "3
+volumes por lote" (quantidade), "no mesmo dia", "em qualquer prazo", "quinta a
+quarta", "quarta à noite", "uma vez por semana" e "terceira unidade".
+
+#### POP-01 — Recebimento de Mercadorias (12)
+
+- **2. Horário da doca:** de segunda a sábado, das 6h às 14h. `das **6h às 14h**`
+- **2. Horário da doca:** domingo e feriado, das 6h às 10h, só hortifrúti e pães. `Domingo e feriado só recebem **hortifrúti e pães**, das 6h às 10h.`
+- **2. Horário da doca:** no máximo 40 minutos de doca por caminhão. `Cada caminhão tem no máximo **40 minutos** de doca.`
+- **3. Conferência da nota fiscal:** divergência de até 2% é aceita. `Divergência de quantidade de até **2%** do item é aceita`
+- **3. Conferência da nota fiscal:** acima de 2%, o item é recusado. `Divergência acima de 2%, produto trocado ou preço diferente do pedido:`
+- **4. Temperatura na chegada:** a medição é em 3 volumes por lote (quantidade). `em **3 volumes por lote**`
+- **4. Temperatura na chegada:** hortifrúti "sem limite", só avaliação visual. Não há número, então é SEM_REGRA. `| Hortifrúti           | sem limite  | — (só avaliação visual) |`
+- **5. Validade mínima na entrada:** perecível chega com pelo menos 70% da vida útil. O exemplo de 30 dias → 21 dias deriva dessa regra. `Perecíveis precisam chegar com pelo menos **70%** da vida útil restante.`
+- **5. Validade mínima na entrada:** não perecível precisa de pelo menos 6 meses de validade. `**6 meses** de validade restante.`
+- **6. Avarias na doca:** as fotos da avaria vão para o F-07 em até 24 horas. `As fotos vão anexadas ao F-07 no sistema em até **24 horas**.`
+- **7. Prazo para guardar:** da doca à câmara em até 30 minutos (congelados e resfriados). `**30 minutos** para congelados e resfriados`
+- **7. Prazo para guardar:** da doca à câmara em até 2 horas (mercearia seca). `**2 horas** para mercearia seca.`
+
+#### POP-02 — Controle de Validade e Perecíveis (12)
+
+- **2. Ronda diária de validade:** ronda da manhã às 7h30. `**duas vezes por dia**: às **7h30**`
+- **2. Ronda diária de validade:** ronda da tarde às 15h. `(antes da abertura) e às **15h**.`
+- **2. Ronda diária de validade:** F-12 da manhã entregue até as 9h. `O F-12 preenchido é entregue ao encarregado de perecíveis até as **9h**`
+- **2. Ronda diária de validade:** F-12 da tarde entregue até as 16h. `até as **16h** (ronda da tarde).`
+- **3. Rebaixa de preço:** a 5 dias do vencimento, laticínios e frios com 20%. `| 5 dias          | 20% de desconto    | —       | —                 |`
+- **3. Rebaixa de preço:** a 3 dias, laticínios e frios com 30% e carnes resfriadas com 25%. `| 3 dias          | 30%                | —       | 25%               |`
+- **3. Rebaixa de preço:** a 2 dias, laticínios e frios com 40% e carnes com 40%. `| 2 dias          | 40%                | —       | 40%               |`
+- **3. Rebaixa de preço:** a 1 dia, 50% nas três colunas. `| 1 dia           | 50%                | 50%     | 50%               |`
+- **3. Rebaixa de preço:** no dia do vencimento, retirar da área de venda. `| Dia do vencimento | retirar da área de venda | retirar | retirar |`
+- **4. Retirada de vencidos:** o vencido sai da gôndola até as 8h. `Produto no dia do vencimento sai da gôndola até as **8h**`
+- **4. Retirada de vencidos:** o lançamento da quebra é feito no mesmo dia. `O lançamento é feito no mesmo dia`
+- **6. Doação de excedentes:** a coleta é às terças e sextas, às 18h. `A coleta acontece **terças e sextas às 18h**.`
+
+#### POP-03 — Troca e Devolução (14)
+
+- **1. Onde é feita a troca:** o balcão funciona das 8h às 21h. `O balcão funciona das **8h às 21h**, todos os dias.`
+- **3. Prazo de troca — perecíveis:** 24 horas a partir do horário do cupom. `Prazo de **24 horas** a partir do horário impresso no cupom.`
+- **3. Prazo de troca — perecíveis:** carne e frango com até 24 horas e com o produto. `Carne e frango só são trocados com **até 24 horas** e **com o produto**:`
+- **3. Prazo de troca — perecíveis:** defeito de qualidade trocado em até 24 horas. `trocado em até 24 horas mesmo sem a embalagem fechada.`
+- **4. Prazo de troca — não perecíveis:** arrependimento em até 7 dias corridos. `lacrado): até **7 dias corridos** após a compra.`
+- **4. Prazo de troca — não perecíveis:** defeito em até 30 dias corridos. `**Defeito** (produto com problema de fabricação): até **30 dias corridos**,`
+- **4. Prazo de troca — não perecíveis:** eletroportátil depois dos 30 dias vai para a assistência técnica. `Eletroportáteis do bazar com defeito depois dos 30 dias`
+- **5. Produto vencido vendido pela loja:** troca em qualquer prazo, sem o limite de 24 horas ou 7 dias. `**em qualquer prazo**, sem limite de 24 horas ou 7 dias.`
+- **5. Produto vencido vendido pela loja:** vale-compras de R$ 20,00. `**vale-compras de R$ 20,00**`
+- **6. Forma de reembolso:** reembolso em dinheiro no balcão até R$ 300,00. `reembolso em dinheiro no balcão até **R$ 300,00**.`
+- **6. Forma de reembolso:** acima disso, Pix em até 2 dias úteis. `Acima disso, reembolso por Pix em até **2 dias úteis**.`
+- **6. Forma de reembolso:** estorno em geral em até 2 faturas. `(em geral até 2 faturas)`
+- **6. Forma de reembolso:** vale-troca válido por 60 dias. `válido por **60 dias**.`
+- **7. O que não tem troca:** fracionado a pedido do cliente só tem troca por defeito dentro de 24 horas. `salvo defeito de qualidade dentro de 24 horas.`
+
+#### POP-04 — Abertura e Fechamento de Caixa (13)
+
+- **1. Abertura do caixa:** chegar 15 minutos antes do turno. `O operador chega **15 minutos antes** do início do turno.`
+- **1. Abertura do caixa:** fundo de troco de R$ 200,00. `**fundo de troco de R$ 200,00**`
+- **1. Abertura do caixa:** o fundo tem R$ 100,00 em notas e R$ 100,00 em moedas. `R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.`
+- **2. Sangria:** passou de R$ 800,00 em dinheiro, o PDV bloqueia. `Quando a gaveta passa de **R$ 800,00 em dinheiro**`
+- **3. Pagamentos aceitos:** parcelamento em até 3 vezes sem juros. `até **3 vezes sem juros**`
+- **3. Pagamentos aceitos:** parcelamento só em compras acima de R$ 150,00. `para compras acima de **R$ 150,00**.`
+- **4. Cancelamento:** cupom acima de R$ 500,00 precisa da assinatura do gerente. `Todo cancelamento de cupom acima de **R$ 500,00**`
+- **5. Fechamento do caixa:** separar o fundo de troco de R$ 200,00. `separa o fundo de troco de R$ 200,00`
+- **6. Diferença de caixa:** até R$ 5,00 é tolerância. `| Até R$ 5,00 (para mais ou para menos) | Tolerância: anotar no F-02, sem outra ação |`
+- **6. Diferença de caixa:** de R$ 5,01 a R$ 50,00, o fiscal confere. `| De R$ 5,01 a R$ 50,00 | Fiscal confere a fita do PDV com o operador no mesmo dia |`
+- **6. Diferença de caixa:** acima de R$ 50,00, o gerente abre apuração. `| Acima de R$ 50,00 | Gerente de loja abre apuração e revisa as câmeras do caixa |`
+- **6. Diferença de caixa:** três diferenças acima de R$ 5,00 no mês levam à reciclagem. `Três diferenças acima de R$ 5,00 no mesmo mês`
+- **6. Diferença de caixa:** a reciclagem é de 4 horas. `reciclagem obrigatória de **4 horas**`
+
+#### POP-05 — Higienização e Segurança Alimentar (13)
+
+- **1. Higiene pessoal:** lavar as mãos por no mínimo 20 segundos. `por no mínimo **20 segundos**.`
+- **2. Diluição:** detergente neutro, 10 ml por litro. `| Bancadas e utensílios             | Detergente neutro           | 10 ml por litro    | —                |`
+- **2. Diluição:** álcool 70%, puro. `| Sanitização de bancadas           | Álcool 70%                  | puro               | deixar secar     |`
+- **2. Diluição:** hipoclorito 2,5%, 10 ml por litro, 15 minutos de contato. `| Sanitização de hortifrúti         | Hipoclorito de sódio 2,5%   | 10 ml por litro    | **15 minutos**   |`
+- **2. Diluição:** cloro 2,5%, 20 ml por litro, 10 minutos de contato. `| Pisos e ralos                     | Cloro 2,5%                  | 20 ml por litro    | 10 minutos       |`
+- **3. Cronograma de limpeza:** bancadas do açougue e da padaria a cada 2 horas. `a cada **2 horas** e no fim do turno.`
+- **3. Cronograma de limpeza:** fatiadores a cada 4 horas de uso. `higienizar a cada **4 horas** de uso`
+- **3. Cronograma de limpeza:** câmaras frias uma vez por semana, às segundas. `limpeza completa **uma vez por semana**, às segundas`
+- **4. Temperatura de armazenamento e exposição:** leitura 3 vezes por dia (7h, 13h e 19h). `**3 vezes por dia** (7h, 13h e 19h)`
+- **4. Temperatura de armazenamento e exposição:** expositor fora da faixa por mais de 2 horas tem os produtos retirados. Esse prazo está ligado às regras desta parte. `Expositor fora da faixa por mais de **2 horas**`
+- **5. Controle de pragas:** dedetização a cada 30 dias. `desratização **a cada 30 dias**.`
+- **6. Descongelamento:** descongelar só na câmara de resfriados, de 0 °C a 4 °C. É uma temperatura fora do escopo da Parte 1. `Descongelar só dentro da câmara de resfriados (de 0 °C a 4 °C)`
+- **6. Descongelamento:** nova validade de no máximo 3 dias. `nova etiqueta de validade de no máximo **3 dias**.`
+
+#### POP-07 — Preços, Etiquetas e Promoções (8)
+
+- **1. Atualização de preços:** os preços chegam todo dia às 5h. `todo dia às **5h**.`
+- **1. Atualização de preços:** as etiquetas são trocadas até as 8h. `área de venda **até as 8h**, antes da abertura.`
+- **3. Divergência entre etiqueta e caixa:** a etiqueta é corrigida em até 30 minutos. `o repositor corrige a etiqueta em até **30 minutos**.`
+- **4. Encarte semanal:** o encarte vale de quinta a quarta. `O encarte vale de **quinta-feira a quarta-feira**.`
+- **4. Encarte semanal:** a montagem é na quarta à noite. `é feita na **quarta à noite**`
+- **4. Encarte semanal:** até 6 unidades por CPF por dia. `**até 6 unidades por CPF por dia**`
+- **5. Leve 3, Pague 2:** o desconto entra ao passar a terceira unidade. `ao passar a terceira unidade.`
+- **6. Preço de produto sem etiqueta:** a etiqueta é colocada em até 30 minutos. `que coloca a etiqueta em até **30 minutos**.`
+
 ## Pendências
 
 > **q02: a v1 (padrão) aceitou frango congelado a −10 °C em 7/10 amostras no mini-teste de 21/11 (docs/exploracao/mini-teste-q02.md). Não ligar o RAG em ambiente real antes de corrigir.**
+>
+> Ferramenta de limites: a Parte 1 (tabela + conta, sem LLM) está pronta, mas ainda **não** está ligada no agente. Esta pendência continua até a Parte 3 medir de novo.
 
 **Missão 9 (registrado ANTES de rodar; não muda nada agora, a variável é uma só):**
 em produção, quando a resposta crua não traz a citação completa, o

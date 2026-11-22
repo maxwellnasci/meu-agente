@@ -1,0 +1,180 @@
+# Ferramenta de limites - Parte 1: temperaturas (docs/RAG.md, "Ferramenta de limites").
+#
+# DADOS, nao codigo. Quem le e orchestrator/src/orchestrator/rag/limites.py;
+# quem prova que esta tabela bate com os POPs e tests/test_rag_limites.py.
+#
+# Regras de formato (o carregador recusa o arquivo se alguma falhar):
+# - min/max sao STRINGS ("-12", nao -12): YAML le -12 como int e 0.5 como
+#   float; o modulo converte com Decimal(str) e recusa numero cru do YAML;
+# - tipo "maximo" tem so max; tipo "faixa" tem min e max (min < max);
+# - "inclusivo" vale para as duas pontas da faixa;
+# - um nome (categoria ou sinonimo, sem acento e sem caixa) aponta para no
+#   maximo UMA regra dentro do mesmo contexto. Nome desconhecido = SEM_REGRA
+#   (nunca a regra "mais parecida");
+# - trecho_literal: linhas copiadas POR CODIGO do POP (o "−" e o U+2212 do
+#   arquivo, e as tabelas tem espacos de alinhamento). O teste confere cada
+#   uma, byte a byte, dentro da secao de origem;
+# - secoes_fonte.sha256 = sha256 do texto da secao como o chunking.py a
+#   recorta (mesmo calculo do chunk_sha256 do contextos.json). Editou o POP,
+#   o teste quebra e obriga a revisar esta tabela antes de atualizar o hash.
+#
+# Sinonimos: so os obvios. Ficaram DE FORA, de proposito (na duvida, nao):
+# - "queijo": o POP-05 secao 3 fatia queijo no fatiador de frios, entao no
+#   recebimento ele pode ser "laticinios" (10 °C) ou "frios fatiados" (8 °C);
+# - "frios" sozinho no recebimento: a tabela do POP-01 so tem "Frios
+#   fatiados"; peca inteira nao esta escrita;
+# - "frango resfriado": a categoria e "Resfriados (carnes)", mas o POP-03
+#   fala "carne e frango" como coisas distintas;
+# - "leite": leite UHT nao e refrigerado; "leite" sozinho nao diz qual e;
+# - hortifruti: o POP-01 diz "sem limite" (so avaliacao visual). Nao ha
+#   limite numerico, entao nao ha regra: a conta devolve SEM_REGRA.
+
+formato: 1
+versao: temperaturas_v1
+
+secoes_fonte:
+  - pop: POP-01
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    secao: "4. Temperatura na chegada"
+    sha256: 8df81da206af543b9761b72a871b4e66fb404b2cdad18ac8ec73536e2c88c530
+  - pop: POP-05
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    secao: "4. Temperatura de armazenamento e exposição"
+    sha256: 44b5befa62f68646b17939c31e592613efe2a135ea44423244972857aea84d5f
+
+regras:
+  # --- POP-01, recebimento ---------------------------------------------------
+  # inclusivo (as 4 do recebimento): a tabela tem duas colunas com o MESMO
+  # numero, "Aceitar até X" e "Recusar acima de X". "Até X" inclui o X e
+  # "acima de X" exclui o X, entao X exato e aceito. Para congelados ha ainda
+  # a frase do descongelamento: "recusado mesmo que o termômetro marque
+  # −12 °C ou menos" so faz sentido se −12 °C sozinho fosse ACEITO.
+  - id: recebimento-congelados
+    pop: POP-01
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    secao: "4. Temperatura na chegada"
+    contexto: recebimento
+    categoria: congelados
+    rotulo: congelados
+    sinonimos: [congelado, frango congelado, carne congelada, peixe congelado, produto congelado]
+    tipo: maximo
+    max: "-12"
+    inclusivo: true
+    inclusivo_porque: >-
+      "Aceitar até −12 °C" / "Recusar acima de −12 °C", e o congelado com
+      sinal de descongelamento é recusado "mesmo que o termômetro marque
+      −12 °C ou menos": −12 °C exato está dentro.
+    trecho_literal:
+      - "| Categoria            | Aceitar até | Recusar acima de |"
+      - "| Congelados           | −12 °C      | −12 °C           |"
+    # A conta so olha o numero. O sinal de descongelamento (visual) recusa
+    # mesmo dentro do limite: vai no Resultado.ressalvas, nao na frase.
+    ressalvas:
+      - "Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou\nproduto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou\nmenos**."
+
+  - id: recebimento-resfriados
+    pop: POP-01
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    secao: "4. Temperatura na chegada"
+    contexto: recebimento
+    categoria: resfriados
+    rotulo: resfriados (carnes)
+    sinonimos: [resfriado, resfriados (carnes), carne resfriada, carnes resfriadas]
+    tipo: maximo
+    max: "7"
+    inclusivo: true
+    inclusivo_porque: >-
+      "Aceitar até 7 °C" / "Recusar acima de 7 °C": 7 °C exato está dentro.
+    trecho_literal:
+      - "| Categoria            | Aceitar até | Recusar acima de |"
+      - "| Resfriados (carnes)  | 7 °C        | 7 °C             |"
+
+  - id: recebimento-laticinios
+    pop: POP-01
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    secao: "4. Temperatura na chegada"
+    contexto: recebimento
+    categoria: laticinios
+    rotulo: laticínios
+    sinonimos: [laticínio, laticínios, iogurte]
+    tipo: maximo
+    max: "10"
+    inclusivo: true
+    inclusivo_porque: >-
+      "Aceitar até 10 °C" / "Recusar acima de 10 °C": 10 °C exato está dentro.
+    trecho_literal:
+      - "| Categoria            | Aceitar até | Recusar acima de |"
+      - "| Laticínios           | 10 °C       | 10 °C            |"
+
+  - id: recebimento-frios-fatiados
+    pop: POP-01
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    secao: "4. Temperatura na chegada"
+    contexto: recebimento
+    categoria: frios_fatiados
+    rotulo: frios fatiados
+    sinonimos: [frios fatiados, frio fatiado, presunto fatiado]
+    tipo: maximo
+    max: "8"
+    inclusivo: true
+    inclusivo_porque: >-
+      "Aceitar até 8 °C" / "Recusar acima de 8 °C": 8 °C exato está dentro.
+    trecho_literal:
+      - "| Categoria            | Aceitar até | Recusar acima de |"
+      - "| Frios fatiados       | 8 °C        | 8 °C             |"
+
+  # --- POP-05, armazenamento e exposicao -------------------------------------
+  - id: armazenamento-congelados
+    pop: POP-05
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    secao: "4. Temperatura de armazenamento e exposição"
+    contexto: armazenamento
+    categoria: congelados
+    rotulo: congelados
+    sinonimos: [congelado, frango congelado, carne congelada, peixe congelado, produto congelado]
+    tipo: maximo
+    max: "-18"
+    inclusivo: true
+    inclusivo_porque: >-
+      "−18 °C ou menos": o "ou" inclui o próprio −18 °C.
+    trecho_literal:
+      - "- Câmara e expositor de congelados: **−18 °C ou menos**."
+
+  # inclusivo (as 2 faixas): "de X a Y" em portugues inclui as duas pontas
+  # ("de 0 °C a 4 °C" = 0 e 4 dentro). O POP nao diz "entre" nem "acima de".
+  # E uma leitura de linguagem, nao uma frase do POP: ver docs/RAG.md.
+  - id: armazenamento-resfriados
+    pop: POP-05
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    secao: "4. Temperatura de armazenamento e exposição"
+    contexto: armazenamento
+    categoria: resfriados
+    rotulo: resfriados (carnes)
+    sinonimos: [resfriado, resfriados (carnes), carne resfriada, carnes resfriadas]
+    tipo: faixa
+    min: "0"
+    max: "4"
+    inclusivo: true
+    inclusivo_porque: >-
+      "de 0 °C a 4 °C": "de X a Y" inclui as duas pontas.
+    trecho_literal:
+      - "- Câmara e balcão de resfriados (carnes): de **0 °C a 4 °C**."
+
+  - id: armazenamento-laticinios-e-frios
+    pop: POP-05
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    secao: "4. Temperatura de armazenamento e exposição"
+    contexto: armazenamento
+    categoria: laticinios_e_frios
+    rotulo: laticínios e frios
+    # No armazenamento o POP-05 junta "Laticínios e frios" numa regra so;
+    # por isso aqui "frios" e "laticinios" apontam para a mesma regra.
+    sinonimos: [laticínios e frios, laticínio, laticínios, iogurte, frios, frios fatiados, frio fatiado, presunto fatiado]
+    tipo: faixa
+    min: "0"
+    max: "8"
+    inclusivo: true
+    inclusivo_porque: >-
+      "de 0 °C a 8 °C": "de X a Y" inclui as duas pontas.
+    trecho_literal:
+      - "- Laticínios e frios: de **0 °C a 8 °C**."
