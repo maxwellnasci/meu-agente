@@ -8,6 +8,7 @@ de medir. Duas rodadas das 100 perguntas de fixtures/rag/limites/extracao_v1.yam
     .venv/bin/python -m orchestrator.rag.medir_extracao --executar --rodada r1 --orcamento 0.06   # pago
     .venv/bin/python -m orchestrator.rag.medir_extracao --executar --rodada r2 --orcamento 0.06   # pago
     .venv/bin/python -m orchestrator.rag.medir_extracao --resultado                      # gratis: criterios a-e
+    .venv/bin/python -m orchestrator.rag.medir_extracao --versao v2 ...                    # Parte 2.1 (mesmos comandos)
 
 Regras de execucao (pre-registradas; emendas de 22/11/2026 antes de qualquer medicao):
 - teto TOTAL de US$ 0,15 somando TODAS as tentativas (validas ou nao) e ate US$ 0,06
@@ -40,6 +41,7 @@ import yaml
 
 from orchestrator.rag import limites
 from orchestrator.rag import limites_extracao as lx
+from orchestrator.rag import limites_extracao_v2 as lx2
 
 ORCHESTRATOR_DIR = limites.ORCHESTRATOR_DIR
 CONJUNTO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "limites" / "extracao_v1.yaml"
@@ -72,6 +74,22 @@ PRE_REGISTRO = {
     "codigo_limites": HASH_CODIGO_LIMITES,
 }
 
+# --- Parte 2.1 (--versao v2): o modelo so copia, o Python decide (docs/RAG.md, "Parte 2.1") ---
+# Mesmo conjunto, mesmos criterios a-e (emendas E-1 a E-5), registro e teto PROPRIOS.
+VERSOES = ("v1", "v2")
+SINONIMOS = ORCHESTRATOR_DIR / "fixtures" / "rag" / "limites" / "sinonimos_v1.yaml"
+DIR_MEDICAO_V2 = DIR_MEDICAO / "v2"
+PRE_REGISTRO_V2 = {
+    "prompt_sistema": "ade15b404870aea656e0fa380c00ec3286c241500038c8a514e418cc4fedb99f",
+    "schema_ferramenta": "f30f2f3924ece9bd917ca0e08447b55605c1e9faae3792e45ea9b8901a62ef26",
+    "conjunto": HASH_CONJUNTO,
+    "codigo_limites_extracao_v2": "74f8b5a11c309c30d965ee4b6204ea83923081101e449a8127ced6c58ba37a47",
+    "codigo_limites_extracao": HASH_CODIGO_EXTRATOR,  # a v2 reaproveita localizar/estender da v1
+    "codigo_limites": HASH_CODIGO_LIMITES,
+    "sinonimos": "85fd74dbc9f0edbb0af73621ee00bc25ce0f0d124c6e224ae6b0de860de65e95",
+}
+TOKENS_SAIDA_V2 = 100  # duas listas + o valor
+
 ESTADO_INICIADA = "iniciada"
 ESTADO_CONCLUIDA = "concluida"
 ESTADO_INFRA = "invalida_infra"
@@ -101,7 +119,28 @@ def carregar_conjunto(path: Path = CONJUNTO) -> list[dict]:
     return list(dados["itens"])
 
 
-def hashes_atuais(conjunto: Path = CONJUNTO) -> dict[str, str]:
+def _extrator(versao: str):
+    return {"v1": lx, "v2": lx2}[versao]
+
+
+def _pre_registro(versao: str) -> dict[str, str]:
+    return {"v1": PRE_REGISTRO, "v2": PRE_REGISTRO_V2}[versao]
+
+
+def _diretorio(versao: str) -> Path:
+    return {"v1": DIR_MEDICAO, "v2": DIR_MEDICAO_V2}[versao]
+
+
+def hashes_atuais(conjunto: Path = CONJUNTO, versao: str = "v1") -> dict[str, str]:
+    if versao == "v2":
+        return {
+            **lx2.hashes(),
+            "conjunto": sha256_arquivo(conjunto),
+            "codigo_limites_extracao_v2": sha256_arquivo(Path(lx2.__file__)),
+            "codigo_limites_extracao": sha256_arquivo(Path(lx.__file__)),
+            "codigo_limites": sha256_arquivo(Path(limites.__file__)),
+            "sinonimos": sha256_arquivo(SINONIMOS),
+        }
     return {
         **lx.hashes(),
         "conjunto": sha256_arquivo(conjunto),
@@ -110,11 +149,13 @@ def hashes_atuais(conjunto: Path = CONJUNTO) -> dict[str, str]:
     }
 
 
-def conferir_pre_registro(settings, conjunto: Path = CONJUNTO) -> list[str]:
+def conferir_pre_registro(
+    settings, conjunto: Path = CONJUNTO, versao: str = "v1"
+) -> list[str]:
     """Diferencas entre o sistema atual e o pre-registrado (vazio = pode medir)."""
-    h = hashes_atuais(conjunto)
+    h = hashes_atuais(conjunto, versao)
     problemas = []
-    for nome, esperado in (*PRE_REGISTRO.items(),):
+    for nome, esperado in (*_pre_registro(versao).items(),):
         if h[nome] != esperado:
             problemas.append(
                 f"sha256 de {nome} mudou: {h[nome]} != {esperado} (pre-registro)"
@@ -198,10 +239,9 @@ def pode_executar(tentativas: Sequence[dict], rodada: str) -> tuple[bool, str]:
 # --- custo de uma chamada --------------------------------------------------------------
 
 
-def chamou_a_ferramenta(resposta) -> bool:
+def chamou_a_ferramenta(resposta, nome: str = lx.NOME_FERRAMENTA) -> bool:
     return any(
-        c.get("name") == lx.NOME_FERRAMENTA
-        for c in (getattr(resposta, "tool_calls", None) or [])
+        c.get("name") == nome for c in (getattr(resposta, "tool_calls", None) or [])
     )
 
 
@@ -224,12 +264,15 @@ def executar_rodada(
     *,
     chamar: Callable[[list], object],
     modelo: str,
-    diretorio: Path = DIR_MEDICAO,
+    diretorio: Path | None = None,
     conjunto: Path = CONJUNTO,
     log: Callable[[str], None] = print,
     relogio: Callable[[], float] = time.monotonic,
+    versao: str = "v1",
 ) -> dict:
     """Roda as perguntas em ordem e grava DEPOIS DE CADA UMA. Devolve a tentativa."""
+    ext = _extrator(versao)
+    diretorio = Path(diretorio) if diretorio is not None else _diretorio(versao)
     tentativas = ler_registro(diretorio)
     ok, motivo = pode_executar(tentativas, rodada)
     if not ok:
@@ -255,13 +298,19 @@ def executar_rodada(
         "tentativa": n,
         "config": {
             "modelo": modelo,
-            "temperatura": lx.TEMPERATURA,
-            "tool_choice": lx.TOOL_CHOICE,
+            "temperatura": ext.TEMPERATURA,
+            "tool_choice": ext.TOOL_CHOICE,
+            **({"versao": versao} if versao != "v1" else {}),
         },
-        "hashes": hashes_atuais(conjunto),
+        "hashes": hashes_atuais(conjunto, versao),
         "codigo_sha256": {
             "limites_extracao.py": sha256_arquivo(Path(lx.__file__)),
             "limites.py": sha256_arquivo(Path(limites.__file__)),
+            **(
+                {"limites_extracao_v2.py": sha256_arquivo(Path(lx2.__file__))}
+                if versao == "v2"
+                else {}
+            ),
         },
         "custo_usd": 0.0,
         "respostas": [],
@@ -283,7 +332,7 @@ def executar_rodada(
     for idx, item in enumerate(itens):
         t0 = relogio()
         try:
-            resposta = chamar(lx.mensagens(item["pergunta"]))
+            resposta = chamar(ext.mensagens(item["pergunta"]))
         except Exception as exc:  # qualquer erro da chamada e infra
             log(
                 f"[{idx + 1:03d}] {item['id']}: FALHA DE INFRA {type(exc).__name__}: {exc}"
@@ -294,10 +343,10 @@ def executar_rodada(
             return fechar(ESTADO_INFRA)
         custo = custo_da_resposta(resposta, modelo)
         saida["custo_usd"] += custo
-        if idx == 0 and not chamou_a_ferramenta(resposta):
+        if idx == 0 and not chamou_a_ferramenta(resposta, ext.NOME_FERRAMENTA):
             # emenda 22/11: o modelo ignorou a ferramenta logo na 1a -> FalhaInicial
             log(
-                f"[001] {item['id']}: a 1a resposta veio SEM a chamada de {lx.NOME_FERRAMENTA}"
+                f"[001] {item['id']}: a 1a resposta veio SEM a chamada de {ext.NOME_FERRAMENTA}"
             )
             saida["primeira_resposta_sem_ferramenta"] = {
                 "conteudo": getattr(resposta, "content", None),
@@ -305,9 +354,9 @@ def executar_rodada(
             }
             fechar(ESTADO_FALHA_INICIAL)
             raise FalhaInicial(
-                f"a 1a resposta veio sem a chamada de {lx.NOME_FERRAMENTA}"
+                f"a 1a resposta veio sem a chamada de {ext.NOME_FERRAMENTA}"
             )
-        ficha = lx.interpretar(item["pergunta"], resposta)
+        ficha = ext.interpretar(item["pergunta"], resposta)
         saida["respostas"].append(
             {
                 "id": item["id"],
@@ -477,8 +526,11 @@ def avaliar(
     }
 
 
-def carregar_rodadas(diretorio: Path = DIR_MEDICAO) -> tuple[dict, list[str]]:
+def carregar_rodadas(
+    diretorio: Path | None = None, versao: str = "v1"
+) -> tuple[dict, list[str]]:
     """As respostas da tentativa CONCLUIDA de cada rodada, conferindo os hashes."""
+    diretorio = Path(diretorio) if diretorio is not None else _diretorio(versao)
     tentativas = ler_registro(diretorio)
     saida: dict[str, list | None] = {}
     problemas = []
@@ -494,7 +546,7 @@ def carregar_rodadas(diretorio: Path = DIR_MEDICAO) -> tuple[dict, list[str]]:
         dados = json.loads(
             (Path(diretorio) / conc[-1]["arquivo"]).read_text(encoding="utf-8")
         )
-        if dados.get("hashes") != PRE_REGISTRO:
+        if dados.get("hashes") != _pre_registro(versao):
             problemas.append(f"rodada {r}: hashes diferentes do pre-registro")
         saida[r] = dados["respostas"]
     return saida, problemas
@@ -507,14 +559,17 @@ def _fmt(linha: dict) -> str:
         for k in ("valida", "aplica", "contexto", "categoria", "valor", "valor_texto")
     }
     extra = f" | problemas: {o.get('problemas')}" if o.get("problemas") else ""
+    if o.get("motivos"):
+        extra += f" | motivos: {o['motivos']}"
     return (
         f"  - {linha['id']} ({linha['tipo']}): {linha['pergunta']!r}\n      esperado {linha['esperado']}\n"
         f"      veio     {obt}{extra}"
     )
 
 
-def relatorio(res: dict) -> str:
-    linhas = ["=== Ferramenta de limites — Parte 2: resultado ==="]
+def relatorio(res: dict, versao: str = "v1") -> str:
+    parte = "Parte 2.1 (v2)" if versao == "v2" else "Parte 2"
+    linhas = [f"=== Ferramenta de limites — {parte}: resultado ==="]
     if not res["valido"]:
         linhas += [
             "RESULTADO INVALIDO/INCOMPLETO:",
@@ -581,25 +636,28 @@ def precos_reais_m10() -> dict | None:
     }
 
 
-def projecao_custo(itens: Sequence[dict]) -> dict | None:
+def projecao_custo(itens: Sequence[dict], versao: str = "v1") -> dict | None:
     precos = precos_reais_m10()
     if precos is None:
         return None
-    fixo = len(lx.prompt_sistema()) + len(
-        json.dumps(lx.schema_ferramenta(), ensure_ascii=False)
+    ext = _extrator(versao)
+    fixo = len(ext.prompt_sistema()) + len(
+        json.dumps(ext.schema_ferramenta(), ensure_ascii=False)
     )
     media_pergunta = sum(
-        len(lx.mensagens(i["pergunta"])[1].content) for i in itens
+        len(ext.mensagens(i["pergunta"])[1].content) for i in itens
     ) / len(itens)
     tokens_entrada = (fixo + media_pergunta) / CHARS_POR_TOKEN
+    saida = TOKENS_SAIDA_V2 if versao == "v2" else TOKENS_SAIDA_POR_CHAMADA
     por_chamada = (
         tokens_entrada * precos["usd_por_token_entrada"]
-        + TOKENS_SAIDA_POR_CHAMADA * precos["usd_por_token_saida"]
+        + saida * precos["usd_por_token_saida"]
     )
     por_rodada = por_chamada * len(itens)
-    return {
+    proj = {
         **precos,
         "tokens_entrada_estimados": tokens_entrada,
+        "tokens_saida_estimados": saida,
         "por_chamada_usd": por_chamada,
         "por_rodada_usd": por_rodada,
         "duas_rodadas_usd": 2 * por_rodada,
@@ -607,6 +665,27 @@ def projecao_custo(itens: Sequence[dict]) -> dict | None:
         "teto_pela_chamada_do_supervisor_usd": 2
         * len(itens)
         * precos["supervisor_1a_chamada_media_usd"],
+    }
+    if versao == "v2":
+        proj["calibracao_v1"] = calibracao_pela_v1(itens)
+    return proj
+
+
+def calibracao_pela_v1(itens: Sequence[dict]) -> dict | None:
+    """Custo REAL da Parte 2 (v1) contra a projecao da v1: o fator corrige a projecao da v2."""
+    conc = [
+        t
+        for t in ler_registro(DIR_MEDICAO)
+        if t["estado"] == ESTADO_CONCLUIDA and t.get("custo_usd")
+    ]
+    proj_v1 = projecao_custo(itens, "v1")
+    if not conc or not proj_v1:
+        return None
+    real = sum(float(t["custo_usd"]) for t in conc) / len(conc)
+    return {
+        "real_v1_por_rodada_usd": real,
+        "fator": real / proj_v1["por_rodada_usd"],
+        "rodadas": len(conc),
     }
 
 
@@ -616,11 +695,16 @@ def orcamento_sugerido(proj: dict | None) -> float:
         return TETO_RODADA_USD
     import math
 
-    return min(TETO_RODADA_USD, math.ceil(proj["por_rodada_usd"] * 1.5 * 100) / 100)
+    base = proj["por_rodada_usd"] * (
+        (proj.get("calibracao_v1") or {}).get("fator") or 1.0
+    )
+    return min(TETO_RODADA_USD, math.ceil(base * 1.5 * 100) / 100)
 
 
-def comandos(orc: float) -> list[str]:
-    base = ".venv/bin/python -m orchestrator.rag.medir_extracao"
+def comandos(orc: float, versao: str = "v1") -> list[str]:
+    base = ".venv/bin/python -m orchestrator.rag.medir_extracao" + (
+        " --versao v2" if versao == "v2" else ""
+    )
     return [
         f"{base} --executar --rodada r1 --orcamento {orc:.2f}",
         f"{base} --executar --rodada r2 --orcamento {orc:.2f}",
@@ -629,27 +713,44 @@ def comandos(orc: float) -> list[str]:
 
 
 def mostrar_plano(
-    settings, *, conjunto: Path = CONJUNTO, diretorio: Path = DIR_MEDICAO
+    settings,
+    *,
+    conjunto: Path = CONJUNTO,
+    diretorio: Path | None = None,
+    versao: str = "v1",
 ) -> int:
+    ext = _extrator(versao)
+    diretorio = Path(diretorio) if diretorio is not None else _diretorio(versao)
     itens = carregar_conjunto(conjunto)
     contagem = {t: sum(i["tipo"] == t for i in itens) for t in DISTRIBUICAO}
-    print("=== Ferramenta de limites — Parte 2: plano (GRATIS, nada executado) ===")
+    parte = (
+        "Parte 2.1 (--versao v2: o modelo so copia, o Python decide)"
+        if versao == "v2"
+        else "Parte 2"
+    )
+    print(f"=== Ferramenta de limites — {parte}: plano (GRATIS, nada executado) ===")
     print(
-        f"modelo     : {settings.general_model} (pre-registrado: {MODELO}), temperatura {lx.TEMPERATURA}, "
-        f"tool_choice={lx.TOOL_CHOICE!r}"
+        f"modelo     : {settings.general_model} (pre-registrado: {MODELO}), temperatura {ext.TEMPERATURA}, "
+        f"tool_choice={ext.TOOL_CHOICE!r}"
     )
     print(
         f"perguntas  : {len(itens)} {contagem} x {len(RODADAS)} rodadas = {len(itens) * len(RODADAS)} chamadas"
     )
     print(f"categorias : {list(lx.categorias())} (enum gerado do temperaturas_v1.yaml)")
+    if versao == "v2":
+        sin = lx2.carregar_sinonimos(SINONIMOS)
+        print(
+            f"sinonimos  : {len(sin.produtos)} produtos, {len(sin.lugares)} lugares; de fora de proposito: "
+            f"{len(sin.fora_produtos)} produtos, {len(sin.fora_lugares)} lugares (sinonimos_v1.yaml)"
+        )
     print("hashes     :")
-    h = hashes_atuais(conjunto)
-    for nome, pre in (*PRE_REGISTRO.items(),):
+    h = hashes_atuais(conjunto, versao)
+    for nome, pre in (*_pre_registro(versao).items(),):
         print(
             f"  {nome:18} {h[nome]}  {'OK' if h[nome] == pre else 'DIFERENTE DO PRE-REGISTRO'}"
         )
-    problemas = conferir_pre_registro(settings, conjunto)
-    proj = projecao_custo(itens)
+    problemas = conferir_pre_registro(settings, conjunto, versao)
+    proj = projecao_custo(itens, versao)
     if proj:
         print(
             f"projecao   : precos REAIS da Missao 10 ({proj['chamadas']} perguntas v1): "
@@ -658,12 +759,19 @@ def mostrar_plano(
         )
         print(
             f"             ~{proj['tokens_entrada_estimados']:.0f} tokens de entrada (a {CHARS_POR_TOKEN:.0f} chars/token) "
-            f"+ {TOKENS_SAIDA_POR_CHAMADA} de saida por chamada = US$ {proj['por_chamada_usd']:.6f}"
+            f"+ {proj['tokens_saida_estimados']} de saida por chamada = US$ {proj['por_chamada_usd']:.6f}"
         )
         print(
             f"             por rodada US$ {proj['por_rodada_usd']:.4f} | 2 rodadas US$ {proj['duas_rodadas_usd']:.4f} "
             f"| com 1 repeticao US$ {proj['com_uma_repeticao_usd']:.4f}"
         )
+        cal = proj.get("calibracao_v1")
+        if cal:
+            print(
+                f"             calibrada pelo custo REAL da Parte 2 (v1: US$ {cal['real_v1_por_rodada_usd']:.4f}/rodada, "
+                f"fator {cal['fator']:.3f}): por rodada US$ {proj['por_rodada_usd'] * cal['fator']:.4f} | "
+                f"2 rodadas US$ {2 * proj['por_rodada_usd'] * cal['fator']:.4f}"
+            )
         print(
             f"             conferencia: a 1a chamada do supervisor na M10 (mesma forma, ~1.550 tokens) custou "
             f"em media US$ {proj['supervisor_1a_chamada_media_usd']:.6f} -> 2 rodadas US$ "
@@ -690,6 +798,7 @@ def mostrar_plano(
         f"orcamento  : teto TOTAL US$ {TETO_TOTAL_USD:.2f}, por rodada US$ {TETO_RODADA_USD:.2f}; "
         f"ja registrado US$ {gasto:.4f}; "
         f"sugerido por rodada US$ {orc:.2f}"
+        + (" (registro proprio da Parte 2.1)" if versao == "v2" else "")
     )
     print(
         "criterios  : a) acerto >= 95/100 em cada rodada; b) zero erro de sinal/numero; "
@@ -701,7 +810,7 @@ def mostrar_plano(
         for p in problemas:
             print(f"  - {p}")
     print("comandos (de dentro de orchestrator/):")
-    for c in comandos(orc):
+    for c in comandos(orc, versao):
         print(f"  {c}")
     return 0
 
@@ -711,6 +820,9 @@ def mostrar_plano(
 
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    p.add_argument(
+        "--versao", choices=VERSOES, default="v1", help="v1: Parte 2 | v2: Parte 2.1"
+    )
     p.add_argument("--executar", action="store_true", help="PAGO: roda uma rodada")
     p.add_argument("--rodada", choices=RODADAS)
     p.add_argument(
@@ -719,7 +831,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         help=f"US$ maximo da tentativa (<= {TETO_RODADA_USD:.2f}; <= {TETO_TOTAL_USD:.2f} no total)",
     )
     p.add_argument(
-        "--resultado", action="store_true", help="gratis: aplica os criterios a-d"
+        "--resultado", action="store_true", help="gratis: aplica os criterios a-e"
     )
     a = p.parse_args(argv)
     if a.executar and a.resultado:
@@ -740,23 +852,25 @@ def main(argv=None) -> int:
     args = parse_args(argv)
     from orchestrator.config import settings
 
+    versao = args.versao
+    diretorio = _diretorio(versao)
     if args.resultado:
-        por_rodada, problemas = carregar_rodadas()
+        por_rodada, problemas = carregar_rodadas(diretorio, versao)
         res = avaliar(carregar_conjunto(), por_rodada)
         if problemas:
             res["valido"] = res["passa"] = False
             res["problemas"] += problemas
-        print(relatorio(res))
+        print(relatorio(res, versao))
         return 0
     if not args.executar:
-        return mostrar_plano(settings)
+        return mostrar_plano(settings, versao=versao)
 
-    problemas = conferir_pre_registro(settings)
+    problemas = conferir_pre_registro(settings, versao=versao)
     if problemas:
         print("RECUSADO: o sistema nao e o pre-registrado:", *problemas, sep="\n  - ")
         return 2
     try:
-        validar_orcamento(args.orcamento, ler_registro())
+        validar_orcamento(args.orcamento, ler_registro(diretorio))
     except ValueError as e:
         print(f"RECUSADO: {e}")
         return 2
@@ -765,8 +879,10 @@ def main(argv=None) -> int:
             carregar_conjunto(),
             args.rodada,
             args.orcamento,
-            chamar=lx.chamar_openrouter(settings),
+            chamar=_extrator(versao).chamar_openrouter(settings),
             modelo=settings.general_model,
+            diretorio=diretorio,
+            versao=versao,
         )
     except FalhaInicial as e:
         print(f"FALHA INICIAL (nada medido, nao gasta a repeticao): {e}")
@@ -775,7 +891,7 @@ def main(argv=None) -> int:
         print(f"RECUSADO: {e}")
         return 2
     print(
-        f"\ntentativa {t['rodada']}-t{t['n']}: {t['estado']}, US$ {t['custo_usd']:.4f} -> {DIR_MEDICAO / t['arquivo']}"
+        f"\ntentativa {t['rodada']}-t{t['n']}: {t['estado']}, US$ {t['custo_usd']:.4f} -> {diretorio / t['arquivo']}"
     )
     return 0 if t["estado"] == ESTADO_CONCLUIDA else 1
 

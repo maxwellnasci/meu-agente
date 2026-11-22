@@ -1,0 +1,264 @@
+# Ferramenta de limites - Parte 2.1: tabela de sinonimos (docs/RAG.md, "Parte 2.1").
+#
+# O modelo so COPIA palavras da pergunta. Quem decide e o codigo, por esta tabela:
+#   produtos: palavra do produto -> categoria (as de temperaturas_v1.yaml)
+#   lugares : palavra de lugar/momento -> contexto (recebimento | armazenamento)
+#
+# Regras da tabela (conferidas em tests/test_rag_limites_extracao_v2.py):
+# - toda entrada tem `justificativa`. `fonte: pop` exige `arquivo` + `trecho`
+#   literal do POP (o teste confere byte a byte); `fonte: vocabulario` e o
+#   vocabulario comum de supermercado, sem trecho;
+# - CONSERVADORA: na duvida, a palavra NAO entra. Nada de erro de digitacao;
+# - ANTI-DECOREBA: quem escreveu esta tabela conhece as 100 perguntas do
+#   extracao_v1.yaml. Nenhuma entrada esta aqui porque aparece numa pergunta,
+#   e nenhuma ficou de fora por atrapalhar uma pergunta. A prova de
+#   generalizacao e a Parte 3 (mini-teste e prova lacrada, que nao foi aberta);
+# - `formas`: as grafias aceitas (casam como palavra inteira, sem acento e sem
+#   caixa). A forma mais longa vence ("frios fatiados" antes de "frios");
+# - `contextos` (opcional): a entrada so vale nesses contextos;
+# - `fora_de_proposito`: palavras que NAO entram, com o motivo. O motivo vai
+#   para a ficha quando o produto/lugar copiado for so uma delas (a Parte 3
+#   usa isso para o agente perguntar ao funcionario).
+
+formato: 1
+versao: sinonimos_v1
+
+produtos:
+  - termo: congelado
+    formas: [congelado, congelados, congelada, congeladas]
+    categoria: congelados
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "| Congelados           | −12 °C      | −12 °C           |"
+    justificativa: >-
+      E o nome da categoria na tabela do POP-01 e no POP-05 ("Câmara e expositor de
+      congelados"). A palavra diz o ESTADO do produto, por isso "carne congelada" ou
+      "peixe congelado" caem aqui pela palavra congelado(a), nao pelo nome do produto.
+  - termo: resfriado
+    formas: [resfriado, resfriados, resfriada, resfriadas]
+    categoria: resfriados
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "| Resfriados (carnes)  | 7 °C        | 7 °C             |"
+    justificativa: >-
+      Nome da categoria no POP-01 e no POP-05 ("Câmara e balcão de resfriados (carnes)").
+      Risco aceito e registrado: a categoria e "(carnes)"; um resfriado que nao e carne
+      cairia aqui. Se vier junto com outro produto da tabela ("iogurte resfriado"), a
+      regra de categorias diferentes deixa vazio.
+  - termo: laticinio
+    formas: [laticínio, laticínios]
+    categoria: laticinios
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "| Laticínios           | 10 °C       | 10 °C            |"
+    justificativa: Nome da categoria na tabela do POP-01 (e em "Laticínios e frios", POP-05).
+  - termo: laticinios e frios
+    formas: [laticínios e frios]
+    categoria: laticinios_e_frios
+    contextos: [armazenamento]
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "- Laticínios e frios: de **0 °C a 8 °C**."
+    justificativa: Nome da regra do POP-05, secao 4. So existe no armazenamento.
+  - termo: frios
+    formas: [frios]
+    categoria: laticinios_e_frios
+    contextos: [armazenamento]
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "- Laticínios e frios: de **0 °C a 8 °C**."
+    justificativa: >-
+      No armazenamento o POP-05 junta "Laticínios e frios" numa regra so. No recebimento
+      a tabela do POP-01 so tem "Frios fatiados": "frios" sozinho fica vazio la.
+  - termo: frios fatiados
+    formas: [frios fatiados, frio fatiado]
+    categoria: frios_fatiados
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "| Frios fatiados       | 8 °C        | 8 °C             |"
+    justificativa: Nome da categoria na tabela do POP-01. No armazenamento vira laticínios e frios (POP-05).
+  - termo: iogurte
+    formas: [iogurte, iogurtes]
+    categoria: laticinios
+    fonte: vocabulario
+    justificativa: >-
+      Iogurte e laticinio refrigerado, sem outra leitura no supermercado. O POP-01 (secao 5)
+      o usa como exemplo de perecivel, mas nao diz a categoria, por isso a fonte e vocabulario.
+  - termo: requeijao
+    formas: [requeijão]
+    categoria: laticinios
+    fonte: vocabulario
+    justificativa: Requeijao e laticinio refrigerado, sem versao de prateleira comum nem leitura de frio fatiado.
+  - termo: presunto fatiado
+    formas: [presunto fatiado]
+    categoria: frios_fatiados
+    fonte: vocabulario
+    justificativa: >-
+      Presunto fatiado e o frio fatiado tipico (o POP-05, secao 3, fatia presunto no
+      fatiador de frios). Sem "fatiado", presunto pode ser peca inteira: nao entra.
+  - termo: mortadela fatiada
+    formas: [mortadela fatiada]
+    categoria: frios_fatiados
+    fonte: vocabulario
+    justificativa: Mortadela fatiada e frio fatiado de balcao. Sem "fatiada", pode ser peca inteira.
+
+lugares:
+  # --- recebimento (POP-01) ---
+  - termo: recebimento
+    formas: [recebimento]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "# POP-01 — Recebimento de Mercadorias"
+    justificativa: E o nome do contexto (titulo do POP-01).
+  - termo: receber
+    formas: [receber, recebe, recebem, recebi, recebeu, recebemos, recebendo, recebido, recebida, recebidos, recebidas, recebo]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "- Domingo e feriado só recebem **hortifrúti e pães**, das 6h às 10h."
+    justificativa: O verbo do POP-01 para a mercadoria que entra na loja.
+  - termo: chegar
+    formas: [chegar, chega, chegam, chegou, chegaram, chegando, chegada, chegadas]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "## 4. Temperatura na chegada"
+    justificativa: A secao de temperatura do recebimento e a "Temperatura na chegada" (POP-01, secao 4).
+  - termo: doca
+    formas: [doca, docas]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "## 2. Horário da doca"
+    justificativa: A doca e onde o recebimento acontece (POP-01, secoes 1, 2 e 6).
+  - termo: caminhao
+    formas: [caminhão, caminhões]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "- Cada caminhão tem no máximo **40 minutos** de doca. Passou disso, o próximo"
+    justificativa: O POP-01 mede a temperatura no "início, meio e fim do caminhão" (secao 4).
+  - termo: fornecedor
+    formas: [fornecedor, fornecedores]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "- Fornecedores entregam de segunda a sábado, das **6h às 14h**."
+    justificativa: Quem entrega no recebimento (POP-01, secao 2).
+  - termo: entrega
+    formas: [entrega, entregas, entregar, entregam, entregou, entregaram, entregando, entregue]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "- Entregas fora do horário precisam de autorização por escrito do gerente de"
+    justificativa: O POP-01 chama o recebimento de entrega (secoes 2 e 4, "toda entrega de congelados").
+  - termo: carga
+    formas: [carga, cargas]
+    contexto: recebimento
+    fonte: pop
+    arquivo: pop-01-recebimento-de-mercadorias.md
+    trecho: "Padronizar a conferência de cargas na doca para que nenhuma mercadoria entre"
+    justificativa: A carga e conferida na doca (POP-01, secoes 1 e 3).
+  - termo: descarregar
+    formas: [descarregar, descarregando, descarregou, descarregaram, descarga]
+    contexto: recebimento
+    fonte: vocabulario
+    justificativa: Descarregar o caminhao na doca e o recebimento; o POP nao usa o verbo.
+
+  # --- armazenamento e exposicao (POP-05) ---
+  - termo: armazenamento
+    formas: [armazenamento]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "## 4. Temperatura de armazenamento e exposição"
+    justificativa: E o nome do contexto (titulo da secao 4 do POP-05).
+  - termo: exposicao
+    formas: [exposição]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "## 4. Temperatura de armazenamento e exposição"
+    justificativa: A mesma secao do POP-05 vale para armazenamento e exposicao.
+  - termo: camara
+    formas: [câmara, câmaras]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "- Câmara e expositor de congelados: **−18 °C ou menos**."
+    justificativa: Equipamento da regra do POP-05 (inclui "câmara fria", secao 3).
+  - termo: expositor
+    formas: [expositor, expositores]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "- Câmara e expositor de congelados: **−18 °C ou menos**."
+    justificativa: Equipamento da regra do POP-05.
+  - termo: balcao
+    formas: [balcão, balcões]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-05-higienizacao-e-seguranca-alimentar.md
+    trecho: "- Câmara e balcão de resfriados (carnes): de **0 °C a 4 °C**."
+    justificativa: >-
+      Equipamento da regra do POP-05. Ha o "balcão de Atendimento" do POP-03, mas ele nao
+      tem temperatura: numa pergunta com temperatura medida, balcao e o refrigerado.
+  - termo: gondola
+    formas: [gôndola, gôndolas]
+    contexto: armazenamento
+    fonte: pop
+    arquivo: pop-02-validade-e-pereciveis.md
+    trecho: "Produto no dia do vencimento sai da gôndola até as **8h**, antes da"
+    justificativa: Gondola e a area de exposicao da loja (POP-02); exposicao e o contexto do POP-05.
+  - termo: freezer
+    formas: [freezer, freezers]
+    contexto: armazenamento
+    fonte: vocabulario
+    justificativa: Freezer da loja guarda ou expoe congelados; o POP diz camara/expositor.
+  - termo: geladeira
+    formas: [geladeira, geladeiras]
+    contexto: armazenamento
+    fonte: vocabulario
+    justificativa: Geladeira da loja guarda ou expoe refrigerados.
+  - termo: ilha
+    formas: [ilha, ilhas]
+    contexto: armazenamento
+    fonte: vocabulario
+    justificativa: >-
+      "Ilha" e o expositor horizontal (refrigerado ou de promocao) na area de venda; os dois
+      sao exposicao, que e o contexto do POP-05. A palavra so decide o contexto, nao o produto.
+
+fora_de_proposito:
+  produtos:
+    - termo: queijo
+      motivo: "'queijo' pode ser laticínios ou frios fatiados (o POP-05, seção 3, fatia queijo no fatiador de frios)"
+    - termo: frango
+      motivo: "'frango' pode ser congelado ou resfriado: diga qual"
+    - termo: carne
+      motivo: "'carne' pode ser congelada ou resfriada: diga qual"
+    - termo: peixe
+      motivo: "'peixe' pode ser congelado ou resfriado/fresco: diga qual"
+    - termo: leite
+      motivo: "'leite' pode ser UHT (de prateleira, sem regra de temperatura) ou refrigerado"
+    - termo: sorvete
+      motivo: "'sorvete' não está nas regras de temperatura dos POPs"
+    - termo: creme de leite
+      motivo: "'creme de leite' costuma ser UHT (de prateleira)"
+    - termo: manteiga
+      motivo: "'manteiga' não está nos POPs e há versões de prateleira"
+    - termo: presunto
+      motivo: "'presunto' sem 'fatiado' pode ser peça inteira (o POP-01 só tem frios fatiados)"
+    - termo: descongelado
+      motivo: "'descongelado' tem regra própria (POP-01: recusar; POP-05, seção 6: vira resfriado)"
+    - termo: hortifruti
+      motivo: "hortifrúti não tem limite de temperatura (POP-01: só avaliação visual)"
+  lugares:
+    - termo: estoque
+      motivo: "'estoque' pode ser o destino do recebimento (POP-01, seção 1) ou o armazenamento"
+    - termo: espeto
+      motivo: "o termômetro de espeto mede no recebimento e no armazenamento"
+    - termo: termometro
+      motivo: "o termômetro não diz se é recebimento ou armazenamento"
+    - termo: loja
+      motivo: "'loja' não diz se é recebimento ou armazenamento"

@@ -798,7 +798,7 @@ def test_mutante_ferramenta_ignorada_e_pego(monkeypatch, tmp_path):
     mod = _modulo_mutante(
         monkeypatch,
         me,
-        "        if idx == 0 and not chamou_a_ferramenta(resposta):\n",
+        "        if idx == 0 and not chamou_a_ferramenta(resposta, ext.NOME_FERRAMENTA):\n",
         "        if False:\n",
     )
     assert problemas_ferramenta_ignorada(mod, tmp_path)
