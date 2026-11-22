@@ -1,0 +1,558 @@
+elo: 19291a07865323e545d16775225dbcd3
+itens:
+- codigo: r01
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. Se o queijo\
+    \ estava **vencido na data da compra**:\n   - Troca ou reembolso imediato em qualquer prazo\n   -\
+    \ O cliente recebe também um vale-compras de R$ 20,00\n   - (POP-03, seção \"Produto vencido vendido\
+    \ pela loja\")\n\n2. Se o queijo está **dentro da validade**:\n   - Prazo de 24 horas a partir da\
+    \ compra para troca (como foi comprado anteontem, já passou o prazo)\n   - Exceto se houver defeito\
+    \ de qualidade (cheiro, cor, mofo) - nesse caso ainda pode trocar em até 24 horas\n   - (POP-03, seção\
+    \ \"Prazo de troca — produtos perecíveis\")\n\n3. Se o queijo foi **fracionado por pedido do cliente**\
+    \ no balcão de frios:\n   - Não tem troca, exceto por defeito de qualidade dentro de 24 horas\n  \
+    \ - (POP-03, seção \"O que não tem troca\")\n\nVerifique a validade e o estado do produto para confirmar\
+    \ qual regra se aplica. O cliente precisa trazer o produto e a embalagem original (se aplicável) para\
+    \ a troca."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou
+- codigo: r02
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, pois o prazo para troca de produtos perecíveis como queijo é de 24 horas a partir do\
+    \ horário impresso no cupom, conforme o manual (POP-03, seção \"3. Prazo de troca — produtos perecíveis\"\
+    ). \n\nComo o produto foi comprado anteontem, já ultrapassou esse prazo. A troca só seria possível\
+    \ se:\n1. O produto estivesse vencido na data da compra (nesse caso valeria a regra especial de troca\
+    \ imediata com vale-compras de R$ 20,00 - POP-03, seção \"5. Produto vencido vendido pela loja\"),\
+    \ ou\n2. Houvesse defeito de qualidade detectado dentro das 24 horas (POP-03, mesma seção citada).\n\
+    \nExceção: produtos fracionados no balcão de frios por pedido do cliente não têm troca (POP-03, seção\
+    \ \"7. O que não tem troca\")."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r03
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, pois o prazo de troca para produtos perecíveis como queijos é de 24 horas a partir do\
+    \ horário impresso no cupom (POP-03, seção \"3. Prazo de troca — produtos perecíveis\"). Como o cliente\
+    \ comprou anteontem, já ultrapassou esse limite. \n\nExceções que permitiriam a troca:\n- Se o queijo\
+    \ estivesse vencido na data da compra: troca ou reembolso imediato em qualquer prazo, com vale-compras\
+    \ de R$ 20,00 (POP-03, seção \"5. Produto vencido vendido pela loja\").\n- Se houvesse defeito de\
+    \ qualidade (cheiro, cor, mofo) detectado nas primeiras 24 horas, mesmo sem embalagem fechada (POP-03,\
+    \ seção \"3. Prazo de troca — produtos perecíveis\").\n\nFora esses casos, o manual não prevê troca\
+    \ após 24 horas para perecíveis."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r04
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C pode ser aceito, pois está dentro do limite de temperatura\
+    \ para congelados, que é de até -12 °C (POP-01, seção \"4. Temperatura na chegada\"). \n\nLembre-se\
+    \ de:\n1. Registrar as três medições de temperatura (início, meio e fim do caminhão) no formulário\
+    \ F-07.\n2. Verificar se não há sinais de descongelamento (gelo acumulado, embalagem molhada ou produto\
+    \ amolecido), pois nesses casos o produto deve ser recusado mesmo que a temperatura esteja dentro\
+    \ do limite.\n3. Armazenar o produto na câmara fria (-18 °C ou menos) em até 30 minutos após o recebimento\
+    \ (POP-01, seção \"7. Prazo para guardar\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r05
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C está dentro da temperatura aceitável para congelados,\
+    \ que deve ser de até -12 °C (POP-01, seção \"4. Temperatura na chegada\"). \n\nLembre-se de:\n1.\
+    \ Medir a temperatura em 3 pontos do lote (início, meio e fim do caminhão) e registrar no formulário\
+    \ F-07.\n2. Verificar se há sinais de descongelamento (gelo acumulado, embalagem molhada ou produto\
+    \ amolecido), que são critérios para recusa independentemente da temperatura.\n3. Após a conferência,\
+    \ o frango deve ser levado para a câmara fria em até 30 minutos, onde a temperatura deve ser mantida\
+    \ em -18 °C ou menos (POP-05, seção \"4. Temperatura de armazenamento e exposição\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r06
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: Sim, o cliente pode trocar o queijo, desde que o produto tenha sido comprado há 24 horas ou
+    menos e esteja na embalagem original, mantido na temperatura indicada. Além disso, se o queijo já
+    estava vencido na data da compra, a troca ou reembolso pode ser feita imediatamente, sem limite de
+    prazo, e o cliente recebe um vale-compras de R$ 20,00 como pedido de desculpas. O atendente deve lançar
+    a ocorrência no formulário F-09 e avisar a Gerência de Perecíveis (POP-03, seção "Produto vencido
+    vendido na loja" e POP-03, seção "Prazo de troca — produtos perecíveis").
+  classe: TROCA
+  observacao: ''
+- codigo: r07
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "O frango congelado marcando -10°C pode ser aceito, pois está dentro da faixa permitida para\
+    \ congelados, que é de até -12°C (POP-01, seção \"4. Temperatura na chegada\"). \n\nPorém, é importante\
+    \ verificar também:\n1. Se não há sinais de descongelamento (gelo acumulado, embalagem molhada ou\
+    \ produto amolecido), pois nesses casos o produto deve ser recusado independentemente da temperatura;\n\
+    2. Se foram feitas as 3 medições (início, meio e fim do caminhão) e todas anotadas no registro F-07.\n\
+    \nDepois do recebimento, o frango deve ser armazenado em câmara a -18°C ou menos (POP-05, seção \"\
+    4. Temperatura de armazenamento e exposição\") e transferido para a câmara em no máximo 30 minutos\
+    \ após a conferência (POP-01, seção \"7. Prazo para guardar\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r08
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C pode ser aceito, pois está dentro do limite de temperatura\
+    \ para congelados, que é de até -12 °C (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso,\
+    \ lembre-se de:\n- Registrar as três medições de temperatura no formulário F-07 (início, meio e fim\
+    \ do caminhão);\n- Verificar se não há sinais de descongelamento (gelo acumulado, embalagem molhada\
+    \ ou produto amolecido), que são motivos para recusa mesmo com a temperatura dentro do limite;\n-\
+    \ Armazenar o produto na câmara fria em até 30 minutos após o recebimento, mantendo a temperatura\
+    \ em -18 °C ou menos (POP-01, seção \"7. Prazo para guardar\" e POP-05, seção \"4. Temperatura de\
+    \ armazenamento e exposição\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r09
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "O frango congelado marcando -10°C pode ser aceito, pois o manual de procedimentos estabelece\
+    \ que congelados devem ser aceitos até -12°C (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém\
+    \ disso, é importante verificar se não há sinais de descongelamento, como gelo acumulado, embalagem\
+    \ molhada ou produto amolecido, pois mesmo que a temperatura esteja dentro do aceitável, esses sinais\
+    \ são motivos para recusa (POP-01, seção \"4. Temperatura na chegada\"). \n\nTambém lembre de medir\
+    \ a temperatura em três pontos diferentes do lote (início, meio e fim do caminhão) e registrar essas\
+    \ leituras no formulário F-07 (POP-01, seção \"4. Temperatura na chegada\"). \n\nPor fim, após a conferência,\
+    \ o frango deve ser guardado na câmara fria em até 30 minutos, mantendo a temperatura de -18°C ou\
+    \ menos (POP-01, seção \"7. Prazo para guardar\" e POP-05, seção \"4. Temperatura de armazenamento\
+    \ e exposição\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r10
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: Sim, o frango congelado marcando -10 °C pode ser aceito, pois está dentro da temperatura máxima
+    aceitável para congelados, que é de -12 °C ou menos (POP-01, seção "4. Temperatura na chegada"). No
+    entanto, verifique também se não há sinais de descongelamento, como gelo acumulado, embalagem molhada
+    ou produto amolecido, pois nesses casos o produto deve ser recusado independentemente da temperatura
+    marcada no termômetro. Além disso, registre as três leituras de temperatura (início, meio e fim do
+    caminhão) no formulário F-07.
+  classe: ACEITA
+  observacao: ''
+- codigo: r11
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, a troca não pode ser realizada. O manual estabelece que produtos perecíveis, como queijos,\
+    \ têm um prazo de troca de **24 horas** a partir do horário impresso no cupom (POP-03, seção \"3.\
+    \ Prazo de troca — produtos perecíveis\"). \n\nComo o cliente comprou o queijo anteontem (mais de\
+    \ 24 horas atrás), o prazo já expirou, exceto se:\n- O produto estava **vencido na data da compra**\
+    \ (nesse caso, a troca é imediata, com vale-compras de R$ 20,00 e registro no F-09) (POP-03, seção\
+    \ \"5. Produto vencido vendido pela loja\").  \n- Houve **defeito de qualidade** (cheiro, cor, mofo)\
+    \ dentro da validade e o produto foi devolvido nas primeiras 24 horas (POP-03, mesma seção 3). \n\n\
+    Verifique essas condições específicas com o cliente antes de prosseguir."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r12
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado pode ser aceito marcando -10°C no termômetro, desde que não apresente\
+    \ sinais de descongelamento, como gelo acumulado, embalagem molhada ou produto amolecido. De acordo\
+    \ com o manual, para **congelados**, a temperatura máxima aceita no recebimento é de **-12°C**. Como\
+    \ -10°C está dentro desse limite, o produto está dentro das especificações. \n\nAlém disso, é importante\
+    \ medir a temperatura em **3 pontos diferentes** do lote (início, meio e fim do caminhão) e registrar\
+    \ essas leituras no **F-07 (Registro de Temperatura)** (POP-01, secão \"4. Temperatura na chegada\"\
+    ). \n\nSe o produto apresentar sinais de descongelamento, ele deve ser recusado, **mesmo que a temperatura\
+    \ esteja dentro do limite** (POP-01, secão \"4. Temperatura na chegada\"). \n\nApós a conferência,\
+    \ o produto deve ser guardado na câmara de congelados em até **30 minutos**, mantendo a temperatura\
+    \ de **-18°C ou menos** (POP-01, secão \"7. Prazo para guardar\" e POP-05, secão \"4. Temperatura\
+    \ de armazenamento e exposição\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r13
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, a troca não é possível. O prazo máximo para troca de produtos perecíveis, como o queijo,\
+    \ é de 24 horas a partir do horário impresso no cupom de compra. Como o cliente comprou o queijo anteontem,\
+    \ esse prazo já foi ultrapassado (POP-03, seção \"Prazo de troca — produtos perecíveis\"). \n\nObs:\
+    \ Se o queijo estava vencido na data da compra, seria possível fazer a troca, mas o cliente teria\
+    \ que apresentar o produto para verificação da validade e seguir o procedimento específico para produtos\
+    \ vencidos (POP-03, seção \"Produto vencido vendido pela loja\")."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r14
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "De acordo com o manual de procedimentos, o frango congelado marcando -10°C no termômetro\
+    \ **deve ser recusado**, pois a temperatura máxima aceitável para congelados na chegada é de -12°C\
+    \ ou menos (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso, é importante verificar se\
+    \ há sinais de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido), que também\
+    \ são motivos para recusa, mesmo que a temperatura esteja dentro do limite. \n\nLembre-se de anotar\
+    \ as três leituras de temperatura (início, meio e fim do caminhão) no registro F-07, conforme exigido\
+    \ pelo procedimento."
+  classe: RECUSA
+  observacao: ''
+- codigo: r15
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Não, o frango congelado marcando -10 °C não pode ser aceito. Segundo o manual, congelados\
+    \ devem estar a -12 °C ou menos para serem recebidos, e -10 °C está acima desse limite (POP-01, seção\
+    \ \"4. Temperatura na chegada\"). \n\nAlém disso, mesmo que a temperatura estivesse dentro do limite,\
+    \ o produto seria recusado se apresentasse sinais de descongelamento, como gelo acumulado, embalagem\
+    \ molhada ou produto amolecido. \n\nLembre-se de:\n1. Registrar as três medições de temperatura (início,\
+    \ meio e fim do caminhão) no formulário F-07.\n2. Recusar formalmente o lote fora da especificação.\n\
+    3. O prazo máximo para armazenar congelados após o recebimento é de 30 minutos (POP-01, seção \"7.\
+    \ Prazo para guardar\")."
+  classe: RECUSA
+  observacao: ''
+- codigo: r16
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. Se o queijo\
+    \ estava **vencido na data da compra**:\n   - Troca ou reembolso imediato, sem limite de prazo\n \
+    \  - O cliente recebe também um vale-compras de R$ 20,00\n   (POP-03, seção \"Produto vencido vendido\
+    \ pela loja\")\n\n2. Se o queijo estava dentro da validade:\n   - Prazo de 24 horas a partir da compra\
+    \ para troca (já se passaram mais de 24 horas)\n   - Exceto se houver defeito de qualidade (cheiro,\
+    \ cor, mofo), que permite troca em até 24 horas mesmo sem embalagem fechada\n   (POP-03, seção \"\
+    Prazo de troca — produtos perecíveis\")\n\n3. Se o queijo foi fracionado no balcão de frios por pedido\
+    \ do cliente:\n   - Não há troca, salvo defeito de qualidade dentro de 24 horas\n   (POP-03, seção\
+    \ \"O que não tem troca\")\n\nVerifique a validade e as condições do produto para aplicar o procedimento\
+    \ correto. Se o queijo estava dentro da validade e já passaram mais de 24 horas, o manual não prevê\
+    \ troca."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou
+- codigo: r17
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Não, o frango congelado marcando -10 °C não pode ser aceito. Segundo o manual, produtos congelados\
+    \ devem estar a uma temperatura de até -12 °C no recebimento, sendo que -10 °C está acima desse limite\
+    \ (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso, é obrigatório:\n1. Medir a temperatura\
+    \ em 3 pontos do lote (início, meio e fim do caminhão)\n2. Registrar as três leituras no formulário\
+    \ F-07\n3. Verificar se há sinais de descongelamento (gelo acumulado, embalagem molhada ou produto\
+    \ amolecido), que são motivos para recusa independentemente da temperatura marcada\n\nSe houver qualquer\
+    \ sinal de descongelamento ou se alguma das três medições estiver acima de -12 °C, o lote deve ser\
+    \ recusado."
+  classe: RECUSA
+  observacao: ''
+- codigo: r18
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, o prazo para troca de produtos perecíveis como queijos é de 24 horas a partir do horário\
+    \ impresso no cupom fiscal, conforme o POP-03, seção \"3. Prazo de troca — produtos perecíveis\".\
+    \ \n\nConsiderando que a compra foi feita \"anteontem\" (ou seja, há mais de 24 horas), não é mais\
+    \ possível realizar a troca pelo procedimento padrão. \n\nExceção:  \nSe o produto estiver **vencido\
+    \ na data da compra** (data de validade anterior à compra), a troca ou reembolso é imediato sem limite\
+    \ de prazo, e o cliente ainda recebe um vale-compras de R$ 20,00 (POP-03, seção \"5. Produto vencido\
+    \ vendido pela loja\"). Nesse caso, você deve:\n1. Verificar a data de validade do produto;\n2. Se\
+    \ constatar vencimento pré-compra, registrar no formulário F-09 e acionar a Gerência de Perecíveis."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r19
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: 'O frango congelado marcando -10 °C no termômetro está dentro da faixa aceitável para produtos
+    congelados, que é de até -12 °C (POP-01, seção "4. Temperatura na chegada"). Portanto, você pode aceitar
+    o produto.
+
+
+    Além disso, é importante verificar se não há sinais de descongelamento, como gelo acumulado, embalagem
+    molhada ou produto amolecido, pois nesses casos o produto deve ser recusado mesmo que a temperatura
+    esteja dentro do limite permitido (POP-01, seção "4. Temperatura na chegada").'
+  classe: ACEITA
+  observacao: ''
+- codigo: r20
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: 'Sim, o cliente pode trocar o queijo, desde que a solicitação seja feita dentro do prazo de
+    **24 horas** a partir do horário impresso no cupom. Como o cliente está solicitando a troca **anteontem**,
+    isso já ultrapassa o prazo permitido para produtos perecíveis. Além disso, é necessário que o produto
+    esteja na embalagem original e tenha sido mantido na temperatura indicada (POP-03, seção "Prazo de
+    troca — produtos perecíveis").
+
+
+    Se o cliente encontrar o produto **vencido**, a troca ou reembolso pode ser feita **em qualquer prazo**,
+    sem limite de 24 horas ou 7 dias, e o cliente receberá um vale-compras de R$ 20,00 como pedido de
+    desculpas (POP-03, seção "Produto vencido vendido pela loja").'
+  classe: TROCA
+  observacao: comeca por Sim, pode trocar e depois diz que passou do prazo
+- codigo: r21
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo, precisamos verificar algumas condições:\n\n1. **Se o queijo estava\
+    \ vencido na data da compra (anteontem)**:\n   - Troca ou reembolso imediato em qualquer prazo, sem\
+    \ limite de 24h ou 7 dias\n   - O cliente recebe também um vale-compras de R$ 20,00 como cortesia\n\
+    \   - (POP-03, seção \"Produto vencido vendido pela loja\")\n\n2. **Se o queijo está dentro da validade**:\n\
+    \   - Prazo de 24 horas a partir do horário do cupom para perecíveis\n   - Deve estar na embalagem\
+    \ original e ter sido mantido na temperatura correta\n   - (POP-03, seção \"Prazo de troca — produtos\
+    \ perecíveis\")\n\n3. **Se foi fracionado por pedido do cliente**:\n   - Só tem troca se houver defeito\
+    \ de qualidade dentro de 24h\n   - (POP-03, seção \"O que não tem troca\")\n\n4. **Formas de reembolso**\
+    \ (se aplicável):\n   - Dinheiro/Pix: até R$ 300,00 no balcão ou Pix em 2 dias úteis\n   - Cartão:\
+    \ estorno na mesma via\n   - Opção de vale-troca no valor do produto (válido 60 dias)\n   - (POP-03,\
+    \ seção \"Forma de reembolso\")\n\nVerifique:\n- A validade do produto na embalagem\n- Se foi fracionado\
+    \ a pedido do cliente\n- Se está dentro das 24h (para produtos não vencidos na compra)"
+  classe: AMBÍGUA
+  observacao: nao aplica anteontem ao prazo de 24 h
+- codigo: r22
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "De acordo com o manual de procedimentos, o frango congelado marcando -10°C no termômetro\
+    \ **não pode ser aceito**, pois a temperatura máxima permitida para congelados na chegada é de -12°C\
+    \ (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso, é importante verificar se há sinais\
+    \ de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido), que também são motivos\
+    \ para recusa, mesmo que a temperatura esteja dentro do limite.\n\nLembre-se de:\n1. Medir a temperatura\
+    \ em 3 pontos do lote (início, meio e fim do caminhão)\n2. Anotar as leituras no registro F-07\n3.\
+    \ Recusar o produto se estiver acima de -12°C ou com sinais de descongelamento"
+  classe: RECUSA
+  observacao: ''
+- codigo: r23
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, seguem as regras conforme o manual:\n\n1. **Prazos\
+    \ para perecíveis** (como queijos): \n   - Prazo de 24 horas a partir da compra (conforme horário\
+    \ no cupom) (POP-03, seção \"Prazo de troca — produtos perecíveis\").\n   - Se passou das 24 horas,\
+    \ só é possível a troca se o produto estiver **vencido na data da compra** (nesse caso, a troca/reembolso\
+    \ é imediato + vale-compras de R$ 20,00) (POP-03, seção \"Produto vencido vendido pela loja\").\n\n\
+    2. **Condições para troca dentro do prazo**:\n   - O queijo precisa estar na embalagem original e\
+    \ ter sido mantido na temperatura correta (POP-03, seção \"Prazo de troca — produtos perecíveis\"\
+    ).\n   - Se houver defeito (cheiro, cor ou mofo), aceita-se a troca em até 24 horas mesmo sem a embalagem\
+    \ fechada (POP-03, mesma seção).\n\n3. **Se o queijo foi fracionado no balcão de frios por pedido\
+    \ do cliente**, não há troca, exceto por defeito em 24 horas (POP-03, seção \"O que não tem troca\"\
+    ).\n\n**Ação sugerida**: \n- Verifique a data de validade do queijo no cupom e no produto. \n- Se\
+    \ estiver dentro das 24 horas e atender às condições, faça a troca. \n- Se estiver vencido na data\
+    \ da compra, siga o procedimento de produto vencido (troca imediata + vale-compras). \n- Caso não\
+    \ se enquadre nessas situações, infelizmente não será possível a troca pelo manual. \n\nFonte dos\
+    \ procedimentos: POP-03 (seções 3, 5 e 7) e POP-02 (seção 7)."
+  classe: AMBÍGUA
+  observacao: nao diz que anteontem passou; manda trocar se dentro de 24 h
+- codigo: r24
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: 'Não, o queijo comprado anteontem não pode ser trocado normalmente, pois o prazo para troca
+    de produtos perecíveis como laticínios é de apenas 24 horas a partir da compra, conforme o horário
+    impresso no cupom (POP-03, seção "Prazo de troca — produtos perecíveis").
+
+
+    Exceções:
+
+    1. Se o queijo estava vencido na data da compra (antes de você comprar), a troca é imediata em qualquer
+    prazo, com direito a vale-compras de R$ 20,00 (POP-03, seção "Produto vencido vendido pela loja").
+
+    2. Se houver defeito de qualidade (cheiro, cor ou mofo) e estiver dentro da validade, a troca é permitida
+    nas primeiras 24 horas mesmo sem embalagem fechada (mesma seção do POP-03).'
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r25
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Sim, o cliente pode trocar o queijo comprado anteontem **somente se** o produto estiver vencido\
+    \ na data da compra ou apresentar defeito de qualidade (cheiro, cor, mofo). Nesse caso, a troca ou\
+    \ reembolso é imediato, sem limite de 24 horas, e o cliente recebe um vale-compras de R$ 20,00 como\
+    \ pedido de desculpas (POP-03, seção \"5. Produto vencido vendido na loja\" e POP-02, seção \"7. Cliente\
+    \ encontrou produto vencido na gôndola\").\n\n**Importante:**  \n- Se o produto **não estiver vencido**\
+    \ na data da compra e não apresentar defeito de qualidade, o prazo de troca para perecíveis como laticínios\
+    \ é de **24 horas** a partir do horário impresso no cupom. Como o produto foi comprado anteontem,\
+    \ já passou desse prazo, e a troca não é mais possível (POP-03, seção \"3. Prazo de troca — produtos\
+    \ perecíveis\").  \n\nPara prosseguir com a troca no caso de produto vencido ou com defeito, o atendente\
+    \ deve:  \n1. Verificar a data de validade e a condição do produto.  \n2. Lançar a ocorrência no formulário\
+    \ F-09.  \n3. Informar a Gerência de Perecíveis sobre o caso.  \n\nCertifique-se de seguir os procedimentos\
+    \ corretos conforme o manual."
+  classe: AMBÍGUA
+  observacao: comeca por Sim; diz que defeito permite troca sem limite de 24 h (errado)
+- codigo: r26
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Não, o frango congelado marcando -10 °C não deve ser aceito. Segundo o manual, congelados\
+    \ devem estar a -12 °C ou menos para serem aceitos (POP-01, seção \"4. Temperatura na chegada\").\
+    \ \n\nAlém disso, é importante verificar se há sinais de descongelamento, como gelo acumulado, embalagem\
+    \ molhada ou produto amolecido, que também são motivos para recusa, independentemente da temperatura\
+    \ marcada no termômetro. \n\nLembre-se de anotar as três leituras de temperatura (início, meio e fim\
+    \ do caminhão) no registro F-07, conforme o procedimento."
+  classe: RECUSA
+  observacao: ''
+- codigo: r27
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: O frango congelado chegando a -10°C pode ser aceito, pois a temperatura máxima aceita para
+    congelados é de -12°C. Portanto, desde que não haja sinais de descongelamento (como gelo acumulado,
+    embalagem molhada ou produto amolecido), o frango está dentro da faixa aceitável (POP-01, seção "4.
+    Temperatura na chegada").
+  classe: ACEITA
+  observacao: ''
+- codigo: r28
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C no termômetro pode ser aceito, pois está dentro da\
+    \ temperatura máxima permitida para congelados, que é de -12 °C ou menos (POP-01, seção \"4. Temperatura\
+    \ na chegada\"). \n\nAlém disso, é importante verificar se não há sinais de descongelamento, como\
+    \ gelo acumulado, embalagem molhada ou produto amolecido, pois nesses casos o produto deve ser recusado\
+    \ mesmo que a temperatura esteja dentro do limite (POP-01, seção \"4. Temperatura na chegada\").\n\
+    \nApós a aceitação, o frango deve ser armazenado em temperatura de -18 °C ou menos (POP-05, seção\
+    \ \"4. Temperatura de armazenamento e exposição\") e deve ser levado para a câmara em até 30 minutos\
+    \ após a conferência (POP-01, seção \"7. Prazo para guardar\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r29
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "De acordo com o manual de procedimentos, o frango congelado marcando -10°C no termômetro\
+    \ **deve ser recusado**, pois a temperatura máxima aceitável para congelados na chegada é de -12°C\
+    \ ou menos (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso, é importante verificar se\
+    \ há sinais de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido), que também\
+    \ são motivos para recusa, mesmo que a temperatura esteja dentro do limite. \n\nLembre-se de anotar\
+    \ as três leituras de temperatura (início, meio e fim do caminhão) no registro F-07, conforme o mesmo\
+    \ procedimento."
+  classe: RECUSA
+  observacao: ''
+- codigo: r30
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Não, não aceite o frango congelado marcando -10°C. Segundo o manual, congelados devem ter\
+    \ temperatura máxima de -12°C ou menos para serem aceitos. Como -10°C está acima de -12°C, o produto\
+    \ não está dentro do padrão de temperatura exigido para recebimento (POP-01, seção \"4. Temperatura\
+    \ na chegada\"). \n\nAlém disso, o manual orienta que congelados com sinais de descongelamento (como\
+    \ gelo acumulado, embalagem molhada ou produto amolecido) devem ser recusados, mesmo que a temperatura\
+    \ esteja dentro do limite (POP-01, seção \"4. Temperatura na chegada\"). \n\nPortanto, recuse o frango,\
+    \ registre a temperatura no formulário F-07 e informe o fornecedor sobre a divergência."
+  classe: RECUSA
+  observacao: ''
+- codigo: r31
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C no termômetro pode ser aceito, pois está dentro do\
+    \ limite de temperatura para congelados, que é de -12 °C ou menos (POP-01, seção \"4. Temperatura\
+    \ na chegada\"). \n\nAlém disso, lembre-se de:\n1. Registrar as três leituras de temperatura (início,\
+    \ meio e fim do caminhão) no formulário F-07, conforme exigido (POP-01, seção \"4. Temperatura na\
+    \ chegada\").\n2. Verificar se não há sinais de descongelamento (gelo acumulado, embalagem molhada\
+    \ ou produto amolecido), o que implicaria em recusa mesmo com a temperatura dentro do limite (POP-01,\
+    \ seção \"4. Temperatura na chegada\"). \n3. Armazenar o produto na câmara fria a -18 °C ou menos\
+    \ dentro de 30 minutos após a conferência (POP-01, seção \"7. Prazo para guardar\" e POP-05, seção\
+    \ \"4. Temperatura de armazenamento e exposição\")."
+  classe: ACEITA
+  observacao: ''
+- codigo: r32
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Sim, o frango congelado marcando -10 °C no termômetro deve ser aceito, pois a temperatura\
+    \ está dentro do limite aceitável para congelados, que é de até -12 °C, conforme estabelecido no manual\
+    \ de procedimentos (POP-01, seção \"4. Temperatura na chegada\"). \n\nAlém disso, certifique-se de\
+    \ verificar se há sinais de descongelamento, como gelo acumulado, embalagem molhada ou produto amolecido.\
+    \ Caso algum desses sinais esteja presente, o produto deve ser recusado, mesmo que a temperatura esteja\
+    \ dentro do limite aceitável. \n\nApós o recebimento, o frango deve ser armazenado na câmara de congelados\
+    \ em temperatura de -18 °C ou menos, conforme indicado no POP-05, seção \"4. Temperatura de armazenamento\
+    \ e exposição\"."
+  classe: ACEITA
+  observacao: ''
+- codigo: r33
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. Se o queijo\
+    \ estava **vencido na data da compra**:\n   - Troca ou reembolso imediato, sem limite de prazo\n \
+    \  - Cliente recebe também um vale-compras de R$ 20,00\n   - (POP-03, seção \"Produto vencido vendido\
+    \ pela loja\")\n\n2. Se o queijo está **dentro da validade**:\n   - Prazo de 24 horas a partir da\
+    \ compra para troca (como já se passaram mais de 24 horas, não é possível a troca)\n   - Exceto se\
+    \ houver defeito de qualidade (cheiro, cor, mofo) - nesse caso ainda pode trocar em até 24 horas\n\
+    \   - (POP-03, seção \"Prazo de troca — produtos perecíveis\")\n\n3. Se o queijo foi **fracionado\
+    \ por pedido do cliente**:\n   - Não há troca, exceto por defeito de qualidade dentro de 24 horas\n\
+    \   - (POP-03, seção \"O que não tem troca\")\n\nPara prosseguir, verifique:\n- A data de validade\
+    \ do produto\n- Se há sinais de deterioração\n- Se foi fracionado a pedido do cliente\n\nO reembolso,\
+    \ se aplicável, segue as regras da seção \"Forma de reembolso\" do POP-03."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou
+- codigo: r34
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. **Se o queijo\
+    \ estava vencido na data da compra**:\n   - Troca ou reembolso imediato, sem limite de prazo\n   -\
+    \ O cliente recebe também um vale-compras de R$ 20,00\n   - (POP-03, seção \"Produto vencido vendido\
+    \ pela loja\")\n\n2. **Se o queijo está dentro da validade**:\n   - Prazo de 24 horas a partir da\
+    \ compra para troca (como foi comprado anteontem, já passou o prazo)\n   - Exceto se houver defeito\
+    \ de qualidade (cheiro, cor, mofo) - nesse caso ainda pode trocar em até 24 horas\n   - (POP-03, seção\
+    \ \"Prazo de troca — produtos perecíveis\")\n\n3. **Se o queijo foi fracionado por pedido do cliente**:\n\
+    \   - Não tem troca, exceto por defeito de qualidade dentro de 24 horas\n   - (POP-03, seção \"O que\
+    \ não tem troca\")\n\nVerifique:\n- A data de validade do produto\n- Se está dentro das 24 horas (considerando\
+    \ o horário da compra)\n- Se há defeito de qualidade aparente\n\nSe o produto estava vencido na compra,\
+    \ faça a troca imediatamente com o vale-compras. Se passou do prazo e não estava vencido na compra,\
+    \ o manual não prevê a troca."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou
+- codigo: r35
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: "Segundo o manual de procedimentos, o frango congelado marcando -10°C no termômetro pode ser\
+    \ aceito, pois a temperatura máxima permitida para congelados na chegada é de -12°C (POP-01, seção\
+    \ \"4. Temperatura na chegada\"). \n\nNo entanto, é importante verificar também:\n1. Se não há sinais\
+    \ de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido), que seriam motivo para\
+    \ recusa mesmo com temperatura adequada\n2. Se a medição foi feita em 3 pontos diferentes do lote\
+    \ (início, meio e fim do caminhão), conforme exigido\n3. Se as temperaturas foram devidamente registradas\
+    \ no formulário F-07\n\n(O manual não menciona procedimentos específicos sobre frango congelado, apenas\
+    \ a regra geral para congelados)"
+  classe: ACEITA
+  observacao: aceita; e diz 'o manual nao menciona' (possivel criterio 3)
+- codigo: r36
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: 'Para trocar o queijo comprado anteontem, é importante observar o prazo de 24 horas para produtos
+    perecíveis, conforme o manual de procedimentos (POP-03, seção "3. Prazo de troca — produtos perecíveis").
+    Se a compra foi feita há mais de 24 horas, a troca pode não ser mais possível nesse caso. No entanto,
+    se o queijo estiver vencido na data da compra, a troca ou reembolso é imediato, sem limite de tempo,
+    e o cliente também recebe um vale-compras de R$ 20,00 como pedido de desculpas (POP-03, seção "5.
+    Produto vencido vendido pela loja").
+
+
+    Se o produto estiver dentro do prazo de validade e não houver defeito de qualidade, a troca pode não
+    ser viável após 24 horas. Para mais detalhes, consulte o encarregado ou verifique o estado do produto
+    e a data de vencimento.'
+  classe: AMBÍGUA
+  observacao: 'pode nao ser possivel: nao conclui'
+- codigo: r37
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. Se o queijo\
+    \ estava **vencido na data da compra**:\n   - Troca ou reembolso imediato, sem limite de prazo\n \
+    \  - O cliente recebe também um vale-compras de R$ 20,00 como cortesia\n   - (POP-03, seção \"Produto\
+    \ vencido vendido pela loja\")\n\n2. Se o queijo estava dentro da validade:\n   - Prazo de 24 horas\
+    \ a partir da compra para troca (como já se passaram mais de 24 horas, não é possível a troca padrão)\n\
+    \   - Exceto se houver defeito de qualidade (cheiro, cor, mofo), que permite troca em até 24 horas\
+    \ mesmo sem embalagem fechada\n   - (POP-03, seção \"Prazo de troca — produtos perecíveis\")\n\n3.\
+    \ Se o queijo foi fracionado por pedido do cliente:\n   - Não há troca, exceto por defeito de qualidade\
+    \ dentro de 24 horas\n   - (POP-03, seção \"O que não tem troca\")\n\nVerifique:\n- A data de validade\
+    \ do produto\n- Se há sinais de deterioração\n- Se foi um produto fracionado a pedido do cliente\n\
+    \nCaso o produto esteja vencido, siga o procedimento completo de troca com o vale-cortesia. Se estiver\
+    \ dentro da validade mas fora do prazo, o manual não prevê troca nesse caso."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou
+- codigo: r38
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: 'Pelo manual de procedimentos, o prazo para troca de produtos perecíveis, como queijos, é
+    de 24 horas a partir do horário impresso no cupom. Como o cliente comprou o queijo "anteontem" (ou
+    seja, mais de 24 horas atrás), a troca não é mais possível dentro das regras estabelecidas. Exceto
+    se o produto estiver vencido, caso em que a troca ou reembolso é imediato, sem limite de prazo, e
+    o cliente recebe um vale-compras de R$ 20,00 como pedido de desculpas (POP-03, seção "Produto vencido
+    vendido pela loja").
+
+
+    Portanto, se o queijo não estiver vencido, a troca não pode ser realizada. Caso esteja vencido, o
+    cliente tem direito à troca ou reembolso imediato. Confirme o estado do produto com o cliente.'
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r39
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Não, o prazo para troca de produtos perecíveis, incluindo queijos, é de 24 horas a partir\
+    \ do horário impresso no cupom fiscal. Como o cliente comprou anteontem (mais de 24 horas atrás),\
+    \ não é possível realizar a troca pelo procedimento padrão (POP-03, seção \"Prazo de troca — produtos\
+    \ perecíveis\"). \n\nExceções:\n1. Se o produto estiver **vencido na data da compra** (data de validade\
+    \ anterior à compra), a troca ou reembolso é imediato, sem limite de prazo, e o cliente recebe um\
+    \ vale-compras de R$ 20,00 (POP-03, seção \"Produto vencido vendido pela loja\").\n2. Se houver **defeito\
+    \ de qualidade** (cheiro, cor ou mofo) e o problema for identificado dentro de 24 horas, a troca é\
+    \ permitida mesmo sem a embalagem original (POP-03, seção \"Prazo de troca — produtos perecíveis\"\
+    ). \n\nNos demais casos, o manual não prevê troca após 24 horas."
+  classe: NÃO TROCA
+  observacao: ''
+- codigo: r40
+  pergunta_id: q04
+  pergunta: cliente quer trocar um queijo que comprou anteontem, posso trocar?
+  resposta: "Para a troca do queijo comprado anteontem, as regras são as seguintes:\n\n1. Se o queijo\
+    \ estava **vencido na data da compra**:\n   - Troca ou reembolso imediato, sem limite de prazo\n \
+    \  - O cliente recebe também um vale-compras de R$ 20,00\n   - (POP-03, seção \"Produto vencido vendido\
+    \ pela loja\")\n\n2. Se o queijo está **dentro da validade**:\n   - Prazo de 24 horas a partir da\
+    \ compra para troca (já expirado no caso de anteontem)\n   - Exceto se houver defeito de qualidade\
+    \ (cheiro, cor, mofo), que permite troca em até 24 horas mesmo sem embalagem fechada\n   - (POP-03,\
+    \ seção \"Prazo de troca — produtos perecíveis\")\n\n3. Se o queijo foi **fracionado por pedido do\
+    \ cliente**:\n   - Não há troca, exceto por defeito de qualidade dentro de 24 horas\n   - (POP-03,\
+    \ seção \"O que não tem troca\")\n\nPara prosseguir, verifique:\n- A data de validade do produto\n\
+    - Se foi um fracionamento solicitado pelo cliente\n- Se há sinais de deterioração (no caso de produto\
+    \ dentro da validade)\n\nO reembolso, se aplicável, segue as regras da seção \"Forma de reembolso\"\
+    \ do POP-03."
+  classe: NÃO TROCA
+  observacao: lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou

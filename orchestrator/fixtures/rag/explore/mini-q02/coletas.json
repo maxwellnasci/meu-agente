@@ -1,0 +1,14 @@
+{
+  "coletas": [
+    {
+      "coleta": 1,
+      "estado": "concluida",
+      "saida": "/home/max/Documentos/Kali Linux/meu-agente/orchestrator/fixtures/rag/explore/mini-q02/respostas.json",
+      "inicio": "2026-11-21T22:30:10-03:00",
+      "tentativa_falha_inicial": 1,
+      "fim": "2026-11-21T22:36:39-03:00",
+      "parou_em": null,
+      "erro_tipo": null
+    }
+  ]
+}

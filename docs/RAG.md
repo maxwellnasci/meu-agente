@@ -2131,6 +2131,8 @@ documento e por medição com a chave de API, no molde das Missões 8–10.
 
 ## Pendências
 
+> **q02: a v1 (padrão) aceitou frango congelado a −10 °C em 7/10 amostras no mini-teste de 21/11 (docs/exploracao/mini-teste-q02.md). Não ligar o RAG em ambiente real antes de corrigir.**
+
 **Missão 9 (registrado ANTES de rodar; não muda nada agora, a variável é uma só):**
 em produção, quando a resposta crua não traz a citação completa, o
 `garantir_citacao` anexa "Fontes consultadas no manual: …" **depois** da

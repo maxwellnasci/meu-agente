@@ -93,13 +93,83 @@ Baseada no custo real medido na Missão 10 (`v1`, `fixtures/rag/m10/respostas-v1
 
 ## 8. Resultado
 
-*Ainda não executado (pré-registro congelado antes da coleta).*
+~~*Ainda não executado (pré-registro congelado antes da coleta).*~~ **Executado em 21/11/2026** (coleta 1, abaixo). **Veredito: `v4` NÃO passa no sinal.** Conclusão na §11.
 
 ### Registro de coletas (Emenda E-B03)
 
 Cada coleta INVÁLIDA (por infra, orçamento ou interrupção) e cada FalhaInicial entram aqui, com data, tipo do erro e a amostra em que parou.
 
-*Nenhuma coleta iniciada.*
+**Coleta 1 — 21/11/2026, 22:30:10 → 22:36:39 (−03:00): coleta concluída, sem falha de infra.**
+
+- 40/40 respostas, todas pelo RAG (`rag_acionado = True`), nenhuma `falha_de_infra`, sem aborto por orçamento; nenhuma FalhaInicial (`falha-inicial.json` não existe); `coletas.json`: `estado = "concluida"`.
+- **Custo: US$ 0,0744** (v1 US$ 0,0361; v4 US$ 0,0382; projetado US$ 0,0752).
+- Código da coleta: commit `ca5ff24` (pré-registro `f963470b…`, `mini_q02.py`, testes e `regras-proposta.txt` idênticos ao commit). O `respostas.json` registra `git.sujo = true`: o único arquivo fora do git no momento era o próprio `fixtures/rag/explore/` (o `coletas.json` é gravado antes da 1ª chamada, e o `git status --porcelain` conta diretório não rastreado).
+- Classificação cega feita pelo Claude no chat, recebendo só o `classificacao-cega.yaml`; conferida pelo Max; o mapa só foi aberto depois das 40 classes.
+
+Saída literal do `--resultado` (`.venv/bin/python -m orchestrator.rag.mini_q02 --resultado`, de dentro de `orchestrator/`, código de saída 0):
+
+```text
+| Pergunta | Versão | Certo | Errado (classe) | AMBÍGUA | Infra | Fora do RAG | Erros totais | Falso "não cobre" |
+|---|---|---|---|---|---|---|---|---|
+| q02 | v1 | 3 (RECUSA) | 7 (ACEITA) | 0 | 0 | 0 | 7/10 | 1 |
+| q02 | v4 | 4 (RECUSA) | 6 (ACEITA) | 0 | 0 | 0 | 6/10 | 0 |
+| q04 | v1 | 7 (NÃO TROCA) | 0 (TROCA) | 3 | 0 | 0 | 3/10 | 0 |
+| q04 | v4 | 7 (NÃO TROCA) | 2 (TROCA) | 1 | 0 | 0 | 3/10 | 0 |
+
+- 1) q02 (v4 ≤ 1/10 e v4 < v1): NÃO (v4=6/10, v1=7/10)
+- 2) q04 (v4 = 0/10): NÃO (v4=3/10, v1=3/10)
+- 3) nenhum falso "não cobre" na v4 (com regra nos trechos): sim
+- Latência do synth (informativo, não decide): v1 p50 3.89 s / p95 6.55 s (n=20); v4 p50 4.79 s / p95 7.01 s (n=20)
+
+**Veredito pelo pré-registro: v4 NÃO passa no sinal.** Custo total medido: US$ 0.0744 (semente cega: 198225672132207420102100123204455784365).
+```
+
+### Tabela de conferência (mapa aberto depois das 40 classes)
+
+Junta `mapa-cego.json` (código → versão, pergunta, amostra) e `classificacao-cega.yaml` (classe e observação do classificador). Qualquer um pode refazer a contagem do `--resultado` a partir dela.
+
+| Código | Versão | Pergunta | Amostra | Classe | Observação do classificador |
+|---|---|---|---|---|---|
+| r01 | v1 | q04 | 4 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
+| r02 | v4 | q04 | 3 | NÃO TROCA |  |
+| r03 | v4 | q04 | 8 | NÃO TROCA |  |
+| r04 | v4 | q02 | 6 | ACEITA |  |
+| r05 | v4 | q02 | 9 | ACEITA |  |
+| r06 | v4 | q04 | 9 | TROCA |  |
+| r07 | v1 | q02 | 5 | ACEITA |  |
+| r08 | v4 | q02 | 10 | ACEITA |  |
+| r09 | v1 | q02 | 7 | ACEITA |  |
+| r10 | v4 | q02 | 2 | ACEITA |  |
+| r11 | v4 | q04 | 1 | NÃO TROCA |  |
+| r12 | v1 | q02 | 1 | ACEITA |  |
+| r13 | v4 | q04 | 2 | NÃO TROCA |  |
+| r14 | v1 | q02 | 9 | RECUSA |  |
+| r15 | v4 | q02 | 4 | RECUSA |  |
+| r16 | v1 | q04 | 5 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
+| r17 | v4 | q02 | 1 | RECUSA |  |
+| r18 | v4 | q04 | 4 | NÃO TROCA |  |
+| r19 | v1 | q02 | 8 | ACEITA |  |
+| r20 | v4 | q04 | 6 | TROCA | comeca por Sim, pode trocar e depois diz que passou do prazo |
+| r21 | v1 | q04 | 10 | AMBÍGUA | nao aplica anteontem ao prazo de 24 h |
+| r22 | v1 | q02 | 4 | RECUSA |  |
+| r23 | v1 | q04 | 6 | AMBÍGUA | nao diz que anteontem passou; manda trocar se dentro de 24 h |
+| r24 | v4 | q04 | 5 | NÃO TROCA |  |
+| r25 | v4 | q04 | 10 | AMBÍGUA | comeca por Sim; diz que defeito permite troca sem limite de 24 h (errado) |
+| r26 | v4 | q02 | 7 | RECUSA |  |
+| r27 | v1 | q02 | 10 | ACEITA |  |
+| r28 | v4 | q02 | 3 | ACEITA |  |
+| r29 | v1 | q02 | 3 | RECUSA |  |
+| r30 | v4 | q02 | 8 | RECUSA |  |
+| r31 | v4 | q02 | 5 | ACEITA |  |
+| r32 | v1 | q02 | 2 | ACEITA |  |
+| r33 | v1 | q04 | 3 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
+| r34 | v1 | q04 | 1 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
+| r35 | v1 | q02 | 6 | ACEITA | aceita; e diz 'o manual nao menciona' (possivel criterio 3) |
+| r36 | v1 | q04 | 8 | AMBÍGUA | pode nao ser possivel: nao conclui |
+| r37 | v1 | q04 | 7 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
+| r38 | v1 | q04 | 9 | NÃO TROCA |  |
+| r39 | v4 | q04 | 7 | NÃO TROCA |  |
+| r40 | v1 | q04 | 2 | NÃO TROCA | lista sem Nao explicito, mas afirma que o prazo de 24 h ja passou |
 
 ## 9. Emenda de 21/11/2026, antes de qualquer medição, após revisão adversária do Claude Code
 
@@ -153,3 +223,24 @@ Feita **antes de qualquer execução paga** (nenhuma resposta coletada; `fixture
 - **L1 (B-04) — configuração da busca não travada:** busca, `top_k`, rerank e modelos são lidos do `.env`/shell e não entram na checagem de integridade (mesmo padrão da M9 e da M10). Na revisão o `.env` não definia nenhum desses campos e o plano real mostrou híbrido, `top_k` 5, sem rerank, `deepseek/deepseek-chat` e `indice_meta` igual ao da M8. Conferir na saída do plano antes do `--executar`.
 - **L2 (B-05) — hash declarado, não medido:** o `regras_sha256` de cada resposta é o hash do texto **pretendido**, não do que o `synthesize_final` recebeu de fato. A fiação está provada por teste (o espião do synth mata o mutante "v4 nunca injetada"; `nodes.py` lê `rag_specialist.regras_da_etapa1()` pelo módulo), mas a coleta real não grava o prompt efetivo.
 - **L3 (B-06) — sinal dentro da amostra que desenhou a regra:** o texto da `v4` passa na regra anti-decoreba literal (nenhum produto, número de caso ou situação das 6 perguntas de treino), mas cada sub-regra é o molde de uma pergunta de treino: 6a → `q02`; 6b → `q04` e `q05`; 6c → `q01`; 6d → `q09` e `q10`. **Este mini-teste mede a `q02` e a `q04` dentro da amostra que desenhou a regra: um bom resultado aqui não mostra generalização. Só a prova10 lacrada mede generalização.**
+
+## 11. Conclusão
+
+### Medido (coleta 1, 21/11/2026, `deepseek/deepseek-chat`, N = 10 por pergunta por versão)
+
+- **q02 (frango congelado a −10 °C; o certo é recusar):** a `v1` **aceitou em 7 de 10** (r07, r09, r12, r19, r27, r32, r35); a `v4` **aceitou em 6 de 10** (r04, r05, r08, r10, r28, r31). Nenhuma resposta AMBÍGUA. O critério 1 exigia `v4 ≤ 1/10`: **reprovado**.
+- **q04 (queijo comprado anteontem; o certo é não trocar):** a `v4` teve **2 "TROCA", e as duas começam por "Sim"**:
+  - **r06** (`v4`, amostra 9): *"Sim, o cliente pode trocar o queijo, desde que o produto tenha sido comprado há 24 horas ou menos e esteja na embalagem original, mantido na temperatura indicada."*
+  - **r20** (`v4`, amostra 6): *"Sim, o cliente pode trocar o queijo, desde que a solicitação seja feita dentro do prazo de **24 horas** a partir do horário impresso no cupom."*
+  
+  A `v1` teve **nenhum** "TROCA" (e nenhuma resposta da `v1` na `q04` começa por "Sim"). Erros totais iguais (3/10 em cada): a `v1` errou por **AMBÍGUA** (r21, r23, r36); a `v4`, por 2 TROCA + 1 AMBÍGUA (r25, que também começa por "Sim"). O critério 2 exigia `v4 = 0/10`: **reprovado**.
+- **Critério 3:** nenhum falso "não cobre" na `v4`. A `v1` teve 1 (r35, só informativo; não decide).
+- **Veredito pelo pré-registro: `v4` NÃO passa no sinal.** A `v4` não vai para a Missão 11 como está.
+- **A exploração com o Gemini não reproduziu o erro:** na Rodada 0 (`subagentes-q02.md`, §1), o Gemini acertou a `q02` **3 de 3** com a `v1`; o `deepseek-chat`, com o mesmo texto de regras, acertou **3 de 10**.
+- Informativo (não decide): latência do synth `v1` p50 3,89 s / p95 6,55 s; `v4` p50 4,79 s / p95 7,01 s.
+
+### Hipótese (não medida aqui)
+
+- **O `deepseek-chat` não compara números negativos de forma confiável, e a instrução no prompt não muda isso.** A Regra 6a explica o sinal de menos e a `v4` ainda aceitou −10 °C contra o limite de −12 °C em 6 de 10; a diferença para a `v1` (7 → 6) é de uma amostra em 10 e não distingue as duas versões.
+- Leitura secundária, também não medida: a Regra 6c ("comece por Sim ou Não") parece ter puxado respostas da `q04` para começar por "Sim" (r06, r20, r25), trocando AMBÍGUA por TROCA.
+- O que isso sugere — e só uma nova missão, com pré-registro próprio, pode medir — é que a comparação numérica deveria sair do texto do prompt (por exemplo, uma checagem determinística em código ou outro modelo no synth), e que a prova10 lacrada continua intocada.
