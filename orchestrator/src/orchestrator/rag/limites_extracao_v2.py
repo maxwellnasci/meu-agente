@@ -26,6 +26,17 @@ Regras (deterministas, testadas uma a uma):
 Travas por CAMPO: texto inventado ou que perde a vizinhanca esvazia so aquele
 campo (com motivo), nao a ficha inteira. Ficha invalida so quando a resposta
 nao traz a chamada da ferramenta com argumentos do tipo certo.
+
+5. Erro de digitacao (emenda E-7 de 23/11/2026, antes de qualquer medicao da
+   Parte 2.1; parametros fixados por principio, ANTES de simular): cada
+   palavra COPIADA (depois da trava de literalidade, que confere o texto
+   original) com 6 letras ou mais, sem acento e em minusculas, que nao e
+   palavra exata do vocabulario nem do `fora_de_proposito`, e lida como a
+   palavra do vocabulario (produtos E lugares juntos, palavra por palavra das
+   formas) a distancia de edicao <= 1 (insercao, remocao, troca de letra ou
+   troca de duas vizinhas), so se o casamento for UNICO e a palavra achada for
+   da mesma classe da lista em que o modelo copiou (produto ou lugar). A
+   correcao vai para o motivo do campo.
 """
 
 from __future__ import annotations
@@ -173,6 +184,107 @@ def _achados(
             for b in brutos
         )
     ]
+
+
+# --- E-7 (23/11/2026): erro de digitacao, parametros por principio ------------------
+
+DIGITACAO_DISTANCIA_MAX = 1
+DIGITACAO_MIN_LETRAS = 6
+_PALAVRA = re.compile(r"[^\W\d_]+")  # so letras: numero nunca e "corrigido"
+
+
+def distancia_de_edicao(a: str, b: str) -> int:
+    """Distancia de edicao com troca de duas letras vizinhas valendo 1 (OSA)."""
+    d = [[0] * (len(b) + 1) for _ in range(len(a) + 1)]
+    for i in range(len(a) + 1):
+        d[i][0] = i
+    for j in range(len(b) + 1):
+        d[0][j] = j
+    for i in range(1, len(a) + 1):
+        for j in range(1, len(b) + 1):
+            custo = 0 if a[i - 1] == b[j - 1] else 1
+            d[i][j] = min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + custo)
+            if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
+                d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
+    return d[len(a)][len(b)]
+
+
+def _vocabulario(sin: Sinonimos) -> dict[str, frozenset[str]]:
+    """Palavra (das formas, sem acento) -> classes em que aparece ("produto"/"lugar")."""
+    voc: dict[str, set[str]] = {}
+    for classe, grupo in (("produto", sin.produtos), ("lugar", sin.lugares)):
+        for e in grupo:
+            for f in e.formas:
+                for p in _PALAVRA.findall(f):
+                    voc.setdefault(p, set()).add(classe)
+    return {p: frozenset(c) for p, c in voc.items()}
+
+
+def _palavras_fora(sin: Sinonimos) -> frozenset[str]:
+    return frozenset(
+        p
+        for termo in (*sin.fora_produtos, *sin.fora_lugares)
+        for p in _PALAVRA.findall(termo)
+    )
+
+
+def corrigir_digitacao(
+    copia: str, classe: str, sin: Sinonimos
+) -> tuple[str, list[str]]:
+    """(copia lida, notas). Sem correcao nenhuma, devolve a copia original intacta."""
+    voc = _vocabulario(sin)
+    exatas = set(voc) | _palavras_fora(sin)
+    notas: list[str] = []
+    mudou = False
+
+    def ler(m: re.Match) -> str:
+        nonlocal mudou
+        w = m.group()
+        if len(w) < DIGITACAO_MIN_LETRAS or w in exatas:
+            return w
+        perto = sorted(
+            v
+            for v in voc
+            if abs(len(v) - len(w)) <= DIGITACAO_DISTANCIA_MAX
+            and distancia_de_edicao(w, v) <= DIGITACAO_DISTANCIA_MAX
+        )
+        if not perto:
+            return w
+        if len(perto) > 1:
+            notas.append(
+                f"{w!r} fica perto de {' e '.join(repr(v) for v in perto)}: "
+                "nao corrigido (casamento duplo)"
+            )
+            return w
+        (v,) = perto
+        if classe not in voc[v]:
+            notas.append(
+                f"{w!r} fica perto de {v!r}, que e {'/'.join(sorted(voc[v]))}, mas foi "
+                f"copiado como {classe}: nao corrigido (outra classe)"
+            )
+            return w
+        notas.append(f"{w!r} lido como {v!r} (distancia {distancia_de_edicao(w, v)})")
+        mudou = True
+        return v
+
+    lida = _PALAVRA.sub(ler, _normalizar(copia))
+    return (lida if mudou else copia), notas
+
+
+def _corrigir_lista(
+    copias: list[str], classe: str, sin: Sinonimos
+) -> tuple[list[str], list[str]]:
+    lidas, notas = [], []
+    for c in copias:
+        lida, n = corrigir_digitacao(c, classe, sin)
+        lidas.append(lida)
+        notas += n
+    return lidas, notas
+
+
+def _com_notas(notas: list[str], motivo: str | None) -> str | None:
+    partes = [*notas, *([motivo] if motivo else [])]
+    return "; ".join(partes) if partes else None
 
 
 # --- numeros de temperatura (contados pelo CODIGO na pergunta) ---------------------
@@ -411,13 +523,16 @@ def interpretar(
         )
 
     motivos: dict[str, str] = {}
+    # regra 5 (E-7): erro de digitacao, so nas copias que ja passaram pela literalidade
+    produtos, notas_produto = _corrigir_lista(produtos, "produto", sin)
+    lugares, notas_lugar = _corrigir_lista(lugares, "lugar", sin)
     # regra 2: contexto
     contexto, m = decidir_contexto(pergunta, lugares, sin)
-    if m:
+    if m := _com_notas(notas_lugar, m):
         motivos["contexto"] = m
     # regra 3: categoria
     categoria, m = decidir_categoria(produtos, contexto, sin, tab)
-    if m:
+    if m := _com_notas(notas_produto, m):
         motivos["categoria"] = m
     # regra 4: valor
     valor, trecho = None, None
