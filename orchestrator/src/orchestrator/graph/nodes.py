@@ -21,7 +21,7 @@ from orchestrator.clients.n8n_client import (
 )
 from orchestrator.clients.openclaw_client import OpenClawClient
 from orchestrator.config import settings
-from orchestrator.graph import rag_specialist
+from orchestrator.graph import rag_limites, rag_specialist
 from orchestrator.graph.cybersec_guard import check_production_infra_block
 from orchestrator.graph.n8n_confirmation import (
     NEEDS_CONFIRMATION_KEY,
@@ -839,6 +839,12 @@ async def specialist_rag_node(state: GraphState) -> dict:
     update["internal_scratchpad"] = (state.get("internal_scratchpad") or []) + [
         rag_specialist.nota_trechos(hits, settings.rag_search_mode)
     ]
+    # Parte 3 da ferramenta de limites (graph/rag_limites.py): so com a flag ligada
+    # e com trechos. Desligada, nada aqui roda (o no e o de antes).
+    if settings.rag_limites and hits:
+        nota = await rag_limites.nota_de_limite(pergunta)
+        if nota is not None:
+            update["internal_scratchpad"].append(nota)
     return update
 
 

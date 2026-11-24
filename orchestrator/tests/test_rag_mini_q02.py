@@ -156,8 +156,10 @@ def test_hash_v4_congelado_e_recusa_adulteracao(tmp_path):
 def test_padrao_de_producao_e_regras_por_versao_continuam_v1(monkeypatch):
     assert Settings.model_fields["rag_regras_versao"].default == "v1"
     assert settings.rag_regras_versao == "v1"
-    assert tuple(rag_specialist.REGRAS_POR_VERSAO) == ("v1", "v2")
-    assert tuple(rag_specialist.REGRAS_DA_ETAPA1_POR_VERSAO) == ("v1", "v2", "v3")
+    # A v5 (Parte 3 da ferramenta de limites, 24/11/2026) entrou como versao SELECIONAVEL;
+    # o padrao continua v1 e a v4 continua so dentro do mini-teste.
+    assert tuple(rag_specialist.REGRAS_POR_VERSAO) == ("v1", "v2", "v5")
+    assert tuple(rag_specialist.REGRAS_DA_ETAPA1_POR_VERSAO) == ("v1", "v2", "v3", "v5")
     with pytest.raises(ValueError):
         rag_specialist.regras_do_manual("v4")
     with pytest.raises(ValueError):

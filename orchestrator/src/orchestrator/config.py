@@ -192,7 +192,12 @@ class Settings(BaseSettings):
     # oferta de detalhes). O padrao so muda pela regra pre-registrada (docs/RAG.md).
     # v3 (Missao 10) = "pensa primeiro, formata depois": etapa 1 com as regras v1
     # (interna) + etapa 2 que so reescreve no formato (PROMPT_FORMATADOR_V3).
-    rag_regras_versao: Literal["v1", "v2", "v3"] = "v1"
+    rag_regras_versao: Literal["v1", "v2", "v3", "v5"] = "v1"
+    # Parte 3 da ferramenta de limites (docs/RAG.md): a ficha v3 + a conta da
+    # Parte 1 rodam no no do rag e gravam a nota [limite] para o redator. Padrao
+    # DESLIGADO: desligado, o no e byte a byte o de antes. So liga (com as regras
+    # v5) se as medicoes A, B e C da Parte 3 passarem.
+    rag_limites: bool = False
 
     @field_validator("rag_rerank_model", mode="before")
     @classmethod
