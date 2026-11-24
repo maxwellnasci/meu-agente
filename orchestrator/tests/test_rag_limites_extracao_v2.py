@@ -667,12 +667,16 @@ def problemas_e6(medidor) -> list[str]:
     v = rodar({"i05": {"valor": None}}, versao="v1")
     if v["criterios"]["d"]:
         erros.append("o E-6 vazou para a v1")
+    # 5. Parte 2.2: o E-6 vale tambem na v3 (mesmos criterios, com E-1 a E-7)
+    v = rodar({"i05": {"valor": None}, "i07": {"contexto": None}}, versao="v3")
+    if not v["criterios"]["d"]:
+        erros.append("o E-6 nao vale na v3")
     return erros
 
 
 MUTANTES_E6 = {
     "sem a parcial": (
-        '        if versao == "v2":\n            vazia_segura',
+        "        if versao in VERSOES_COM_E6:\n            vazia_segura",
         "        if False:\n            vazia_segura",
     ),
     "qualquer vazio basta": (
@@ -687,8 +691,12 @@ MUTANTES_E6 = {
         "        pass  # mutante\n",
     ),
     "vale tambem na v1": (
-        '        if versao == "v2":\n            vazia_segura',
+        "        if versao in VERSOES_COM_E6:\n            vazia_segura",
         "        if True:\n            vazia_segura",
+    ),
+    "so na v2": (
+        'VERSOES_COM_E6 = ("v2", "v3")',
+        'VERSOES_COM_E6 = ("v2",)',
     ),
 }
 

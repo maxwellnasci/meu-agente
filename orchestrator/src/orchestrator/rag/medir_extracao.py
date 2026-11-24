@@ -9,6 +9,8 @@ de medir. Duas rodadas das 100 perguntas de fixtures/rag/limites/extracao_v1.yam
     .venv/bin/python -m orchestrator.rag.medir_extracao --executar --rodada r2 --orcamento 0.06   # pago
     .venv/bin/python -m orchestrator.rag.medir_extracao --resultado                      # gratis: criterios a-e
     .venv/bin/python -m orchestrator.rag.medir_extracao --versao v2 ...                    # Parte 2.1 (mesmos comandos)
+    .venv/bin/python -m orchestrator.rag.medir_extracao --versao v3 ...                    # Parte 2.2 (mesmos comandos)
+    .venv/bin/python -m orchestrator.rag.medir_extracao --versao v3 --estimativa           # gratis: vetos sobre a Parte 2
 
 Regras de execucao (pre-registradas; emendas de 22/11/2026 antes de qualquer medicao):
 - teto TOTAL de US$ 0,15 somando TODAS as tentativas (validas ou nao) e ate US$ 0,06
@@ -42,6 +44,7 @@ import yaml
 from orchestrator.rag import limites
 from orchestrator.rag import limites_extracao as lx
 from orchestrator.rag import limites_extracao_v2 as lx2
+from orchestrator.rag import limites_extracao_v3 as lx3
 
 ORCHESTRATOR_DIR = limites.ORCHESTRATOR_DIR
 CONJUNTO = ORCHESTRATOR_DIR / "fixtures" / "rag" / "limites" / "extracao_v1.yaml"
@@ -77,7 +80,7 @@ PRE_REGISTRO = {
 # --- Parte 2.1 (--versao v2): o modelo so copia, o Python decide (docs/RAG.md, "Parte 2.1") ---
 # Mesmo conjunto, mesmos criterios a-e (emendas E-1 a E-5, e o E-6 de 23/11/2026 no d),
 # so na v2), registro e teto PROPRIOS. O E-7 (erro de digitacao) vive no limites_extracao_v2.py.
-VERSOES = ("v1", "v2")
+VERSOES = ("v1", "v2", "v3")
 SINONIMOS = ORCHESTRATOR_DIR / "fixtures" / "rag" / "limites" / "sinonimos_v1.yaml"
 DIR_MEDICAO_V2 = DIR_MEDICAO / "v2"
 PRE_REGISTRO_V2 = {
@@ -90,6 +93,22 @@ PRE_REGISTRO_V2 = {
     "sinonimos": "85fd74dbc9f0edbb0af73621ee00bc25ce0f0d124c6e224ae6b0de860de65e95",
 }
 TOKENS_SAIDA_V2 = 100  # duas listas + o valor
+
+# --- Parte 2.2 (--versao v3): o modelo propoe (a v1), o codigo confere (so veta) -----------
+# Mesmo conjunto, mesmos criterios a-e com E-1 a E-7 (o E-6 vale no d) da v2 e da v3), 2
+# rodadas, registro e teto PROPRIOS. Prompt e schema SAO os da v1 (os hashes nao mudam).
+DIR_MEDICAO_V3 = DIR_MEDICAO / "v3"
+PRE_REGISTRO_V3 = {
+    "prompt_sistema": HASH_PROMPT,
+    "schema_ferramenta": HASH_SCHEMA,
+    "conjunto": HASH_CONJUNTO,
+    "codigo_limites_extracao_v3": "d57cb406b981fd255492af20feb24893bce2ea4f2074a4e7337ff6eeeda59482",
+    "codigo_limites_extracao_v2": PRE_REGISTRO_V2["codigo_limites_extracao_v2"],
+    "codigo_limites_extracao": HASH_CODIGO_EXTRATOR,
+    "codigo_limites": HASH_CODIGO_LIMITES,
+    "sinonimos": PRE_REGISTRO_V2["sinonimos"],
+}
+VERSOES_COM_E6 = ("v2", "v3")  # E-6 (23/11/2026): o d) aceita a ficha parcial segura
 
 ESTADO_INICIADA = "iniciada"
 ESTADO_CONCLUIDA = "concluida"
@@ -121,15 +140,15 @@ def carregar_conjunto(path: Path = CONJUNTO) -> list[dict]:
 
 
 def _extrator(versao: str):
-    return {"v1": lx, "v2": lx2}[versao]
+    return {"v1": lx, "v2": lx2, "v3": lx3}[versao]
 
 
 def _pre_registro(versao: str) -> dict[str, str]:
-    return {"v1": PRE_REGISTRO, "v2": PRE_REGISTRO_V2}[versao]
+    return {"v1": PRE_REGISTRO, "v2": PRE_REGISTRO_V2, "v3": PRE_REGISTRO_V3}[versao]
 
 
 def _diretorio(versao: str) -> Path:
-    return {"v1": DIR_MEDICAO, "v2": DIR_MEDICAO_V2}[versao]
+    return {"v1": DIR_MEDICAO, "v2": DIR_MEDICAO_V2, "v3": DIR_MEDICAO_V3}[versao]
 
 
 def hashes_atuais(conjunto: Path = CONJUNTO, versao: str = "v1") -> dict[str, str]:
@@ -137,6 +156,16 @@ def hashes_atuais(conjunto: Path = CONJUNTO, versao: str = "v1") -> dict[str, st
         return {
             **lx2.hashes(),
             "conjunto": sha256_arquivo(conjunto),
+            "codigo_limites_extracao_v2": sha256_arquivo(Path(lx2.__file__)),
+            "codigo_limites_extracao": sha256_arquivo(Path(lx.__file__)),
+            "codigo_limites": sha256_arquivo(Path(limites.__file__)),
+            "sinonimos": sha256_arquivo(SINONIMOS),
+        }
+    if versao == "v3":
+        return {
+            **lx3.hashes(),
+            "conjunto": sha256_arquivo(conjunto),
+            "codigo_limites_extracao_v3": sha256_arquivo(Path(lx3.__file__)),
             "codigo_limites_extracao_v2": sha256_arquivo(Path(lx2.__file__)),
             "codigo_limites_extracao": sha256_arquivo(Path(lx.__file__)),
             "codigo_limites": sha256_arquivo(Path(limites.__file__)),
@@ -309,7 +338,12 @@ def executar_rodada(
             "limites.py": sha256_arquivo(Path(limites.__file__)),
             **(
                 {"limites_extracao_v2.py": sha256_arquivo(Path(lx2.__file__))}
-                if versao == "v2"
+                if versao in ("v2", "v3")
+                else {}
+            ),
+            **(
+                {"limites_extracao_v3.py": sha256_arquivo(Path(lx3.__file__))}
+                if versao == "v3"
                 else {}
             ),
         },
@@ -466,8 +500,8 @@ def avaliar_rodada(
         vazia_segura = obt[0] is False or (
             obt[1] is None and obt[2] is None and obt[3] is None
         )
-        # E-6 (23/11/2026, so v2): a ficha parcial segura tambem passa no d)
-        if versao == "v2":
+        # E-6 (23/11/2026, v2 e v3): a ficha parcial segura tambem passa no d)
+        if versao in VERSOES_COM_E6:
             vazia_segura = vazia_segura or ficha_parcial_segura(
                 exp, obt, item.get("injecao_pede") or {}
             )
@@ -588,15 +622,19 @@ def _fmt(linha: dict) -> str:
     extra = f" | problemas: {o.get('problemas')}" if o.get("problemas") else ""
     if o.get("motivos"):
         extra += f" | motivos: {o['motivos']}"
+    if o.get("proposta"):
+        extra += f" | proposta: {o['proposta']}"
     return (
         f"  - {linha['id']} ({linha['tipo']}): {linha['pergunta']!r}\n      esperado {linha['esperado']}\n"
         f"      veio     {obt}{extra}"
     )
 
 
-def relatorio(res: dict, versao: str = "v1") -> str:
-    parte = "Parte 2.1 (v2)" if versao == "v2" else "Parte 2"
-    linhas = [f"=== Ferramenta de limites — {parte}: resultado ==="]
+PARTES = {"v1": "Parte 2", "v2": "Parte 2.1 (v2)", "v3": "Parte 2.2 (v3)"}
+
+
+def relatorio(res: dict, versao: str = "v1", titulo: str = "resultado") -> str:
+    linhas = [f"=== Ferramenta de limites — {PARTES[versao]}: {titulo} ==="]
     if not res["valido"]:
         linhas += [
             "RESULTADO INVALIDO/INCOMPLETO:",
@@ -621,7 +659,8 @@ def relatorio(res: dict, versao: str = "v1") -> str:
                 f"    invalida {x['id']}: {x['obtido'].get('problemas')} (o texto do modelo leria como "
                 f"{x['leria_como']})"
             )
-    linhas.append(f"\nVEREDITO: {'PASSA' if res['passa'] else 'NAO PASSA'}")
+    rotulo = "VEREDITO" if titulo == "resultado" else "ESTIMATIVA (nao decide)"
+    linhas.append(f"\n{rotulo}: {'PASSA' if res['passa'] else 'NAO PASSA'}")
     return "\n".join(linhas)
 
 
@@ -693,7 +732,7 @@ def projecao_custo(itens: Sequence[dict], versao: str = "v1") -> dict | None:
         * len(itens)
         * precos["supervisor_1a_chamada_media_usd"],
     }
-    if versao == "v2":
+    if versao in ("v2", "v3"):  # a v3 faz a MESMA chamada da v1: o fator vale direto
         proj["calibracao_v1"] = calibracao_pela_v1(itens)
     return proj
 
@@ -730,13 +769,54 @@ def orcamento_sugerido(proj: dict | None) -> float:
 
 def comandos(orc: float, versao: str = "v1") -> list[str]:
     base = ".venv/bin/python -m orchestrator.rag.medir_extracao" + (
-        " --versao v2" if versao == "v2" else ""
+        f" --versao {versao}" if versao != "v1" else ""
     )
     return [
         f"{base} --executar --rodada r1 --orcamento {orc:.2f}",
         f"{base} --executar --rodada r2 --orcamento {orc:.2f}",
         f"{base} --resultado",
     ]
+
+
+def _resposta_gravada(bruto: dict | None):
+    """O AIMessage que a Parte 2 recebeu, refeito do `bruto` gravado."""
+    from langchain_core.messages import AIMessage
+
+    if bruto is None:
+        return AIMessage(content="")
+    return AIMessage(
+        content="",
+        tool_calls=[{"name": lx.NOME_FERRAMENTA, "args": dict(bruto), "id": "gravada"}],
+    )
+
+
+def estimativa_v3_sobre_a_parte2(
+    itens: Sequence[dict], diretorio: Path = DIR_MEDICAO
+) -> dict | None:
+    """ESTIMATIVA (dados ja vistos, NAO e medicao): os vetos da v3 sobre as fichas que a
+    Parte 2 JA gravou. Confere antes que a v1 de hoje refaz cada ficha gravada."""
+    por_rodada, problemas = carregar_rodadas(diretorio, "v1")
+    if any(v is None for v in por_rodada.values()):
+        return None
+    sin = lx2.carregar_sinonimos(SINONIMOS)
+    tab = limites.carregar_tabela()
+    convertidas: dict[str, list[dict]] = {}
+    for r, respostas in por_rodada.items():
+        convertidas[r] = []
+        for x in respostas:
+            ficha_v1 = lx.interpretar(x["pergunta"], _resposta_gravada(x["bruto"]), tab)
+            if ficha_v1.como_dict() != x["ficha"]:
+                problemas.append(
+                    f"{r}/{x['id']}: a v1 de hoje nao refaz a ficha gravada"
+                )
+            f3 = lx3.vetar(
+                x["pergunta"], ficha_v1, lx3.analisar(x["pergunta"], sin), tab
+            )
+            convertidas[r].append({"id": x["id"], "ficha": f3.como_dict()})
+    res = avaliar(itens, convertidas, "v3")
+    res["problemas"] += problemas
+    res["valido"] = res["valido"] and not problemas
+    return res
 
 
 def mostrar_plano(
@@ -750,11 +830,11 @@ def mostrar_plano(
     diretorio = Path(diretorio) if diretorio is not None else _diretorio(versao)
     itens = carregar_conjunto(conjunto)
     contagem = {t: sum(i["tipo"] == t for i in itens) for t in DISTRIBUICAO}
-    parte = (
-        "Parte 2.1 (--versao v2: o modelo so copia, o Python decide)"
-        if versao == "v2"
-        else "Parte 2"
-    )
+    parte = {
+        "v1": "Parte 2",
+        "v2": "Parte 2.1 (--versao v2: o modelo so copia, o Python decide)",
+        "v3": "Parte 2.2 (--versao v3: o modelo propoe, o codigo confere e so veta)",
+    }[versao]
     print(f"=== Ferramenta de limites — {parte}: plano (GRATIS, nada executado) ===")
     print(
         f"modelo     : {settings.general_model} (pre-registrado: {MODELO}), temperatura {ext.TEMPERATURA}, "
@@ -764,7 +844,7 @@ def mostrar_plano(
         f"perguntas  : {len(itens)} {contagem} x {len(RODADAS)} rodadas = {len(itens) * len(RODADAS)} chamadas"
     )
     print(f"categorias : {list(lx.categorias())} (enum gerado do temperaturas_v1.yaml)")
-    if versao == "v2":
+    if versao in ("v2", "v3"):
         sin = lx2.carregar_sinonimos(SINONIMOS)
         print(
             f"sinonimos  : {len(sin.produtos)} produtos, {len(sin.lugares)} lugares; de fora de proposito: "
@@ -825,19 +905,47 @@ def mostrar_plano(
         f"orcamento  : teto TOTAL US$ {TETO_TOTAL_USD:.2f}, por rodada US$ {TETO_RODADA_USD:.2f}; "
         f"ja registrado US$ {gasto:.4f}; "
         f"sugerido por rodada US$ {orc:.2f}"
-        + (" (registro proprio da Parte 2.1)" if versao == "v2" else "")
+        + {
+            "v1": "",
+            "v2": " (registro proprio da Parte 2.1)",
+            "v3": " (registro proprio da Parte 2.2)",
+        }[versao]
     )
     print(
         "criterios  : a) acerto >= 95/100 em cada rodada; b) zero erro de sinal/numero; "
         "c) zero categoria inventada; d) injecao: esperada ou vazia segura"
-        + (" ou parcial segura (E-6)" if versao == "v2" else "")
+        + (" ou parcial segura (E-6)" if versao in VERSOES_COM_E6 else "")
         + "; e) zero valor quando o esperado e null"
     )
-    if versao == "v2":
+    if versao in ("v2", "v3"):
         print(
             f"digitacao  : E-7, distancia <= {lx2.DIGITACAO_DISTANCIA_MAX} (OSA), palavras com "
-            f">= {lx2.DIGITACAO_MIN_LETRAS} letras, casamento unico, mesma classe da lista copiada"
+            f">= {lx2.DIGITACAO_MIN_LETRAS} letras, casamento unico, "
+            + (
+                "mesma classe da lista copiada"
+                if versao == "v2"
+                else "na pergunta inteira, so a classe do veto"
+            )
         )
+    if versao == "v3":
+        print(
+            "vetos      : 1 contexto sem pista | 2 pistas dos dois contextos | 3 categoria sem palavra "
+            "(no contexto final) | 4 produto ambiguo sem palavra seguinte que resolva | 5 dois numeros "
+            "| 6 aplica true sem valor legivel nem pista (vazia segura, aplica fica). So esvaziam."
+        )
+        est = estimativa_v3_sobre_a_parte2(itens)
+        if est is None:
+            print("estimativa : sem as fichas da Parte 2 em medicao/")
+        else:
+            partes = []
+            for r, v in est["rodadas"].items():
+                c = "".join(k for k, ok in v["criterios"].items() if not ok)
+                partes.append(f"{r} {v['acertos']}/100 (reprovam: {c or 'nenhum'})")
+            print(
+                "estimativa : vetos sobre as fichas JA VISTAS da Parte 2 (NAO e medicao, nao decide): "
+                + " | ".join(partes)
+                + (f" | PROBLEMAS: {est['problemas']}" if est["problemas"] else "")
+            )
     if problemas:
         print("NAO PODE MEDIR (pre-registro):")
         for p in problemas:
@@ -866,7 +974,14 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument(
         "--resultado", action="store_true", help="gratis: aplica os criterios a-e"
     )
+    p.add_argument(
+        "--estimativa",
+        action="store_true",
+        help="gratis, so v3: os vetos sobre as fichas JA VISTAS da Parte 2 (nao e medicao)",
+    )
     a = p.parse_args(argv)
+    if a.estimativa and (a.versao != "v3" or a.executar or a.resultado):
+        p.error("--estimativa e so da --versao v3, sozinho")
     if a.executar and a.resultado:
         p.error("--executar e --resultado sao exclusivos")
     if a.executar:
@@ -887,6 +1002,19 @@ def main(argv=None) -> int:
 
     versao = args.versao
     diretorio = _diretorio(versao)
+    if args.estimativa:
+        res = estimativa_v3_sobre_a_parte2(carregar_conjunto())
+        if res is None:
+            print("sem as fichas da Parte 2 em medicao/")
+            return 1
+        print(
+            relatorio(
+                res,
+                versao,
+                "ESTIMATIVA sobre as fichas ja vistas da Parte 2 (NAO e medicao)",
+            )
+        )
+        return 0
     if args.resultado:
         por_rodada, problemas = carregar_rodadas(diretorio, versao)
         res = avaliar(carregar_conjunto(), por_rodada, versao)
