@@ -1,0 +1,1586 @@
+{
+  "rodada": "r1",
+  "tentativa": 1,
+  "config": {
+    "modelo": "deepseek/deepseek-chat",
+    "temperatura": 0,
+    "tool_choice": "preencher_ficha",
+    "versao": "v3"
+  },
+  "hashes": {
+    "prompt_sistema": "f90f6dedb2be59e68eeef8fbbb93b4895b7fff73d26b4130ed6e7c8fa546ceeb",
+    "schema_ferramenta": "054978a13195b554ed8438e703b2930ccc770d121e657ba947c7d96b422542cb",
+    "conjunto": "462bde3cc4ece9412917835241de5bd2f7e1be294ef7325ebea61a4239b35f13",
+    "codigo_limites_extracao_v3": "d57cb406b981fd255492af20feb24893bce2ea4f2074a4e7337ff6eeeda59482",
+    "codigo_limites_extracao_v2": "5b9d49818a0ea4b5bf22b6fdc8888068c17e9fca0c2c272abb62a5b8ec944514",
+    "codigo_limites_extracao": "e900d07d8aae394485def46cb91034562ae9fb404d9390038bed0c3a33398bbc",
+    "codigo_limites": "9be72faac3b06bf3adce0e23f7d7ccba061172a84f43819b359447c1a5b5f6fb",
+    "sinonimos": "85fd74dbc9f0edbb0af73621ee00bc25ce0f0d124c6e224ae6b0de860de65e95"
+  },
+  "codigo_sha256": {
+    "limites_extracao.py": "e900d07d8aae394485def46cb91034562ae9fb404d9390038bed0c3a33398bbc",
+    "limites.py": "9be72faac3b06bf3adce0e23f7d7ccba061172a84f43819b359447c1a5b5f6fb",
+    "limites_extracao_v2.py": "5b9d49818a0ea4b5bf22b6fdc8888068c17e9fca0c2c272abb62a5b8ec944514",
+    "limites_extracao_v3.py": "d57cb406b981fd255492af20feb24893bce2ea4f2074a4e7337ff6eeeda59482"
+  },
+  "custo_usd": 0.018920091399999995,
+  "respostas": [
+    {
+      "id": "t01",
+      "pergunta": "o caminhao do frigorifico trouxe carne congelada marcando -14, posso receber?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-14",
+        "valor_texto": "-14",
+        "trecho": "-14",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-14"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "-14"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003582612,
+      "tempo_s": 3.4899526029998924
+    },
+    {
+      "id": "t02",
+      "pergunta": "recebi peixe congelado com −11 graus no espeto, e agora",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-11",
+        "valor_texto": "−11 graus",
+        "trecho": "−11 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-11"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "−11 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.000359289,
+      "tempo_s": 2.488294689000213
+    },
+    {
+      "id": "t03",
+      "pergunta": "a entrega de congelados aqui na doca deu menos 12, libero?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-12",
+        "valor_texto": "menos 12",
+        "trecho": "menos 12",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-12"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "menos 12"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.000359289,
+      "tempo_s": 2.5613237299999128
+    },
+    {
+      "id": "t04",
+      "pergunta": "fornecedor descarregando produto congelado a 9 negativos, aceito?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-9",
+        "valor_texto": "9 negativos",
+        "trecho": "9 negativos",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-9"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor_texto": "9 negativos"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050381,
+      "tempo_s": 1.4530592800001614
+    },
+    {
+      "id": "t05",
+      "pergunta": "chegou caixa de congelado com -12,5 tá liberado?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-12.5",
+        "valor_texto": "-12,5",
+        "trecho": "-12,5",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-12.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor_texto": "-12,5"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050285,
+      "tempo_s": 2.7442507959999602
+    },
+    {
+      "id": "t06",
+      "pergunta": "recebendo congelados agr, um volume deu -8 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-8",
+        "valor_texto": "-8 graus",
+        "trecho": "-8 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-8"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor_texto": "-8 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050253,
+      "tempo_s": 2.1646751459998086
+    },
+    {
+      "id": "t07",
+      "pergunta": "o motorista do caminhao disse q os congelados vieram a 15 graus abaixo de zero, recebo?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": null,
+        "valor_texto": "15 graus abaixo de zero",
+        "trecho": "15 graus abaixo de zero",
+        "motivos": {
+          "valor": "vazio na proposta (modelo + travas da v1)"
+        },
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": null
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "15 graus abaixo de zero"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003628908,
+      "tempo_s": 1.8470450909999272
+    },
+    {
+      "id": "t08",
+      "pergunta": "chegou carne congelda com -20 na leitura",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-20",
+        "valor_texto": "-20",
+        "trecho": "-20",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-20"
+        },
+        "notas": [
+          "'congelda' fica perto de 'congelada', que e produto, mas foi copiado como lugar: nao corrigido (outra classe)",
+          "'congelda' lido como 'congelada' (distancia 1)"
+        ],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "-20"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003556872,
+      "tempo_s": 1.5161262889996578
+    },
+    {
+      "id": "t09",
+      "pergunta": "conjelado chegou -11.5 graus, recuso ou nao",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "congelados",
+        "valor": "-11.5",
+        "valor_texto": "-11.5 graus",
+        "trecho": "-11.5 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "congelados",
+          "valor": "-11.5"
+        },
+        "notas": [
+          "'conjelado' fica perto de 'congelado', que e produto, mas foi copiado como lugar: nao corrigido (outra classe)",
+          "'conjelado' lido como 'congelado' (distancia 1)"
+        ],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "recebimento",
+        "valor_texto": "-11.5 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003608316,
+      "tempo_s": 1.4497979329998998
+    },
+    {
+      "id": "t10",
+      "pergunta": "chegou carne resfriada a 6 graus, posso aceitar",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "6",
+        "valor_texto": "6 graus",
+        "trecho": "6 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "6"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "6 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003577455,
+      "tempo_s": 1.6646347989999413
+    },
+    {
+      "id": "t11",
+      "pergunta": "o fornecedor de resfriados entregou com 7,5 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "7.5",
+        "valor_texto": "7,5 graus",
+        "trecho": "7,5 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "7.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor_texto": "7,5 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050463,
+      "tempo_s": 2.834997057000237
+    },
+    {
+      "id": "t12",
+      "pergunta": "recebi carnes resfriadas marcando +8",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "8",
+        "valor_texto": "+8",
+        "trecho": "+8",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "8"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "+8"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003551724,
+      "tempo_s": 1.4316126959997746
+    },
+    {
+      "id": "t13",
+      "pergunta": "caminhao de resfriado na doca, termometro deu 3",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "3",
+        "valor_texto": "3",
+        "trecho": "3",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "3"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor_texto": "3"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050139,
+      "tempo_s": 2.7593988419998823
+    },
+    {
+      "id": "t14",
+      "pergunta": "carne resfriada chegando agora a 7 graus certinho",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "7",
+        "valor_texto": "7 graus certinho",
+        "trecho": "7 graus certinho",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "7"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "7 graus certinho"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003592881,
+      "tempo_s": 1.444013023000025
+    },
+    {
+      "id": "t15",
+      "pergunta": "descarregando resfriados e o espeto marcou 9,2",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "9.2",
+        "valor_texto": "9,2",
+        "trecho": "9,2",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "9.2"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "9,2"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003580029,
+      "tempo_s": 2.4959179329998733
+    },
+    {
+      "id": "t16",
+      "pergunta": "chegou resfriado com 4 graus, ta dentro?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "4",
+        "valor_texto": "4 graus",
+        "trecho": "4 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "4"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor_texto": "4 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050189,
+      "tempo_s": 2.8117326910000884
+    },
+    {
+      "id": "t17",
+      "pergunta": "recebi carne resfriada a menos 1, pode?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "-1",
+        "valor_texto": "menos 1",
+        "trecho": "menos 1",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "-1"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "menos 1"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003574872,
+      "tempo_s": 1.9944902460001686
+    },
+    {
+      "id": "t18",
+      "pergunta": "entrega de carnes resfriadas, medi 10 graus no meio do caminhao",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "resfriados",
+        "valor": "10",
+        "valor_texto": "10 graus",
+        "trecho": "10 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "resfriados",
+          "valor": "10"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "recebimento",
+        "valor_texto": "10 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003582603,
+      "tempo_s": 1.3969197849996817
+    },
+    {
+      "id": "t19",
+      "pergunta": "chegou iogurte a 9 graus, aceito?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "9",
+        "valor_texto": "9 graus",
+        "trecho": "9 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "9"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "9 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003582594,
+      "tempo_s": 3.0555957319998015
+    },
+    {
+      "id": "t20",
+      "pergunta": "recebi os laticinios com 11 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "11",
+        "valor_texto": "11 graus",
+        "trecho": "11 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "11"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "11 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003574872,
+      "tempo_s": 1.6514277299997957
+    },
+    {
+      "id": "t21",
+      "pergunta": "fornecedor de laticínio entregou marcando 10",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "10",
+        "valor_texto": "10",
+        "trecho": "10",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "10"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "10"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003559446,
+      "tempo_s": 1.8447854590003772
+    },
+    {
+      "id": "t22",
+      "pergunta": "iogurte chegando no caminhao a 10,4 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "10.4",
+        "valor_texto": "10,4 graus",
+        "trecho": "10,4 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "10.4"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "10,4 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003605742,
+      "tempo_s": 1.4175627510003324
+    },
+    {
+      "id": "t23",
+      "pergunta": "a entrega de iogurtes deu +6 no espeto",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "6",
+        "valor_texto": "+6",
+        "trecho": "+6",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "6"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "+6"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003574881,
+      "tempo_s": 1.447019925999939
+    },
+    {
+      "id": "t24",
+      "pergunta": "recebendo laticinio, leitura de 12 graus, e ai?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "12",
+        "valor_texto": "12 graus",
+        "trecho": "12 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "12"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "12 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003590316,
+      "tempo_s": 3.672941351999725
+    },
+    {
+      "id": "t25",
+      "pergunta": "laticinios na doca com 8,5",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "8.5",
+        "valor_texto": "8,5",
+        "trecho": "8,5",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "8.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "8,5"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003574872,
+      "tempo_s": 2.4536434910000935
+    },
+    {
+      "id": "t26",
+      "pergunta": "chegou iogurt a 13 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "laticinios",
+        "valor": "13",
+        "valor_texto": "13 graus",
+        "trecho": "13 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "laticinios",
+          "valor": "13"
+        },
+        "notas": [
+          "'iogurt' fica perto de 'iogurte', que e produto, mas foi copiado como lugar: nao corrigido (outra classe)",
+          "'iogurt' lido como 'iogurte' (distancia 1)"
+        ],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "laticinios",
+        "contexto": "recebimento",
+        "valor_texto": "13 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003572298,
+      "tempo_s": 3.190694536999672
+    },
+    {
+      "id": "t27",
+      "pergunta": "chegou presunto fatiado a 7 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "7",
+        "valor_texto": "7 graus",
+        "trecho": "7 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "7"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "7 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003587733,
+      "tempo_s": 1.8282015549998505
+    },
+    {
+      "id": "t28",
+      "pergunta": "recebi frios fatiados marcando 9",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "9",
+        "valor_texto": "9",
+        "trecho": "9",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "9"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "9"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003562011,
+      "tempo_s": 3.8121704549998867
+    },
+    {
+      "id": "t29",
+      "pergunta": "fornecedor trouxe frio fatiado com 8 graus, recebo?",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "8",
+        "valor_texto": "8 graus",
+        "trecho": "8 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "8"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "8 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003603177,
+      "tempo_s": 1.6092418230000476
+    },
+    {
+      "id": "t30",
+      "pergunta": "caminhao com frios fatiados, espeto deu 8,1",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "8.1",
+        "valor_texto": "8,1",
+        "trecho": "8,1",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "8.1"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "8,1"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003603177,
+      "tempo_s": 2.575264323999818
+    },
+    {
+      "id": "t31",
+      "pergunta": "entrega de presunto fatiado veio a 5 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "5",
+        "valor_texto": "5 graus",
+        "trecho": "5 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor_texto": "5 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050399,
+      "tempo_s": 3.0723299689998385
+    },
+    {
+      "id": "t32",
+      "pergunta": "recebendo frios fatiadoss com 10 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "10",
+        "valor_texto": "10 graus",
+        "trecho": "10 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "10"
+        },
+        "notas": [
+          "'fatiadoss' fica perto de 'fatiados', que e produto, mas foi copiado como lugar: nao corrigido (outra classe)",
+          "'fatiadoss' lido como 'fatiados' (distancia 1)"
+        ],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "10 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003590307,
+      "tempo_s": 2.6468342060002215
+    },
+    {
+      "id": "t33",
+      "pergunta": "chegou fios fatiados a 6 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": null,
+        "valor": "6",
+        "valor_texto": "6 graus",
+        "trecho": "6 graus",
+        "motivos": {
+          "categoria": "veto 3: nenhuma palavra de produto da pergunta da 'frios_fatiados' (recebimento)"
+        },
+        "vetos": [
+          3
+        ],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "6"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "6 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003587733,
+      "tempo_s": 3.376333365999926
+    },
+    {
+      "id": "t34",
+      "pergunta": "doca: presunto fatiado chegou com +12",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "recebimento",
+        "categoria": "frios_fatiados",
+        "valor": "12",
+        "valor_texto": "+12",
+        "trecho": "+12",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "recebimento",
+          "categoria": "frios_fatiados",
+          "valor": "12"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "frios_fatiados",
+        "contexto": "recebimento",
+        "valor_texto": "+12"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003577446,
+      "tempo_s": 2.779967151999699
+    },
+    {
+      "id": "t35",
+      "pergunta": "congelados do freezer da loja: o visor mostra -15",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-15",
+        "valor_texto": "-15",
+        "trecho": "-15",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-15"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor_texto": "-15"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050043,
+      "tempo_s": 2.5441783430001124
+    },
+    {
+      "id": "t36",
+      "pergunta": "camara de congelados com −19 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-19",
+        "valor_texto": "−19 graus",
+        "trecho": "−19 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-19"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "−19 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003572298,
+      "tempo_s": 3.1883668690002196
+    },
+    {
+      "id": "t37",
+      "pergunta": "expositor de congelado mostrando menos 18",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-18",
+        "valor_texto": "menos 18",
+        "trecho": "menos 18",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-18"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor_texto": "menos 18"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050214,
+      "tempo_s": 10.038300371000332
+    },
+    {
+      "id": "t38",
+      "pergunta": "ilha de congelados ta 16 negativos",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-16",
+        "valor_texto": "16 negativos",
+        "trecho": "16 negativos",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-16"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor_texto": "16 negativos"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050093,
+      "tempo_s": 8.28527812700031
+    },
+    {
+      "id": "t39",
+      "pergunta": "freezer dos produtos congelados deu -18,5",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-18.5",
+        "valor_texto": "-18,5",
+        "trecho": "-18,5",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-18.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "-18,5"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003577446,
+      "tempo_s": 1.747943553999903
+    },
+    {
+      "id": "t40",
+      "pergunta": "a camara fria dos congelados ta -10 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-10",
+        "valor_texto": "-10 graus",
+        "trecho": "-10 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-10"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "-10 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.000358002,
+      "tempo_s": 2.0271643060000315
+    },
+    {
+      "id": "t41",
+      "pergunta": "expositor de congelado ta a 20 graus abaixo de zero",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": null,
+        "valor_texto": "20 graus abaixo de zero",
+        "trecho": "20 graus abaixo de zero",
+        "motivos": {
+          "valor": "vazio na proposta (modelo + travas da v1)"
+        },
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": null
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "20 graus abaixo de zero"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003605742,
+      "tempo_s": 3.1171626860000288
+    },
+    {
+      "id": "t42",
+      "pergunta": "freezer com carne congelada marcando -22",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-22",
+        "valor_texto": "-22",
+        "trecho": "-22",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-22"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "-22"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003551724,
+      "tempo_s": 2.9259590429996933
+    },
+    {
+      "id": "t43",
+      "pergunta": "congelados no freezer a -17.5",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "congelados",
+        "valor": "-17.5",
+        "valor_texto": "-17.5",
+        "trecho": "-17.5",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "congelados",
+          "valor": "-17.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "congelados",
+        "contexto": "armazenamento",
+        "valor_texto": "-17.5"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003569724,
+      "tempo_s": 2.263742670999818
+    },
+    {
+      "id": "t44",
+      "pergunta": "balcao de carne resfriada ta 5 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor": "5",
+        "valor_texto": "5 graus",
+        "trecho": "5 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "resfriados",
+          "valor": "5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "armazenamento",
+        "valor_texto": "5 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003567159,
+      "tempo_s": 3.849109030999898
+    },
+    {
+      "id": "t45",
+      "pergunta": "camara de resfriados marcando 2",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor": "2",
+        "valor_texto": "2",
+        "trecho": "2",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "resfriados",
+          "valor": "2"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "armazenamento",
+        "valor_texto": "2"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003538863,
+      "tempo_s": 2.6017163090000395
+    },
+    {
+      "id": "t46",
+      "pergunta": "o balcao das carnes resfriadas esta a 4,5",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor": "4.5",
+        "valor_texto": "4,5",
+        "trecho": "4,5",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "resfriados",
+          "valor": "4.5"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "categoria": "resfriados",
+        "contexto": "armazenamento",
+        "valor_texto": "4,5"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.0003574881,
+      "tempo_s": 3.3777751030002037
+    },
+    {
+      "id": "t47",
+      "pergunta": "resfriados no expositor a menos 1 grau",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor": "-1",
+        "valor_texto": "menos 1 grau",
+        "trecho": "menos 1 grau",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "resfriados",
+          "valor": "-1"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor_texto": "menos 1 grau"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050392,
+      "tempo_s": 3.1205690760002653
+    },
+    {
+      "id": "t48",
+      "pergunta": "camara dos resfriados com 0 graus",
+      "ficha": {
+        "valida": true,
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor": "0",
+        "valor_texto": "0 graus",
+        "trecho": "0 graus",
+        "motivos": {},
+        "vetos": [],
+        "proposta": {
+          "aplica": true,
+          "contexto": "armazenamento",
+          "categoria": "resfriados",
+          "valor": "0"
+        },
+        "notas": [],
+        "problemas": []
+      },
+      "bruto": {
+        "aplica": true,
+        "contexto": "armazenamento",
+        "categoria": "resfriados",
+        "valor_texto": "0 graus"
+      },
+      "conteudo_ignorado": "",
+      "custo_usd": 0.00050093,
+      "tempo_s": 5.691069341000002
+    }
+  ],
+  "estado": "invalida_infra"
+}

@@ -1,0 +1,34 @@
+{
+  "tentativas": [
+    {
+      "rodada": "r1",
+      "n": 1,
+      "estado": "invalida_infra",
+      "arquivo": "extracao-r1-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.018920091399999995,
+      "inicio": "2026-11-24T06:59:07-03:00",
+      "fim": "2026-11-24T07:01:27-03:00"
+    },
+    {
+      "rodada": "r1",
+      "n": 2,
+      "estado": "concluida",
+      "arquivo": "extracao-r1-t2.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.039126225299999984,
+      "inicio": "2026-11-24T07:11:05-03:00",
+      "fim": "2026-11-24T07:14:49-03:00"
+    },
+    {
+      "rodada": "r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "extracao-r2-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.03984629549999998,
+      "inicio": "2026-11-24T07:14:51-03:00",
+      "fim": "2026-11-24T07:18:28-03:00"
+    }
+  ]
+}
