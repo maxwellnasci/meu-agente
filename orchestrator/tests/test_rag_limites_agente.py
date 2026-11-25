@@ -342,7 +342,7 @@ async def problemas_flag_desligada(mod, monkeypatch) -> list[str]:
 
 @pytest.mark.asyncio
 async def test_flag_desligada_deixa_o_no_como_hoje(indice, monkeypatch):
-    assert settings.rag_limites is False  # padrao
+    assert settings.rag_limites is True  # padrao desde 25/11/2026; o helper desliga a flag
     assert await problemas_flag_desligada(nodes, monkeypatch) == []
 
 

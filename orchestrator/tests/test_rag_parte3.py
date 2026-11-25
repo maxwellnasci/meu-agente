@@ -252,7 +252,8 @@ def test_coleta_intercala_e_grava_a_versao_de_cada_resposta(monkeypatch):
     assert [r["versao"] for r in dados["respostas"][:4]] == ["v1", "v5", "v1", "v5"]
     assert {r["rag_limites"] for r in dados["respostas"] if r["versao"] == "v5"} == {True}
     assert {r["regras_sha256"] for r in dados["respostas"] if r["versao"] == "v5"} == {p3.HASH_REGRAS_V5}
-    assert settings.rag_limites is False and settings.rag_regras_versao == "v1"  # restaurado
+    assert {r["rag_limites"] for r in dados["respostas"] if r["versao"] == "v1"} == {False}
+    assert settings.rag_limites is True and settings.rag_regras_versao == "v5"  # restaurado (padrao de 25/11)
 
 
 def test_coleta_falha_inicial_e_infra_depois(monkeypatch):
@@ -611,3 +612,99 @@ def test_executar_b_sem_a_e_recusado_antes_de_qualquer_chamada(tmp_path, monkeyp
     assert "RECUSADO: a ordem e A -> B -> C: a B so roda depois de A aprovada (falta o --resultado a)" in \
         capsys.readouterr().out
     assert not (tmp_path / "b").exists()
+
+
+# =============================================================================
+# decisao de 25/11/2026: A, B e C passaram -> v5 + ferramenta viram o padrao
+# (com o rag ligado); o rag continua DESLIGADO e o motor de producao NAO muda
+# =============================================================================
+
+PADRAO_DA_DECISAO = {"rag_regras_versao": "v5", "rag_limites": True,
+                     "rag_enabled": False, "llm_provedor": "openrouter"}
+
+MUTANTES_DO_PADRAO = {  # cada um desfaz uma parte da decisao (ou faz o que ela NAO faz)
+    "regras_v1": ('    rag_regras_versao: Literal["v1", "v2", "v3", "v5"] = "v5"\n',
+                  '    rag_regras_versao: Literal["v1", "v2", "v3", "v5"] = "v1"\n'),
+    "limites_desligados": ("    rag_limites: bool = True\n", "    rag_limites: bool = False\n"),
+    "rag_ligado": ("    rag_enabled: bool = False\n", "    rag_enabled: bool = True\n"),
+    "motor_deepseek": ('    llm_provedor: Literal["openrouter", "deepseek"] = "openrouter"\n',
+                       '    llm_provedor: Literal["openrouter", "deepseek"] = "deepseek"\n'),
+}
+
+
+def problemas_do_padrao(cls) -> list[str]:
+    """Diferencas entre o padrao da classe (sem .env nem ambiente) e a decisao."""
+    feito = cls(_env_file=None)
+    return [f"{campo}: padrao {cls.model_fields[campo].default!r}, Settings() {getattr(feito, campo)!r} "
+            f"!= {esperado!r}"
+            for campo, esperado in PADRAO_DA_DECISAO.items()
+            if cls.model_fields[campo].default != esperado or getattr(feito, campo) != esperado]
+
+
+@pytest.fixture
+def sem_env_do_padrao(monkeypatch):
+    for campo in PADRAO_DA_DECISAO:
+        monkeypatch.delenv(f"ORCHESTRATOR_{campo.upper()}", raising=False)
+
+
+def test_padrao_da_decisao_de_25_11(sem_env_do_padrao):
+    from orchestrator.config import Settings
+
+    assert problemas_do_padrao(Settings) == []
+    assert {c: getattr(settings, c) for c in PADRAO_DA_DECISAO} == PADRAO_DA_DECISAO
+
+
+@pytest.mark.parametrize("mutante", sorted(MUTANTES_DO_PADRAO))
+def test_mutante_do_padrao_e_pego(sem_env_do_padrao, monkeypatch, mutante):
+    from test_rag_limites_agente import _modulo_mutante
+
+    from orchestrator import config
+
+    # a copia nao instancia o `settings` global (nao abre .env nenhum)
+    mod = _modulo_mutante(monkeypatch, config, [MUTANTES_DO_PADRAO[mutante], ("\nsettings = Settings()\n", "\n")])
+    assert problemas_do_padrao(mod.Settings)
+
+
+def _etapa_respostas_espiada(modulo, monkeypatch, regras: str, aceitas) -> tuple[set, dict]:
+    """Roda o etapa_respostas (Missoes 8-10 e a B da Parte 3) com o padrao de hoje (ferramenta
+    LIGADA) e devolve o valor da flag visto em cada resposta + a flag depois."""
+    import asyncio
+
+    for k in ("n8n_url", "n8n_api_key", "openclaw_gateway_url", "openclaw_gateway_token", "rag_enabled",
+              "rag_regras_versao"):
+        monkeypatch.setattr(settings, k, getattr(settings, k))  # restaurados no fim do teste
+    monkeypatch.setattr(settings, "rag_limites", True)
+    monkeypatch.setattr(modulo, "_meta_do_indice", lambda s: None)
+    vistos = set()
+    falso = _responder_falso()
+
+    async def responder(graph, item):
+        vistos.add(settings.rag_limites)
+        return await falso(graph, item)
+
+    itens = [{"id": "q02", "tipo": "direta", "pergunta": "chegou frango congelado a -10 graus, aceito?"}]
+    asyncio.run(modulo.etapa_respostas(itens, orcamento=0.06, graph_factory=lambda cp: None,
+                                       responder=responder, log=lambda _: None, regras=regras, aceitas=aceitas))
+    return vistos, settings.rag_limites
+
+
+@pytest.mark.parametrize("regras,aceitas,esperado", [
+    ("v1", ("v1", "v2"), False),   # Missoes 8/9
+    ("v2", ("v1", "v2"), False),   # Missao 9
+    ("v3", m10.VERSOES, False),    # Missao 10
+    ("v1", p3.VERSOES, False),     # v1 da Parte 3 (B)
+    ("v5", p3.VERSOES, True),      # v5 da Parte 3 (B): a unica com a ferramenta
+])
+def test_coletores_antigos_nao_herdam_a_ferramenta_ligada(monkeypatch, regras, aceitas, esperado):
+    vistos, depois = _etapa_respostas_espiada(av, monkeypatch, regras, aceitas)
+    assert vistos == {esperado}
+    assert depois is True  # restaurada
+
+
+def test_mutante_sem_o_pin_da_ferramenta_e_pego(monkeypatch):
+    from test_rag_limites_agente import _modulo_mutante
+
+    mod = _modulo_mutante(monkeypatch, av, '    if regras != "v5":\n        settings.rag_limites = False\n', "")
+    vistos, _ = _etapa_respostas_espiada(mod, monkeypatch, "v1", ("v1", "v2"))
+    assert vistos == {True}  # sem o pin, a M8 re-executada rodaria COM a ferramenta
+

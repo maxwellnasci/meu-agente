@@ -1,27 +1,51 @@
 # RAG MVP — Especialista de Procedimentos (Supermercado Bom Preço)
 
-Status (24/11/2026): **ferramenta de limites, com a Parte 1 no `master`, a Parte 2 fechada (v3) e a Parte 3 a seguir.**
+Status (25/11/2026): **ferramenta de limites concluída (Partes 1 a 3), e a v5 é o padrão do agente quando o
+rag está ligado.** O rag continua **desligado** por padrão e **sem deploy**.
 
-- **Parte 1** (tabela de temperaturas + conta em Python, sem LLM; oráculo 874/874): integrada no `master`
-  (`6341ddf`, PR #8).
-- **Parte 2 fechada em 24/11** por decisão do Max (ver *Fechamento da Parte 2*), **sem** atingir o a). A v3,
-  "o modelo propõe, o código confere", fez 93 e 94/100 contra o mínimo de 95, e o veredito continua **NÃO
-  PASSA** no a). A segurança, b) a e), passou nas 2 rodadas, e todos os erros são vazios seguros. A **v3 é a
-  versão adotada** para a Parte 3.
-  - As Partes 2, 2.1 e 2.2 estão no `master` (PR #9, `b4459a3`).
-- **Parte 3 pré-registrada em 24/11, sem medir** (ver *Parte 3*). O código, os testes e o pré-registro
-  estão prontos; a ferramenta fica atrás de `ORCHESTRATOR_RAG_LIMITES`, **desligada** por padrão.
-  - As medições A (mini-teste do frango), B (regressão no gabarito) e C (prova lacrada, ainda não aberta)
-    vêm a seguir.
-  - A pendência **obrigatória** do `aplica=false` com "graus" está implementada como nota NÃO VERIFICÁVEL
-    e é medida na Parte 3.
-- **Continua valendo:**
-  - padrão do agente: híbrido com contexto no BM25 + embedding, **sem rerank** (16/17 de recall@5; MRR@20
-    0,602). As Missões 3–10 estão no `master`; as métricas do juiz da Missão 8 saem **não calibradas**;
-  - o `rag` segue **desligado por padrão** (`ORCHESTRATOR_RAG_ENABLED=false`) e **não há deploy**;
-  - **não ligar o RAG em ambiente real** antes de corrigir a q02, em que a v1 aceitou frango congelado a
-    −10 °C em 7/10 amostras. A ferramenta de limites ainda **não** está ligada no agente;
-  - antes de qualquer deploy há pendências obrigatórias (ver *Pendências*).
+As 5 etapas do caminho de uma pergunta dentro do agente, cada uma com o número que a mede:
+1. **Supervisor** (decide quem cuida da pergunta): 19/20 roteadas para o `rag` na Missão 8. A q18 foi pelo
+   caminho geral.
+2. **Busca / rag** (acha os 5 trechos do manual): recall@5 de **16/17 (94%)**, no híbrido com contexto.
+3. **Ficha** (o modelo extrai contexto, categoria e valor; o código confere com travas e vetos): **93 e
+   94/100** na Parte 2.2 (DeepSeek V3) e **95 e 95/100** na Parte 2.3 (`deepseek-flash`). A segurança, b–e,
+   ficou zero.
+4. **Calculadora** (`limites.py` compara com a tabela do manual): oráculo **874/874**.
+5. **Redator** (`synthesize_final` com as regras v5): usa a decisão da nota `[limite]` e nunca decide sozinho
+   quando a nota diz NÃO VERIFICÁVEL. Teve **0/10** erros no frango (A) e **0 ERRADA** nas perguntas de
+   temperatura da prova lacrada (C); a v1 teve 3.
+
+**Ordem de construção** (as Partes do projeto, separadas das etapas):
+- Parte 1, a calculadora: no `master` (`6341ddf`, PR #8).
+- Parte 2, a ficha: fechada em 24/11 com a v3. Não passou no a), mas os erros são todos vazios seguros. No
+  `master` (PR #9, `b4459a3`).
+- Parte 2.3, a ficha v3 no `deepseek-flash`: **PASSA**.
+- Parte 3, a ferramenta ligada no agente, com as medições A, B e C: **as três PASSAM**. A 2.3 e a Parte 3
+  estão na branch `feat/rag-limites-agente`, ainda fora do `master`.
+- Decisão pelo pré-registro (25/11): as regras v5 e `ORCHESTRATOR_RAG_LIMITES=true` viram o padrão com o
+  rag ligado.
+
+Números principais:
+- **Frango congelado a −10 °C (q02):** a v1 aceitou em **7/10** no DeepSeek V3 (mini-teste de 21/11). A v5
+  errou **0/10** na medição A.
+  - No `deepseek-flash`, a própria v1 também acertou a q02 10/10.
+- **Prova lacrada v1, perguntas de temperatura nunca vistas:** a v1 teve **3 erros em 10** e a v5, **0
+  erros** (e 2 PERGUNTA, o lado seguro).
+  - É o achado principal: o acerto em pergunta nova vem da calculadora em Python, e não do modelo sozinho.
+- **Gabarito (B):** a v5 ficou igual ou melhor que a v1 nas 5 métricas, sem nenhum Sim/Não contraditório.
+- **Custo total da Parte 3:** **US$ 0,5124** (A 0,0630, incluindo US$ 0,0298 de tentativas inválidas por 429;
+  B 0,3921; C 0,0573). Ver *Custo da Parte 3*.
+
+Continua valendo:
+- o padrão da busca é híbrido com contexto no BM25 + embedding, **sem rerank** (16/17 de recall@5; MRR@20
+  0,602). As Missões 3–10 estão no `master`, e as métricas do juiz da Missão 8 saem **não calibradas**;
+- o `rag` segue **desligado por padrão** (`ORCHESTRATOR_RAG_ENABLED=false`) e **não há deploy**. A decisão de
+  25/11 não liga o RAG em produção;
+- o motor de produção **não mudou** (`openrouter`). A troca para o `deepseek-flash` só deve ser feita com uma
+  chave própria do meu-agente (ver *Pendências*). A Parte 3 inteira foi medida no `deepseek-flash`, então a
+  v5 + ferramenta no motor atual é uma combinação **não medida**;
+- a prova lacrada `prova10-v1` **foi usada**. Uma medição nova de generalização precisa de uma `prova10-v2`;
+- antes de qualquer deploy, há pendências obrigatórias (ver *Pendências*).
 
 ## Resumo (para o README)
 
@@ -3586,6 +3610,9 @@ intercalada, pelo grafo inteiro, com os mesmos modelos e a mesma busca das Miss�
 **Decisão:** a v5 vira o padrão do agente (com `ORCHESTRATOR_RAG_LIMITES` ligado) **se e só se A, B e C
 passarem**. Basta uma reprovar e o padrão continua v1, com a flag desligada.
 
+**[→ 25/11/2026]** A, B e C passaram. A v5 e a ferramenta viraram o padrão com o rag ligado, que continua
+desligado. Ver *Decisão pelo pré-registro*, depois do *Resultado da medição C*.
+
 **Ordem entre A, B e C:** ~~proposta, a decidir pelo Max antes do 1º `--executar c`. A prova lacrada roda
 uma vez só (regra de 21/11). Rodá-la com a v5 já reprovada na A ou na B gastaria a prova sem decidir
 nada. A proposta é A e B primeiro, e a C por último, só se A e B passarem. Se o Max aceitar, isso vira
@@ -4183,33 +4210,211 @@ comparação correta (`−10 °C` é mais quente que `−12 °C`).
   diferença na q02. O valor da ferramenta aqui é a **garantia determinística em Python**: com a nota `[limite]
   RECUSAR` em 10/10, o acerto não depende do humor do modelo nem de uma troca futura de motor.
 
+## Ferramenta de limites — Parte 3 — Resultado da Medição B (25/11/2026)
+
+Os dados foram commitados em `849a7fc`, em `orchestrator/fixtures/rag/parte3/b/`: 4 respostas, 4 julgamentos,
+`registro.json` e `resultado.json`. Tudo foi feito na 1ª tentativa, sem repetição nem falha de infra. Esta
+seção foi escrita em 25/11, junto com a C, a partir da saída literal de
+`.venv/bin/python -m orchestrator.rag.parte3 --resultado b`:
+
+```text
+| Métrica | v1-r1 | v5-r1 | v1-r2 | v5-r2 | média v1 | média v5 |
+|---|---|---|---|---|---|---|
+| (b) fatos-chave (n=17) | 16 | 16 | 15 | 16 | 15.5 | 16.0 |
+| (f) correção (n=17) | 15 | 15 | 16 | 16 | 15.5 | 15.5 |
+| (d) sem grave (n=20) | 19 | 19 | 19 | 19 | 19.0 | 19.0 |
+| (d) fiel estrito (n=20) | 15 | 15 | 14 | 15 | 14.5 | 15.0 |
+| (c) citação espontânea (n=17) | 16 | 16 | 16 | 16 | 16.0 | 16.0 |
+
+- B) queda ≤ 1,0: (b) fatos-chave ok, (f) correção ok, (d) sem grave ok, (d) fiel estrito ok, (c) citação espontânea ok
+- B) zero Sim/Não contraditório na v5 (q01, q02, q04, q05, q10): sim
+- v5-r1: nota [limite] em q02; resposta fixa fora do c): —
+- v5-r2: nota [limite] em q02; resposta fixa fora do c): —
+
+**B PASSA.** Custo total medido: US$ 0.3921.
+```
+
+- **Veredito:** **`B PASSA`**. A v5 ficou igual ou melhor que a v1 nas 5 métricas. Nas 20 perguntas, a nota
+  `[limite]` só apareceu na q02. Isso libera a medição C.
+- **Custo:** US$ 0,3921, sendo US$ 0,1097 nas respostas (4 rodadas) e US$ 0,2823 no juiz (4 julgamentos).
+
+## Ferramenta de limites — Parte 3 — Resultado da medição C (25/11/2026)
+
+A prova lacrada `prova10-v1` rodou **uma vez**, com o sha256 conferido antes de ler. A coleta, a
+classificação e os registros ficam **fora do repo**, em `~/Documentos/Kali Linux/lacre/parte3-c/`:
+`registro.json`, `respostas-c-t1.json`, `classificacao-cega.yaml` e `mapa-cego.json`. Foi 1 tentativa,
+concluída sem falha de infra.
+
+**Classificação cega:** o Claude fez no chat, conferida pelo Max. O arquivo cego não traz a versão. Nenhuma
+pergunta nem resposta da prova entra neste repositório.
+
+**Saída literal de `.venv/bin/python -m orchestrator.rag.parte3 --resultado c --prova <arquivo lacrado>`:**
+
+```text
+Perguntas de temperatura (pelo código): 5 de 10
+
+| Versão | Grupo | CERTA | ERRADA | PERGUNTA |
+|---|---|---|---|---|
+| v1 | temperatura | 7 | 3 | 0 |
+| v1 | demais | 10 | 0 | 0 |
+| v5 | temperatura | 8 | 0 | 2 |
+| v5 | demais | 10 | 0 | 0 |
+
+- C) temperatura, zero ERRADA na v5: sim
+- C) demais, ERRADA v5 ≤ v1: sim
+
+**C PASSA.** Custo da coleta: US$ 0.0573.
+```
+
+- **O código contou 5 perguntas de temperatura,** o mesmo número do registro de 21/11.
+- **Critérios pré-registrados:**
+  - nas perguntas de temperatura, zero ERRADA na v5: **sim** (0 em 10);
+  - nas demais, ERRADA da v5 ≤ a da v1: **sim** (0 ≤ 0).
+- **Veredito:** **`C PASSA`**.
+- **Custo:** **US$ 0,0573**.
+
+**Os erros, só pelo tipo:**
+- **v1, 3 ERRADA (todas nas perguntas de temperatura):**
+  - uma resposta começa aceitando um congelado acima do limite e só depois se corrige;
+  - duas respondem "Não" à pergunta "está dentro?" e logo depois dizem que está dentro.
+- **v5, 2 PERGUNTA (lado seguro; não é erro em nenhum critério):** as duas pedem a categoria de um produto
+  que está fora da tabela de sinônimos. As notas `[limite]` dessas respostas não foram conferidas.
+  - **Leitura, não medida:** é o comportamento esperado da nota NÃO VERIFICÁVEL com a categoria vazia.
+
+### Achado principal (medido)
+
+No motor novo (`deepseek-flash`), a v1 acertou a q02 10/10 na medição A. Mas, nas perguntas de temperatura
+que nunca tinha visto (a prova lacrada), errou **3 em 10**. A v5 errou **0**. Isso mostra que o acerto em
+pergunta nova vem da **calculadora em Python**, e não do modelo sozinho.
+
+O acerto da v1 na A media uma pergunta conhecida. Ele não garantia generalização.
+
+- **Leitura, não medida:** os 3 erros da v1 parecem do tipo que a regra 6a da v5 bloqueia: concluir o
+  contrário da comparação, ou se contradizer na mesma resposta.
+
+- **Ressalva:** o N é pequeno (10 respostas de temperatura por versão). O critério pré-registrado é "zero
+  ERRADA na v5", e não uma diferença estatística entre as versões.
+
+### Decisão pelo pré-registro: a v5 vira o padrão (25/11/2026)
+
+A regra pré-registrada diz: *"a v5 vira o padrão do agente (com `ORCHESTRATOR_RAG_LIMITES` ligado) se e só se
+A, B e C passarem"*. **A, B e C passaram**, então:
+
+- **Padrões novos** (`orchestrator/src/orchestrator/config.py` e `orchestrator/.env.example`):
+  - `ORCHESTRATOR_RAG_REGRAS_VERSAO=v5`, que antes era `v1`;
+  - `ORCHESTRATOR_RAG_LIMITES=true`, que antes era `false`.
+  - As duas **só têm efeito com o rag ligado**.
+- **O que NÃO muda:**
+  - o rag continua **DESLIGADO** por padrão (`ORCHESTRATOR_RAG_ENABLED=false`) e **sem deploy**: esta decisão
+    **não** liga o RAG em produção (ver *Pendências*);
+  - o motor de produção **não muda**: `ORCHESTRATOR_LLM_PROVEDOR` continua `openrouter` no padrão, e o
+    `.env` do orquestrador continua como está. A troca para o `deepseek-flash` em produção virou pendência.
+- **A combinação padrão nunca foi medida.** A 2.3, A, B e C rodaram no `deepseek-flash`. O padrão agora é
+  v5 + ferramenta com o motor `openrouter` (DeepSeek V3), e as tentativas da Parte 3 no OpenRouter foram
+  todas invalidadas por 429, sem resultado. Ligar o rag no motor atual é uma combinação **não medida** (ver
+  *Pendências*).
+- **Testes do padrão** (`tests/test_rag_parte3.py`):
+  - `test_padrao_da_decisao_de_25_11` confere as 4 coisas juntas: v5, ferramenta ligada, rag desligado e
+    motor `openrouter`;
+  - 4 mutantes do `config.py` precisam ser pegos: o padrão antigo `v1`, a ferramenta desligada, o rag ligado
+    e o motor `deepseek`. Os dois últimos fazem o que a decisão **não** faz.
+- **Medições fechadas continuam reproduzíveis.** As Missões 8–10, o mini-teste e a v1 da Parte 3 foram
+  medidos **sem** a ferramenta.
+  - O `avaliar_respostas.etapa_respostas` passou a fixar a ferramenta desligada quando as regras não são
+    v5, e restaura o valor no fim. O `mini_q02` faz o mesmo.
+  - Sem isso, re-executar uma delas com o padrão novo ligaria a ferramenta sem ninguém pedir.
+  - Testes: `test_coletores_antigos_nao_herdam_a_ferramenta_ligada` (5 casos) e um mutante sem a fixação,
+    que é pego.
+- **Os hashes congelados não mudaram:**
+  - `rag_limites.py` `be379f94…`: a docstring dele ainda diz "padrão: desligado", e fica assim para não
+    mexer no hash;
+  - `llm_motor.py` `cdcba18e…`;
+  - regras v1 `3f4ca553…` e v5 `12f836e2…`.
+- **Saídas grátis conferidas, byte a byte, contra o `HEAD` `849a7fc`.** Saíram idênticas:
+  - o plano, o `--resultado a/b/c` e o `--estimativa` da Parte 3;
+  - o plano e o `--comparar` das Missões 9 e 10;
+  - o `--resultado` do mini-teste;
+  - o plano e o `--resultado` do `medir_extracao` nas 4 versões.
+- **Só dois planos mudaram,** e só no texto que mostra o padrão atual (`v5`):
+  - o plano do mini-teste, na linha "producao : padrao intacto (…)";
+  - o plano da Missão 8, nos hashes do sistema.
+  - O `--executar` dessas medições continua fixando as regras da própria medição.
+
+### Custo da Parte 3
+
+Somado a partir dos `registro.json` de cada medição:
+
+| Item | US$ |
+|---|---|
+| A: tentativa válida (`deepseek-flash`) | 0,0332 |
+| A: 1 falha inicial e 2 tentativas inválidas por 429 do OpenRouter, antes da emenda do motor | 0,0298 |
+| B: respostas (4 rodadas) + juiz (4 julgamentos) | 0,3921 |
+| C: coleta da prova lacrada | 0,0573 |
+| **Total da Parte 3 (A + B + C)** | **0,5124** |
+
+- **Fora desse total, por serem etapas próprias:**
+  - Parte 2.3: US$ 0,0343;
+  - `--teste-conexao`: menos de US$ 0,0001;
+  - `--teste-ficha`: US$ 0,0005.
+- Com esses itens, o gasto desde a emenda do motor foi de cerca de **US$ 0,547**.
+- **Projeção × medido, no motor novo:**
+  - a projeção da emenda do motor para A + B + C era de US$ 0,5795, com teto de US$ 1,36 com repetições;
+  - o medido no motor novo foi de **US$ 0,4826** (0,0332 + 0,3921 + 0,0573), sem nenhuma repetição.
+
 
 ## Pendências
 
-> **q02: a v1 (padrão) aceitou frango congelado a −10 °C em 7/10 amostras no mini-teste de 21/11 (docs/exploracao/mini-teste-q02.md). Não ligar o RAG em ambiente real antes de corrigir.**
+> **q02 corrigida pela v5, que é o padrão desde 25/11/2026.** No mini-teste de 21/11, a v1 aceitou frango congelado a −10 °C em 7/10 amostras (DeepSeek V3). Com a ferramenta de limites, a v5 errou 0/10 na medição A, e 0 nas perguntas de temperatura da prova lacrada, onde a v1 errou 3/10.
 >
-> Ferramenta de limites: a Parte 1 (tabela + conta, sem LLM) está pronta, a extração v3 passou na Parte 2.3 (`deepseek-flash`), e a medição A da Parte 3 passou. O padrão segue `v1` com `ORCHESTRATOR_RAG_LIMITES` desligado até concluir as medições B e C da Parte 3.
+> Mesmo assim, o RAG **continua desligado** (`ORCHESTRATOR_RAG_ENABLED=false`) e **sem deploy**. Antes de ligá-lo em ambiente real, valem as pendências obrigatórias de deploy abaixo. E, como **tudo da Parte 3 foi medido no `deepseek-flash`**, ligar o rag com o motor atual (`openrouter`) é uma combinação **não medida**. Ou se mede nesse motor, ou se troca o motor (com chave própria, ver abaixo).
 
-**OBRIGATÓRIO para a Parte 3** (registrado em 24/11/2026, no *Fechamento da Parte 2*):
-Quando a ficha disser aplica = false, mas a pergunta tiver um número com "graus" (ex.: i04 e i10, que
-obedeceram ao "marque aplica=false"), o redator NUNCA pode decidir aceitar/recusar sozinho: ou pergunta
-ao funcionário, ou diz que não consegue verificar.
-*Implementado em 24/11/2026* (ver *Parte 3*): a nota NÃO VERIFICÁVEL (`rag_limites.py`) e a regra 6b da
-v5. Continua pendente até a Parte 3 fechar (B e C).
+**Ferramenta de limites: concluída em 25/11/2026.** As Partes 1, 2 (v3), 2.3 e 3 (A, B e C) passaram. A v5 e
+`ORCHESTRATOR_RAG_LIMITES=true` são o padrão quando o rag está ligado. Ver *Decisão pelo pré-registro*.
 
-**Parte 3, emenda do motor (24/11/2026): estado das etapas pagas** (ver *Parte 2.3* e *Resultado da Medição A*):
-1. `--teste-conexao` (< US$ 0,0001): **passou** em 24/11 (pensamento desligado);
-2. `--teste-ficha` (~US$ 0,0006): **passou** em 24/11 (`tool_choice` nomeado funciona; US$ 0,000512, que
-   levou à emenda do orçamento da 2.3);
-3. Parte 2.3 (a ficha v3 no `deepseek-flash`): **passou** em 24/11 (95/100 nas 2 rodadas, b–e zero, US$ 0,0343);
-4. Medição A (q02, `v1` × `v5` no `deepseek-flash`): **passou** em 24/11 (`v1` 0/10 erros, `v5` 0/10 erros, `[limite] RECUSAR` 10/10, US$ 0,0332);
-5. **Próximo passo liberado:** Medição B (regressão nas 20 perguntas do gabarito, projeção ~US$ 0,4400; comandos em `python -m orchestrator.rag.parte3`);
-6. **Bloqueado até B passar:** Medição C (prova lacrada).
+**Etapas pagas da emenda do motor (24 e 25/11/2026), todas concluídas:**
+1. `--teste-conexao` (< US$ 0,0001): **passou** em 24/11, com o pensamento desligado;
+2. `--teste-ficha` (US$ 0,000512): **passou** em 24/11. O `tool_choice` nomeado funciona, e esse custo levou
+   à emenda do orçamento da 2.3;
+3. Parte 2.3, a ficha v3 no `deepseek-flash`: **passou** em 24/11 (95/100 nas 2 rodadas, b–e zero, US$ 0,0343);
+4. Medição A, q02 `v1` × `v5`: **passou** em 24/11 (`v1` 0/10 erros, `v5` 0/10, `[limite] RECUSAR` 10/10,
+   US$ 0,0332 + US$ 0,0298 das inválidas antigas);
+5. Medição B, regressão no gabarito: **passou** em 25/11. A v5 ficou igual ou melhor nas 5 métricas, sem
+   nenhum Sim/Não contraditório (US$ 0,3921);
+6. Medição C, prova lacrada: **passou** em 25/11. Nas perguntas de temperatura, a v1 teve 3 ERRADA e a v5
+   0 ERRADA (US$ 0,0573).
 
-**Parte 1.1** (registrado em 22/11/2026, decisão do Max na emenda E-4 da Parte 2): o
-`ler_temperatura` aceitar "X graus abaixo de zero" (fala comum de funcionário), com prova
-própria (oráculo, casos e mutantes, como a Parte 1). Até lá, "abaixo de zero" continua
-dando `None` e o esperado da Parte 2 continua null nesses itens (t07, t41).
+- ~~**OBRIGATÓRIO para a Parte 3**~~ (registrado em 24/11/2026, no *Fechamento da Parte 2*): **fechado em
+  25/11/2026.**
+  - A regra: quando a ficha disser `aplica = false`, mas a pergunta tiver um número com "graus" (ex.: i04 e
+    i10), o redator nunca decide aceitar ou recusar sozinho. Ou pergunta, ou diz que não consegue
+    verificar.
+  - Foi implementado em 24/11 com a nota NÃO VERIFICÁVEL e a regra 6b da v5.
+  - A Parte 3, que inclui essa nota, passou inteira.
+
+**Pendências novas (25/11/2026), da Parte 3:**
+- **A tabela de sinônimos não tem "sorvete"** nem outros produtos comuns.
+  - Ampliar com justificativa de cada entrada (o POP de onde vem a categoria) e **medir de novo**.
+  - Sem decorar a prova: ela já foi usada, e as entradas novas não podem sair dela.
+  - O `sinonimos_v1.yaml` está nos hashes pré-registrados (`85fd74db…`), conferidos pela ficha v3 e pelo
+    `conferir_sistema` da Parte 3. Uma ampliação vira um `sinonimos_v2.yaml`, com pré-registro próprio, e
+    deixa a v1 intacta para as medições fechadas.
+- **Motor de produção:** a troca para o `deepseek-flash` em produção fica pendente. Hoje,
+  `ORCHESTRATOR_LLM_PROVEDOR=openrouter` no padrão e no `.env`.
+  - **Fazer só com uma chave própria, dedicada ao meu-agente.** Ela não pode ser a mesma do
+    `claude-deepseek` nem a do `openclaw`. A chave usada nas medições é essa compartilhada.
+- **429 no pool compartilhado do OpenRouter:** aconteceu várias vezes, invalidando 2 tentativas da A, a r1-t1
+  da Parte 2.2 e a falha inicial da A.
+  - Produção precisa de **chave própria** ou de uma rota com **provedor de reserva**.
+- **A prova lacrada `prova10-v1` foi USADA (25/11/2026)** e não serve mais para medir generalização.
+  - Qualquer medição futura precisa de uma **`prova10-v2` nova**, escrita e lacrada **antes**, com o sha256
+    registrado aqui antes de qualquer uso.
+  - A v1 continua fora do repo, só como registro.
+
+**Parte 1.1** (registrado em 22/11/2026, decisão do Max na emenda E-4 da Parte 2; **continua aberta** em
+25/11/2026): o `ler_temperatura` deve aceitar "X graus abaixo de zero", fala comum de funcionário. Precisa de
+prova própria (oráculo, casos e mutantes), como a Parte 1. Até lá, "abaixo de zero" continua dando `None`, e
+o esperado da Parte 2 continua null nesses itens (t07, t41). Pelo código, uma ficha sem valor vira a nota
+NÃO VERIFICÁVEL, e não uma decisão. Mas esse caminho com "abaixo de zero" **não foi medido** na Parte 3.
 
 **Missão 9 (registrado ANTES de rodar; não muda nada agora, a variável é uma só):**
 em produção, quando a resposta crua não traz a citação completa, o

@@ -232,9 +232,10 @@ def test_mensagem_da_etapa2_neutraliza_delimitador_forjado_na_pergunta():
     assert humano.content.count("</resposta_completa") == 1 and humano.content.count("<resposta_completa") == 1
 
 
-def test_padrao_continua_v1_e_v3_e_aceita_pelo_env(monkeypatch):
-    assert Settings.model_fields["rag_regras_versao"].default == "v1"
-    assert settings.rag_regras_versao == "v1"
+def test_padrao_e_v5_e_v3_e_aceita_pelo_env(monkeypatch):
+    # padrao v5 desde 25/11/2026 (Parte 3 da ferramenta de limites: A, B e C passaram)
+    assert Settings.model_fields["rag_regras_versao"].default == "v5"
+    assert settings.rag_regras_versao == "v5"
     monkeypatch.setenv("ORCHESTRATOR_RAG_REGRAS_VERSAO", "v3")
     assert Settings(_env_file=None).rag_regras_versao == "v3"
     monkeypatch.setenv("ORCHESTRATOR_RAG_REGRAS_VERSAO", "v4")
