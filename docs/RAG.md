@@ -3942,6 +3942,11 @@ DeepSeek V3, na Parte 2.2. Antes de medir o agente inteiro com o motor novo (ver
 motor DeepSeek direto*, na Parte 3), medimos só essa peça no `deepseek-flash`.
 
 > **Nada foi medido.** Código, testes e este pré-registro foram feitos **antes** de qualquer chamada paga.
+>
+> **Emendado em 24/11/2026, antes de qualquer medição da Parte 2.3** (decisão do Max): o orçamento sobe para
+> US$ 0,06 por rodada e US$ 0,15 no total, por causa do custo medido no `--teste-ficha`. O texto original
+> foi mantido; o que mudou aparece ~~tachado~~, com a marca **[→ Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3]**. Ver *Emenda do orçamento*,
+> abaixo. Nada mais muda: os critérios, a ficha, os hashes e a ordem são os mesmos.
 
 ### Sistema congelado (`--versao v3-flash` do `medir_extracao.py`)
 
@@ -3989,15 +3994,18 @@ de seguir com os vazios seguros já foi tomada no *Fechamento da Parte 2* (24/11
 - **Se a DeepSeek não aceitar forçar a ferramenta pelo nome,** a 1ª resposta vem sem a ferramenta e vira
   falha inicial. **Nenhum contorno será aplicado sem o Max decidir antes.** O `--teste-ficha` responde a
   isso antes da 2.3.
-- **Orçamento:** até US$ 0,05 por rodada e teto de US$ 0,10 no total, com registro próprio.
+- **Orçamento:** ~~até US$ 0,05 por rodada e teto de US$ 0,10 no total, com registro próprio.~~
+  **[→ Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3]**: até **US$ 0,06 por rodada** e teto de **US$ 0,15 no total**, com registro próprio.
 - **Projeção,** pelo preço oficial registrado (24/11/2026, tarifa de pico, sem cache):
-  - o custo real da Parte 2.2 (US$ 0,0395 por rodada, média das 2 rodadas concluídas) × 1,1665 dá
-    **US$ 0,0461 por rodada** e **US$ 0,0921** nas 2;
-  - **a folga é de só ~8 %** sobre os US$ 0,05. O prefixo da chamada (prompt e schema) é o mesmo nas 100
+  - ~~o custo real da Parte 2.2 (US$ 0,0395 por rodada, média das 2 rodadas concluídas) × 1,1665 dá
+    **US$ 0,0461 por rodada** e **US$ 0,0921** nas 2;~~
+  - ~~**a folga é de só ~8 %** sobre os US$ 0,05.~~ O prefixo da chamada (prompt e schema) é o mesmo nas 100
     perguntas, e a DeepSeek faz cache dele sozinha, cobrando US$ 0,006 por 1M em vez de 0,30. O custo
     calculado usa os tokens reais de hit e miss, então deve ficar bem abaixo. **A projeção não conta com
     isso;**
-  - com o teto total de US$ 0,10, uma repetição só cabe se o gasto real das rodadas deixar sobra.
+  - ~~com o teto total de US$ 0,10, uma repetição só cabe se o gasto real das rodadas deixar sobra.~~
+  - **[→ Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3]**: a projeção passa a ser o custo **medido** no `--teste-ficha`, US$ 0,000512 por chamada,
+    o que dá **US$ 0,0512 por rodada** e **US$ 0,1024** nas 2 (ver *Emenda do orçamento*).
 - **O custo é calculado pelos tokens** (`llm_motor.custo_deepseek`, sempre na tarifa de pico).
 - **Na 2.3, o log e a falha inicial mostram só o tipo do erro e o status HTTP,** porque a mensagem da API
   pode ecoar parte da chave. As versões antigas continuam como antes.
@@ -4007,8 +4015,10 @@ de seguir com os vazios seguros já foi tomada no *Fechamento da Parte 2* (24/11
 - Os hashes de v1, v2 e v3 não mudaram.
 - **Conferido em 24/11/2026, sem chamada:** o plano e o `--resultado` de v1, v2 e v3 e a `--estimativa` da
   v3 saem **byte a byte idênticos** aos do `medir_extracao.py` do commit `67ec3cc`.
-- O `medir_extracao.py` deste pré-registro tem sha256 `e902ff691ebad746b9fad2c77141ab34e125ca8e3cd66ea0aadb8ec4efe94cfe`.
-  É só registro: como antes, ele não entra no congelamento.
+- O `medir_extracao.py` deste pré-registro tem sha256 ~~`e902ff691ebad746b9fad2c77141ab34e125ca8e3cd66ea0aadb8ec4efe94cfe`~~
+  **[→ Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3]**: `f8ffcdb78cf6f10f687cd51cabbc95f2c1b061695292d2e588f9a34c1d5a4a07`. É só registro: como antes,
+  ele não entra no congelamento. Depois da emenda, a comparação byte a byte com o commit `67ec3cc` (v1, v2,
+  v3 e a `--estimativa` da v3) foi refeita e continua idêntica.
 
 ### Testes (rede bloqueada, LLM falso)
 
@@ -4022,8 +4032,12 @@ do módulo, e o mutante é pego:
 - **os critérios,** com 7 cenários: tudo certo; só o a) (94 acertos, vazias seguras: **passa**); b) na r2;
   c); d) obedecida; d) parcial segura E-6 (**passa**); e).
   - Sete mutantes: o a) decide; sem o b), o c), o d) ou o e); sem o E-6 na 2.3; e só a 1ª rodada decide.
-- **os tetos** de US$ 0,05 e US$ 0,10, com a v3 em US$ 0,06 e o `parse_args`;
-  - mutante: os tetos antigos;
+- **os tetos** ~~de US$ 0,05 e US$ 0,10, com a v3 em US$ 0,06 e o `parse_args`;~~
+  - ~~mutante: os tetos antigos;~~
+  - **[→ Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3]**: US$ 0,06 por rodada e US$ 0,15 no total, no `validar_orcamento` e no `parse_args`
+    (9 casos);
+  - 5 mutantes: o teto por rodada acima de 0,06, o teto total acima de 0,15, os tetos antigos (0,05 e 0,10)
+    de volta, o CLI sem o teto por rodada e a conta sem conferir o que resta;
 - **o custo** pelos tokens só na 2.3, com a v3 no `cost`;
   - mutante: sem o desvio;
 - **o motor:**
@@ -4057,15 +4071,54 @@ Na Parte 3, a trava ganhou os cenários e os mutantes "A sem 2.3" e "A com 2.3 r
 .venv/bin/python -m orchestrator.rag.parte3 --teste-conexao
 # 2. teste da ficha, com o tool_choice nomeado (~US$ 0,0006)
 .venv/bin/python -m orchestrator.rag.parte3 --teste-ficha
-# 3. Parte 2.3 (projeção US$ 0,0461 por rodada) e o resultado (grátis)
-.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r1 --orcamento 0.05
-.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r2 --orcamento 0.05
+# 3. Parte 2.3 (emenda de 24/11: projeção US$ 0,0512 por rodada, --orcamento até 0.06) e o resultado (grátis)
+.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r1 --orcamento 0.06
+.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r2 --orcamento 0.06
 .venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --resultado
 # 4. SÓ se a 2.3 passar (o script recusa sem ela): a medição A
 .venv/bin/python -m orchestrator.rag.parte3 --executar a --orcamento 0.06
 ```
 
 O plano grátis é `.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash`.
+
+Até a emenda do orçamento, os dois comandos das rodadas usavam ~~`--orcamento 0.05`~~.
+
+### Emenda de 24/11/2026, antes de qualquer medição da Parte 2.3: o orçamento
+
+**Decisão do Max.** O orçamento sobe **antes** de medir.
+
+- **Motivo:** o custo medido no `--teste-ficha`.
+  - O `--teste-conexao` e o `--teste-ficha` passaram: o pensamento está desligado, e o `tool_choice` com a
+    ferramenta nomeada funciona na DeepSeek.
+  - O `--teste-ficha` custou **US$ 0,000512 por chamada** (1326 tokens de entrada em cache miss e 95 de
+    saída, na tarifa de pico). Em 100 chamadas, isso dá **US$ 0,0512**, acima do teto de US$ 0,05 por
+    rodada.
+  - Uma rodada estouraria perto da pergunta 98, **sem direito a repetição**. Como a A depende da 2.3, ela
+    ficaria travada sem resultado.
+- **Novo orçamento:** até **US$ 0,06 por rodada** e teto total de **US$ 0,15**, com o mesmo registro
+  próprio (`medicao/v3-flash/`).
+  - O CLI recusa um `--orcamento` acima de 0,06 (no `parse_args` e no `validar_orcamento`) e acima do que
+    resta dos 0,15.
+  - A constante é `TETOS[VERSAO_FLASH] = (0.06, 0.15)`. O custo medido fica em `CUSTO_TESTE_FICHA_USD`.
+- **Projeção nova,** pelo custo medido (pico, sem cache):
+
+  | | US$ |
+  |---|---|
+  | por chamada | 0,000512 |
+  | por rodada (100) | 0,0512 |
+  | 2 rodadas | 0,1024 |
+  | 2 rodadas + 1 repetição inteira | 0,1536 |
+
+  - A folga por rodada é de ~15 % sobre os US$ 0,06.
+  - **As 2 rodadas e 1 repetição cabem nos US$ 0,15** enquanto a tentativa que falhou por infra tiver
+    gastado até US$ 0,0476, ou seja, ~93 perguntas sem cache. Uma repetição depois de uma falha nas
+    últimas ~7 perguntas não caberia inteira. O `--orcamento` de cada tentativa nunca pode passar do que
+    resta do teto total.
+  - Numa rodada, o prefixo repetido deve vir com cache hit, a US$ 0,006 por 1M em vez de 0,30. O custo
+    calculado usa os tokens reais, então deve ficar bem abaixo, mas a projeção **não** conta com isso.
+- **Nada mais muda:** os critérios (decidem b, c, d e e; o a) só informa), a ficha, os 9 hashes do
+  pré-registro e a ordem (2.3 → A → B → C) são os mesmos.
+
 
 ## Pendências
 
@@ -4081,8 +4134,9 @@ ao funcionário, ou diz que não consegue verificar.
 v5. Continua pendente até a Parte 3 medir.
 
 **Parte 3, emenda do motor (24/11/2026): os comandos pagos, NESTA ordem** (ver *Parte 2.3*):
-1. `--teste-conexao` (< US$ 0,0001);
-2. `--teste-ficha` (~US$ 0,0006): confere o `tool_choice` nomeado na DeepSeek;
+1. `--teste-conexao` (< US$ 0,0001): **passou** em 24/11 (pensamento desligado);
+2. `--teste-ficha` (~US$ 0,0006): **passou** em 24/11 (`tool_choice` nomeado funciona; US$ 0,000512, que
+   levou à emenda do orçamento da 2.3);
 3. a Parte 2.3 (a ficha v3 no `deepseek-flash`): r1, r2 e o `--resultado`;
 4. **só se a 2.3 passar:** a medição A. O `parte3.py` trava o `--executar a` sem ela.
 

@@ -3,7 +3,7 @@
 Rede bloqueada e LLM falso. Cada regra nova tem o seu mutante, numa copia do modulo:
 - o pre-registro: os 8 hashes da v3 + o llm_motor.py; as versoes antigas intactas;
 - os criterios: DECIDEM b, c, d (com E-5 e E-6) e e, nas 2 rodadas; o a) so informa;
-- o orcamento proprio (US$ 0,05 por rodada, US$ 0,10 no total);
+- o orcamento proprio (emenda de 24/11, antes de medir: US$ 0,06 por rodada, US$ 0,15 no total);
 - o custo pelos tokens (motor DeepSeek) so na 2.3;
 - o motor ligado so nesta versao (a v3 continua no OpenRouter);
 - a chave nunca aparece no log, na falha inicial nem nos arquivos;
@@ -146,32 +146,62 @@ def test_mutante_dos_criterios_e_pego(monkeypatch, mutante):
 
 
 def problemas_tetos(mod) -> list[str]:
+    """Emenda de 24/11/2026, antes de medir a 2.3: US$ 0,06 por rodada e US$ 0,15 no total."""
     p = []
-    mod.validar_orcamento(0.05, [], FLASH)
-    for orc, tentativas, nome in ((0.051, [], "acima de 0,05 por rodada"),
-                                  (0.05, [{"estado": "concluida", "custo_usd": 0.06}], "acima do total de 0,10")):
+
+    def aceita(orc, tentativas, versao=FLASH) -> bool:
         try:
-            mod.validar_orcamento(orc, tentativas, FLASH)
-            p.append(f"aceitou {nome}")
+            mod.validar_orcamento(orc, tentativas, versao)
+            return True
         except ValueError:
-            pass
-    mod.validar_orcamento(0.06, [], "v3")  # a v3 continua com 0,06
-    try:
-        mod.parse_args(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", "0.06"])
-        p.append("o parse_args aceitou 0,06 na 2.3")
-    except SystemExit:
-        pass
+            return False
+
+    def cli_aceita(orc) -> bool:
+        try:
+            mod.parse_args(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", str(orc)])
+            return True
+        except SystemExit:
+            return False
+
+    gasto = [{"estado": "concluida", "custo_usd": 0.0512}, {"estado": "invalida_infra", "custo_usd": 0.0400}]
+    casos = {
+        "0,06 por rodada aceito": (aceita(0.06, []), True),
+        "acima de 0,06 por rodada recusado": (aceita(0.061, []), False),
+        "o que resta dos 0,15 aceito (0,0588)": (aceita(0.0588, gasto), True),
+        "acima do que resta dos 0,15 recusado": (aceita(0.06, gasto), False),
+        "teto total 0,15 com 2 rodadas cheias": (aceita(0.03, [{"estado": "concluida", "custo_usd": 0.06}] * 2), True),
+        "nada depois dos 0,15": (aceita(0.001, [{"estado": "concluida", "custo_usd": 0.075}] * 2), False),
+        "a v3 continua com 0,06/0,15": (aceita(0.06, [], "v3"), True),
+        "CLI aceita 0,06": (cli_aceita(0.06), True),
+        "CLI recusa acima de 0,06": (cli_aceita(0.061), False),
+    }
+    for nome, (obtido, esperado) in casos.items():
+        if obtido is not esperado:
+            p.append(f"{nome}: {obtido}")
     return p
 
 
 def test_tetos_da_2_3():
     assert problemas_tetos(me) == []
-    assert me._tetos(FLASH) == (0.05, 0.10) and me._tetos("v3") == (0.06, 0.15)
+    assert me._tetos(FLASH) == (0.06, 0.15) and me._tetos("v3") == (0.06, 0.15)
+    assert abs(me.CUSTO_TESTE_FICHA_USD - 0.0005118) < 1e-12  # o medido no --teste-ficha
+    proj = me.projecao_v3_flash()
+    assert proj is None or abs(proj["por_rodada_usd"] - 100 * me.CUSTO_TESTE_FICHA_USD) < 1e-12
 
 
-def test_mutante_dos_tetos_e_pego(monkeypatch):
-    mod = _modulo_mutante(monkeypatch, me, "TETOS = {VERSAO_FLASH: (0.05, 0.10)}", "TETOS = {VERSAO_FLASH: (0.06, 0.15)}")
-    assert problemas_tetos(mod)
+MUTANTES_TETOS = {
+    "teto por rodada acima de 0,06": ("TETOS = {VERSAO_FLASH: (0.06, 0.15)}", "TETOS = {VERSAO_FLASH: (0.07, 0.15)}"),
+    "teto total acima de 0,15": ("TETOS = {VERSAO_FLASH: (0.06, 0.15)}", "TETOS = {VERSAO_FLASH: (0.06, 0.20)}"),
+    "teto antigo da 2.3 (0,05/0,10)": ("TETOS = {VERSAO_FLASH: (0.06, 0.15)}", "TETOS = {VERSAO_FLASH: (0.05, 0.10)}"),
+    "CLI sem o teto por rodada": ("        if not 0 < a.orcamento <= teto_rodada:\n", "        if not 0 < a.orcamento:\n"),
+    "sem conferir o que resta": ("    if orcamento > restante + 1e-12:\n", "    if False:\n"),
+}
+
+
+@pytest.mark.parametrize("mutante", MUTANTES_TETOS)
+def test_mutante_dos_tetos_e_pego(monkeypatch, mutante):
+    mod = _modulo_mutante(monkeypatch, me, *MUTANTES_TETOS[mutante])
+    assert problemas_tetos(mod), f"mutante {mutante!r} passou"
 
 
 # =============================================================================
@@ -223,7 +253,7 @@ def test_executar_2_3_usa_o_motor_deepseek(tmp_path, monkeypatch, chave, capsys)
 
     monkeypatch.setattr(llm_motor, "chamar_ficha", fabrica)
     monkeypatch.setattr(lx3, "chamar_openrouter", lambda s: pytest.fail("a 2.3 chamou o OpenRouter"))
-    assert me.main(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", "0.05"]) == 0
+    assert me.main(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", "0.06"]) == 0
     assert vistos == [("deepseek", True)] and settings.llm_provedor == "openrouter"  # so no processo
     reg = me.ler_registro(tmp_path / "v3-flash")
     assert [t["estado"] for t in reg] == [me.ESTADO_CONCLUIDA]
@@ -251,7 +281,7 @@ def test_executar_v3_continua_no_openrouter(tmp_path, monkeypatch, chave):
 def test_executar_2_3_sem_chave_e_recusado(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(me, "DIR_MEDICAO_V3_FLASH", tmp_path / "v3-flash")
     monkeypatch.setattr(settings, "deepseek_api_key", None)
-    assert me.main(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", "0.05"]) == 2
+    assert me.main(["--versao", FLASH, "--executar", "--rodada", "r1", "--orcamento", "0.06"]) == 2
     assert "DEEPSEEK_API_KEY ausente" in capsys.readouterr().out
     assert me.ler_registro(tmp_path / "v3-flash") == []  # nada registrado, nada gasto
 
@@ -382,6 +412,6 @@ def test_plano_da_2_3_e_gratis(tmp_path, monkeypatch, capsys, chave):
     assert me.main(["--versao", FLASH]) == 0
     out = capsys.readouterr().out
     assert "Parte 2.3" in out and "deepseek-flash" in out and "SO INFORMACAO" in out
-    assert "--versao v3-flash --executar --rodada r1 --orcamento 0.05" in out
+    assert "--versao v3-flash --executar --rodada r1 --orcamento 0.06" in out
     assert CHAVE_FALSA not in out and not (tmp_path / "v3-flash").exists()
     assert copy.deepcopy(me.PRE_REGISTRO_V3_FLASH) == me.hashes_atuais(versao=FLASH)

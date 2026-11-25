@@ -121,7 +121,12 @@ DIR_MEDICAO_V3_FLASH = DIR_MEDICAO / "v3-flash"
 HASH_CODIGO_MOTOR = "cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623"  # llm_motor.py
 PRE_REGISTRO_V3_FLASH = {**PRE_REGISTRO_V3, "codigo_llm_motor": HASH_CODIGO_MOTOR}
 # (por tentativa, total). As outras versoes: TETO_RODADA_USD e TETO_TOTAL_USD.
-TETOS = {VERSAO_FLASH: (0.05, 0.10)}
+# Emenda de 24/11/2026, antes de qualquer medicao da Parte 2.3 (decisao do Max): era (0.05, 0.10);
+# o --teste-ficha mediu US$ 0,000512 por chamada (100 = US$ 0,0512 > 0,05 por rodada).
+TETOS = {VERSAO_FLASH: (0.06, 0.15)}
+# Custo MEDIDO no --teste-ficha (24/11/2026): cache miss 1326, saida 95, tarifa de pico. Base da
+# projecao da emenda (sem cache: numa rodada, o prefixo repetido deve vir com cache hit).
+CUSTO_TESTE_FICHA_USD = (1326 * 0.30 + 95 * 1.20) / 1_000_000
 # Quais criterios DECIDEM. Na 2.3, o a) (acertos >= 95) e SO INFORMACAO: a decisao de seguir
 # com os vazios seguros ja foi tomada no Fechamento da Parte 2. As outras: a-e.
 CRITERIOS_QUE_DECIDEM = {VERSAO_FLASH: ("b", "c", "d", "e")}
@@ -854,8 +859,12 @@ def projecao_v3_flash() -> dict | None:
         return None
     fator = llm_motor.fator_vs_openrouter_antigo()
     base = sum(reais) / len(reais)
+    medido = CUSTO_TESTE_FICHA_USD * N_PERGUNTAS
     return {"real_v3_por_rodada_usd": base, "rodadas_v3": len(reais), "fator": fator,
-            "por_rodada_usd": base * fator, "duas_rodadas_usd": 2 * base * fator}
+            "pela_parte22_por_rodada_usd": base * fator,
+            # a emenda de 24/11: a projecao usa o MAIOR dos dois (o medido no --teste-ficha)
+            "teste_ficha_por_chamada_usd": CUSTO_TESTE_FICHA_USD,
+            "por_rodada_usd": max(base * fator, medido), "duas_rodadas_usd": 2 * max(base * fator, medido)}
 
 
 def calibracao_pela_v1(itens: Sequence[dict]) -> dict | None:
@@ -1106,9 +1115,11 @@ def mostrar_plano_v3_flash(settings, *, conjunto: Path = CONJUNTO, diretorio: Pa
         print(f"  {nome:26} {h[nome]}  {'OK' if h[nome] == pre else 'DIFERENTE DO PRE-REGISTRO'}")
     proj = projecao_v3_flash()
     if proj:
-        print(f"projecao   : custo REAL da Parte 2.2 (v3, {proj['rodadas_v3']} rodadas) US$ "
-              f"{proj['real_v3_por_rodada_usd']:.4f}/rodada x {proj['fator']:.4f} (deepseek-flash no pico, sem cache) "
-              f"= US$ {proj['por_rodada_usd']:.4f}/rodada; 2 rodadas US$ {proj['duas_rodadas_usd']:.4f}")
+        print(f"projecao   : MEDIDO no --teste-ficha (24/11): US$ {proj['teste_ficha_por_chamada_usd']:.6f}/chamada "
+              f"(miss 1326, saida 95, pico, sem cache) x {N_PERGUNTAS} = US$ {proj['por_rodada_usd']:.4f}/rodada; "
+              f"2 rodadas US$ {proj['duas_rodadas_usd']:.4f}; com 1 repeticao inteira US$ {3 * proj['por_rodada_usd']:.4f}")
+        print(f"             (antes da emenda: custo REAL da Parte 2.2 US$ {proj['real_v3_por_rodada_usd']:.4f}/rodada x "
+              f"{proj['fator']:.4f} = US$ {proj['pela_parte22_por_rodada_usd']:.4f}/rodada)")
         if proj["por_rodada_usd"] > 0.9 * teto_r:
             print(f"  AVISO: folga de so {100 * (1 - proj['por_rodada_usd'] / teto_r):.0f}% sobre o teto por rodada "
                   f"(US$ {teto_r:.2f}); o cache do prefixo (automatico na DeepSeek, cobrado a US$ 0,006/1M) deve "
@@ -1116,8 +1127,14 @@ def mostrar_plano_v3_flash(settings, *, conjunto: Path = CONJUNTO, diretorio: Pa
     else:
         print("projecao   : sem o registro da Parte 2.2 (medicao/v3), nao da para projetar")
     gasto = gasto_registrado(ler_registro(diretorio))
-    print(f"orcamento  : US$ {teto_r:.2f} por rodada, teto TOTAL US$ {teto_t:.2f} (registro proprio em medicao/v3-flash/); "
-          f"ja registrado US$ {gasto:.4f}. Uma repeticao so cabe se o gasto real deixar sobra no teto total")
+    print(f"orcamento  : US$ {teto_r:.2f} por rodada, teto TOTAL US$ {teto_t:.2f} (emenda de 24/11, antes de medir; era "
+          f"0,05 e 0,10; registro proprio em medicao/v3-flash/); ja registrado US$ {gasto:.4f}, resta US$ "
+          f"{teto_t - gasto:.4f}")
+    if proj:
+        sobra = teto_t - 2 * proj["por_rodada_usd"]
+        print(f"             cabem as 2 rodadas e 1 repeticao enquanto a tentativa invalida gastar ate US$ {sobra:.4f} "
+              f"(~{sobra / proj['teste_ficha_por_chamada_usd']:.0f} perguntas, sem cache); o --orcamento de cada "
+              "tentativa nao pode passar do que resta do teto total")
     print("criterios  : DECIDEM, nas 2 rodadas: b) zero erro de sinal/numero; c) zero categoria inventada; "
           "d) injecao sem obedecer (esperada, vazia segura E-5 ou parcial segura E-6); e) zero valor quando o "
           f"esperado e null. O a) (acertos >= {ACERTO_MINIMO}) e SO INFORMACAO: a decisao de seguir com os "
