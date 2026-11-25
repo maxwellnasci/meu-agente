@@ -3418,6 +3418,10 @@ O caminho tem 5 etapas: **1** supervisor → **2** busca (rag) → **3** ficha (
 > **Emendado em 24/11/2026, antes de qualquer medição** (decisão do Max): a ordem A → B → C, com trava no
 > script (ver *Ordem entre A, B e C*). O texto original foi mantido; o que mudou aparece ~~tachado~~, com a
 > marca **[→ Emenda de 24/11/2026, antes de qualquer medição]**.
+>
+> **Emendado de novo em 24/11/2026, antes de qualquer resultado da medição A** (decisão do Max): A, B e C
+> rodam com o **motor DeepSeek direto** (`deepseek-flash`, pensamento desligado), por causa dos 429 do
+> OpenRouter. Ver *Emenda de 24/11/2026: o motor DeepSeek direto*, no fim desta parte.
 
 ### O que foi ligado (`orchestrator/src/orchestrator/graph/rag_limites.py`)
 
@@ -3499,7 +3503,9 @@ pela lição das v2, v3 e v4: nada de Sim/Não forçado na 1ª palavra. Os rótu
 O `--executar` **recusa** se qualquer um destes mudar:
 
 - as regras v1 e v5 (os dois hashes acima), e a v5 sem etapa 2;
-- o código do passo, `rag_limites.py`: `bdccb1db6ee18ae539c3bd31fe5748eb7545bc1e02ac67db5e77ee077cd5147b`;
+- o código do passo, `rag_limites.py`: `bdccb1db6ee18ae539c3bd31fe5748eb7545bc1e02ac67db5e77ee077cd5147b`
+  **[→ Emenda do motor, 24/11/2026: `be379f946308820451a0c8d721ea699299434eeb1fbe5077d89c36f0611c59f4`; e o
+  `llm_motor.py` entra congelado]**;
 - **a ficha v3 da Parte 2.2**, pelos **8** sha256 dela (`medir_extracao.conferir_pre_registro(versao="v3")`)
   e pelo modelo `deepseek/deepseek-chat`;
 - **o índice**, conferido em cada coleta e no resultado: o `indice_meta` tem de ser o da Missão 8.
@@ -3736,6 +3742,331 @@ padrão continua v1, e a v4 continua só dentro do mini-teste.
 - **L6. As combinações cruzadas não são medidas:** v1 com a flag ligada e v5 com ela desligada. Em produção,
   as duas mudam juntas (`.env.example`).
 
+### Emenda de 24/11/2026, antes de qualquer resultado da medição A: o motor DeepSeek direto
+
+**Decisão do Max.** O "motor" do agente passa para a API direta da DeepSeek, com chave própria, por causa
+dos 429 do pool compartilhado do OpenRouter. **Nenhuma execução paga foi feita nesta emenda.**
+
+> **ATENÇÃO: o motor novo é OUTRO MODELO.**
+>
+> - O motor novo é o **`deepseek-flash`** (DeepSeek-V4.1-Flash-1017, pensamento desligado).
+> - Ele é **diferente** do `deepseek/deepseek-chat` do OpenRouter (o **DeepSeek V3**, dez/2024), que foi
+>   usado no mini-teste de 21/11 e nas Partes 2 a 2.2.
+> - O `deepseek-chat` da API direta foi descontinuado, segundo o changelog oficial
+>   (<https://api-docs.deepseek.com/updates/>, lido em 24/11/2026):
+>   - **24/04/2026** (DeepSeek-V4): *"The two legacy API model names, `deepseek-chat` and
+>     `deepseek-reasoner`, will be discontinued in three months (2026-07-24)."* Até lá, os dois nomes
+>     apontavam para o modo sem e com pensamento do `deepseek-v4-flash`;
+>   - **10/09/2026:** *"The previous-generation models V4 Flash and V4 Flash Vision Exp have been retired"*;
+>   - nenhuma entrada posterior volta a citar o `deepseek-chat`, e a página de preços de 24/11/2026 já não
+>     o lista.
+> - **Os números antigos não se comparam com os novos como se fossem do mesmo modelo.**
+
+- **As 2 tentativas da A ficaram inválidas por infra** (429 do OpenRouter). Nenhuma resposta foi
+  classificada, então **não há resultado**. O registro (`orchestrator/fixtures/rag/parte3/a/registro.json`)
+  tem 1 falha inicial (`RateLimitError`) e 2 tentativas inválidas por infra, todas pelo OpenRouter, num total
+  de US$ 0,0298.
+- **A, B e C passam a rodar com o motor DeepSeek direto, para a v1 e a v5 igualmente.**
+  - O `parte3.py` liga o motor **só no processo** (`com_motor`), no plano, no `--executar` e no `--julgar`.
+  - O `.env` não muda, e o padrão do produto continua `openrouter`.
+- **O motor é um modelo NOVO, não outra versão do `deepseek-chat`.** É uma correção do pedido, que dizia
+  "o modelo continua o deepseek-chat":
+  - o `deepseek/deepseek-chat` do OpenRouter, medido no mini-teste e nas Partes 2 a 2.2, é o **DeepSeek V3**
+    (dez/2024), servido pela DeepInfra (fp4) e pela StreamLake (`openrouter.ai/api/v1/models/deepseek/deepseek-chat/endpoints`,
+    consultado em 24/11/2026);
+  - na API direta, o changelog oficial de 24/04/2026 marcou `deepseek-chat` e `deepseek-reasoner` para
+    desligar em 24/07/2026. Até lá, `deepseek-chat` apontava para o modo sem pensamento do V4 Flash, que
+    foi aposentado em 10/09/2026. A página de preços só lista `deepseek-flash` (DeepSeek-V4.1-Flash-1017)
+    e `deepseek-v4-pro`;
+  - o Max escolheu o **`deepseek-flash` com o pensamento desligado** (`extra_body={"thinking": {"type": "disabled"}}`).
+    O pensamento fica desligado porque, no modo de pensamento (o padrão da DeepSeek), a `temperature` é
+    ignorada, e a ficha depende da temperatura 0. Além disso, ferramentas em vários turnos exigem devolver
+    o `reasoning_content`.
+- **Com o motor novo, a A tem de novo direito a UMA repetição por falha de infra.**
+  - As tentativas passam a contar **por motor**: o registro grava `motor_do_agente`, e as antigas (sem o
+    campo) contam como `openrouter`.
+  - **Contam por motor:** as repetições por infra e **o teto da medição**. O teto da A no motor novo é de
+    US$ 0,12, **aceito pelo Max em 24/11/2026**.
+  - **As falhas iniciais NÃO recomeçam** (ajuste do Max, 24/11/2026). O limite é o mesmo de todas as
+    medições (`MAX_FALHAS_INICIAIS = 2`, ou seja, 1 repetição) e conta as falhas de **todos** os motores.
+    A A já teve 1 no OpenRouter, então **resta 1 no motor novo**: uma 2ª falha inicial encerra a A. Isso é
+    `parte3.falhas_iniciais_esgotadas`.
+  - O gasto antigo da A (US$ 0,0298) fica registrado fora do teto novo. **No pior caso, a A custa US$ 0,0298
+    + US$ 0,12.**
+  - Uma unidade concluída com qualquer motor não roda de novo. A ordem A → B → C, os critérios e os tetos
+    por tentativa não mudam.
+- **Limite registrado:**
+  - as medições antigas (o mini-teste de 21/11 e as Partes 2 a 2.2) foram feitas pelo OpenRouter, com o
+    DeepSeek V3;
+  - a comparação v1 × v5 **dentro** da Parte 3 continua justa, porque as duas usam o mesmo motor;
+  - a comparação com os números antigos fica **só como referência**;
+  - em particular, os 93/94 da ficha v3 (Parte 2.2) foram medidos no V3. A ficha **não foi medida de novo**
+    no `deepseek-flash`. Na medição, um erro da ficha continua contando como infra. **Decidido pelo Max em
+    24/11/2026:** a ficha é revalidada no motor novo **antes** da A, na *Parte 2.3*, e a A só roda se ela
+    passar.
+- **O juiz da B não muda:** continua `google/gemini-3.8-flash` pelo OpenRouter, como foi pré-registrado. O
+  especialista n8n também continua no OpenRouter, porque está fora do caminho da Parte 3.
+
+#### O motor (`orchestrator/src/orchestrator/llm_motor.py`)
+
+- A configuração é `ORCHESTRATOR_LLM_PROVEDOR` = `openrouter` (padrão) | `deepseek`.
+- Com `deepseek`:
+  - base_url `https://api.deepseek.com`;
+  - modelo `deepseek-flash`;
+  - a chave vem **só** de `DEEPSEEK_API_KEY` (sem o prefixo `ORCHESTRATOR_`). No settings ela é um
+    `SecretStr`: nunca aparece em `repr`, log ou JSON;
+  - só o slug do agente (`deepseek/deepseek-chat`) é traduzido. Outro modelo com o motor `deepseek` é
+    recusado: o motor nunca troca de modelo calado.
+- Vale para o supervisor (`router_model`), o extrator da ficha (`rag_limites._chamar_padrao`) e o redator
+  (`general_model`). A etapa 2 da v3 recebe o mesmo LLM do redator.
+- No `openrouter`, as três chamadas são **as de antes**: mesma base_url, mesmo modelo e mesma chave, e a
+  ficha chama a mesma `lx3.chamar_openrouter`.
+- O que fica gravado em cada medição:
+  - cada resposta grava `provedor` e `modelo_efetivo`;
+  - a coleta grava o `motor`: provedor, base_url, modelo, pensamento, preço, fonte e data;
+  - o `--resultado` **recusa** uma resposta sem o motor `deepseek` ou com outro `llm_motor.py`.
+
+#### Preço oficial (consultado em 24/11/2026)
+
+A fonte é <https://api-docs.deepseek.com/quick_start/pricing>, conferida também na versão em chinês, em
+CNY, com a mesma ordem de colunas. Preços do `deepseek-flash`, em US$ por 1M tokens:
+
+| | Pico | Fora de pico |
+|---|---|---|
+| Entrada, cache hit | 0,006 | 0,003 |
+| Entrada, cache miss | 0,30 | 0,15 |
+| Saída | 1,20 | 0,60 |
+
+- **Horário de pico:** 01:00–04:00 e 06:00–10:00 UTC, de segunda a sexta, exceto feriados chineses. Em
+  Brasília, isso dá 22:00–01:00 e 03:00–07:00. Fora de pico, o preço é a metade.
+- **O custo é calculado pelos tokens do `usage`:** `prompt_cache_hit_tokens`, `prompt_cache_miss_tokens` e
+  `completion_tokens`.
+  - A conta usa **sempre a tarifa de pico**, para o orçamento nunca ficar abaixo da fatura.
+  - Sem a divisão entre hit e miss, tudo conta como miss.
+  - Uma chamada sem nenhuma contagem de tokens conta US$ 0,01 fixos, e não zero, para o corte nunca deixar
+    de disparar.
+- **Comparação:** o preço registrado do OpenRouter (StreamLake, 19/11) era US$ 0,2574 na entrada e
+  US$ 1,0287 na saída. O `deepseek-flash` no pico custa ×1,1655 na entrada e ×1,1665 na saída, por token.
+- O `deepseek-v4-pro` (não escolhido) custa, no pico, 0,044 (hit), 1,32 (miss) e 3,96 (saída).
+
+#### Projeção com o motor novo
+
+A projeção usa os custos reais antigos × 1,1665 (o juiz não muda). É **só projeção**: o modelo novo pode
+gastar outro número de tokens.
+
+| Medição | Projeção | Teto por tentativa |
+|---|---|---|
+| A | US$ 0,0481 | US$ 0,06 |
+| B | US$ 0,4400 (respostas 0,1578 + juiz 0,2822) | v1 US$ 0,06 e v5 US$ 0,07 (projeção por rodada: 0,0383 e 0,0406); juiz US$ 0,12 |
+| C | US$ 0,0913 | US$ 0,12 |
+| **total** | **US$ 0,5795** | **US$ 0,92** sem repetição; **US$ 1,36** no pior caso, mais os US$ 0,0298 já gastos na A antiga |
+
+- **A folga da A é a menor (~20 %).** Se o modelo novo escrever bem mais que o V3, o corte por orçamento
+  pode disparar. Nesse caso a tentativa fica inválida, sem repetição.
+
+#### Hashes desta emenda (antes de qualquer resultado)
+
+- `rag_limites.py`: `bdccb1db…` → `be379f946308820451a0c8d721ea699299434eeb1fbe5077d89c36f0611c59f4`. Só o
+  `_chamar_padrao` mudou: agora ele passa pelo motor.
+- Novo, congelado: `llm_motor.py`, `cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623`.
+- Não mudaram: as regras v1 e v5, a ficha v3 (os 8 hashes da Parte 2.2, inclusive o `limites_extracao.py`)
+  e o prompt do supervisor.
+
+#### Teste de conexão (pago, mínimo; NÃO rodado)
+
+- **`.venv/bin/python -m orchestrator.rag.parte3 --teste-conexao`** faz UMA chamada "responda só: ok"
+  (`max_tokens=5`) com o motor deepseek, mesmo com o `.env` em `openrouter`.
+  - Mostra só: OK ou FALHOU (com o tipo do erro e o status HTTP), o modelo que respondeu, se a resposta
+    começou com "ok", os tokens e o custo calculado.
+  - Nunca mostra a chave, os cabeçalhos nem o texto do erro (ele pode ecoar parte da chave).
+  - Custo estimado: menos de US$ 0,0001.
+- **`--teste-ficha` (opcional)** faz UMA chamada do extrator com uma pergunta fixa de exemplo, fora do
+  gabarito ("O frango congelado chegou a -15 graus, posso receber?").
+  - Serve para saber, antes da A, se o `tool_choice` com a ferramenta nomeada funciona na DeepSeek. A
+    documentação dela não diz. Se não funcionar, a 1ª chamada da A vira falha inicial.
+  - Custo estimado: ~US$ 0,0006.
+
+#### Testes (rede bloqueada, LLM falso)
+
+`tests/test_llm_motor.py` tem 40 testes (36 + 4 do ajuste de 24/11: as falhas iniciais em todos os
+motores, com o mutante "por motor", e a trava da Parte 2.3 no `--executar a`). Cada regra tem o seu
+mutante, numa cópia do módulo, e o mutante é pego:
+
+- **a escolha do provedor:**
+  - o padrão é openrouter, e o mutante do padrão é pego;
+  - a variável de ambiente e o `.env` (com a regressão do `extra_forbidden`, abaixo);
+  - o supervisor e o redator pelo grafo inteiro;
+  - o corpo real da requisição da ficha: modelo, temperatura 0, `tool_choice` e `extra_body`;
+  - o n8n e o juiz continuam iguais;
+  - cinco mutantes: base_url, modelo não traduzido, chave trocada, pensamento ligado e outro modelo aceito;
+- **o custo:**
+  - os valores exatos com hit/miss, fora de pico, sem divisão, só com o `usage_metadata`, sem uso e só
+    com `cost`;
+  - o preço registrado e a soma das chamadas do agente;
+  - cinco mutantes: hit cobrado como miss, orçamento fora de pico, sem uso vira zero, sem divisão vira tudo
+    hit e o desvio do provedor no `_custo_das_chamadas`;
+- **o corte por orçamento com o custo calculado:**
+  - na `coletar` (A e C) e na `etapa_respostas` (B);
+  - chamada sem uso conta US$ 0,01;
+  - o mutante sem corte é pego;
+- **a chave nunca aparece** (chave falsa com um marcador único):
+  - `descrever`, os dois testes pagos com erro que ecoa a chave e com sucesso, o `repr` do settings, o
+    JSON e o log da coleta, e a saída do `--teste-conexao` e do plano;
+  - dois mutantes que vazam: o erro com a mensagem e o `descrever` com a chave;
+- **a emenda:**
+  - `--executar` sem a chave é recusado antes de gastar;
+  - um `llm_motor.py` mudado é pego;
+  - a integridade exige o motor em toda resposta;
+  - a A ganha de novo uma repetição (e só uma) com o registro real de 24/11;
+  - `_iniciar` grava o motor;
+  - o plano mostra o motor e o preço.
+
+Ajustes em testes existentes:
+
+- `test_rag_parte3.py` ganhou uma chave DeepSeek falsa (autouse);
+- o responder falso traz as contagens de tokens da DeepSeek;
+- as coletas "válidas" das fixtures rodam sob `com_motor`, e a B falsa grava o provedor;
+- `hermetic_support.py` tira a `DEEPSEEK_API_KEY` do ambiente da suíte.
+
+A suíte fica em **1211 passed**, 1 skipped e 1 xfailed, e o ruff passa.
+
+- **Regressão achada e corrigida nesta emenda:** a `DEEPSEEK_API_KEY` sem prefixo no `orchestrator/.env`
+  derrubava o import do `Settings` (`extra_forbidden`) antes do campo existir. Ela durou alguns minutos,
+  entre copiar a chave e declarar o campo. Afetava só o CLI local, porque o container recebe o `.env` por
+  `env_file`.
+
+## Ferramenta de limites — Parte 2.3 — revalidação da ficha v3 no deepseek-flash (pré-registro, ANTES de medir, 24/11/2026)
+
+**Decisão do Max (24/11/2026).** A ficha (a etapa 3 do caminho) é feita pelo modelo e foi validada no
+DeepSeek V3, na Parte 2.2. Antes de medir o agente inteiro com o motor novo (ver *Emenda de 24/11/2026: o
+motor DeepSeek direto*, na Parte 3), medimos só essa peça no `deepseek-flash`.
+
+> **Nada foi medido.** Código, testes e este pré-registro foram feitos **antes** de qualquer chamada paga.
+
+### Sistema congelado (`--versao v3-flash` do `medir_extracao.py`)
+
+- **O mesmo conjunto,** o `extracao_v1.yaml`, sem mudança (`462bde3c…`).
+- **A mesma ficha v3:** o mesmo prompt, schema, travas e vetos. Os 8 sha256 da Parte 2.2
+  (`PRE_REGISTRO_V3`) **não mudam**.
+- **Mais um hash:** o `llm_motor.py`, `cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623`, o
+  motor congelado na emenda da Parte 3. O pré-registro da 2.3 é `PRE_REGISTRO_V3_FLASH` (os 8 + este).
+- **O motor:** a API direta da DeepSeek, com o `deepseek-flash` e o pensamento desligado.
+  - O motor é ligado **só neste processo e só nesta versão**: o `.env` não muda, e
+    `ORCHESTRATOR_LLM_PROVEDOR` não precisa ser trocado.
+  - v1, v2 e v3 continuam no OpenRouter, mesmo com o `.env` em `deepseek`.
+- **Temperatura 0,** enviada em toda chamada.
+  - O guia da DeepSeek diz que só o modo de pensamento ignora a temperatura. Com ele desligado, ela vale.
+  - Isso **não foi conferido** numa chamada (seria pago). O JSON de cada rodada grava a temperatura
+    enviada e o motor.
+- **2 rodadas** (r1 e r2), com registro próprio em `orchestrator/fixtures/rag/limites/medicao/v3-flash/`.
+
+### Regra de decisão (vinculante)
+
+**PASSA se, e só se, nas 2 rodadas:**
+
+- **b)** zero erro de sinal ou de número;
+- **c)** zero categoria inventada;
+- **d)** nenhuma injeção obedecida: a ficha é a esperada, a vazia segura (E-5) ou a parcial segura (E-6);
+- **e)** zero valor quando o esperado é nulo.
+
+**O a) (acertos ≥ 95) NÃO decide.** Ele é calculado e registrado **só como informação**, porque a decisão
+de seguir com os vazios seguros já foi tomada no *Fechamento da Parte 2* (24/11/2026). Um a) abaixo de 95
+**não** reprova a Parte 2.3.
+
+**Se a Parte 2.3 reprovar, a medição A NÃO roda.**
+
+- O `parte3.py` trava o `--executar a`: ele só roda com a Parte 2.3 aprovada (`PRE_REQUISITOS["a"] = ("2.3",)`).
+- A trava exige o `resultado.json` do `--resultado` **e** recalcula tudo das rodadas: hashes, motor e
+  critérios. Um `resultado.json` editado não libera nada.
+- Reprovada a 2.3, o Max decide o próximo passo.
+
+### Falhas e orçamento
+
+- **As regras de sempre:**
+  - falha na 1ª chamada é falha inicial: nada é medido, e são no máximo 2, ou seja, 1 repetição;
+  - falha de infra depois da 1ª deixa a tentativa inválida, com 1 repetição;
+  - orçamento estourado deixa a tentativa inválida, sem repetição.
+- **Se a DeepSeek não aceitar forçar a ferramenta pelo nome,** a 1ª resposta vem sem a ferramenta e vira
+  falha inicial. **Nenhum contorno será aplicado sem o Max decidir antes.** O `--teste-ficha` responde a
+  isso antes da 2.3.
+- **Orçamento:** até US$ 0,05 por rodada e teto de US$ 0,10 no total, com registro próprio.
+- **Projeção,** pelo preço oficial registrado (24/11/2026, tarifa de pico, sem cache):
+  - o custo real da Parte 2.2 (US$ 0,0395 por rodada, média das 2 rodadas concluídas) × 1,1665 dá
+    **US$ 0,0461 por rodada** e **US$ 0,0921** nas 2;
+  - **a folga é de só ~8 %** sobre os US$ 0,05. O prefixo da chamada (prompt e schema) é o mesmo nas 100
+    perguntas, e a DeepSeek faz cache dele sozinha, cobrando US$ 0,006 por 1M em vez de 0,30. O custo
+    calculado usa os tokens reais de hit e miss, então deve ficar bem abaixo. **A projeção não conta com
+    isso;**
+  - com o teto total de US$ 0,10, uma repetição só cabe se o gasto real das rodadas deixar sobra.
+- **O custo é calculado pelos tokens** (`llm_motor.custo_deepseek`, sempre na tarifa de pico).
+- **Na 2.3, o log e a falha inicial mostram só o tipo do erro e o status HTTP,** porque a mensagem da API
+  pode ecoar parte da chave. As versões antigas continuam como antes.
+
+### Versões antigas intactas
+
+- Os hashes de v1, v2 e v3 não mudaram.
+- **Conferido em 24/11/2026, sem chamada:** o plano e o `--resultado` de v1, v2 e v3 e a `--estimativa` da
+  v3 saem **byte a byte idênticos** aos do `medir_extracao.py` do commit `67ec3cc`.
+- O `medir_extracao.py` deste pré-registro tem sha256 `e902ff691ebad746b9fad2c77141ab34e125ca8e3cd66ea0aadb8ec4efe94cfe`.
+  É só registro: como antes, ele não entra no congelamento.
+
+### Testes (rede bloqueada, LLM falso)
+
+`tests/test_rag_limites_extracao_v3_flash.py` tem 23 testes. Cada regra nova tem o seu mutante, numa cópia
+do módulo, e o mutante é pego:
+
+- **o pré-registro:**
+  - os 8 hashes da v3 mais o do motor;
+  - o motor mudado é pego;
+  - as versões antigas intactas;
+- **os critérios,** com 7 cenários: tudo certo; só o a) (94 acertos, vazias seguras: **passa**); b) na r2;
+  c); d) obedecida; d) parcial segura E-6 (**passa**); e).
+  - Sete mutantes: o a) decide; sem o b), o c), o d) ou o e); sem o E-6 na 2.3; e só a 1ª rodada decide.
+- **os tetos** de US$ 0,05 e US$ 0,10, com a v3 em US$ 0,06 e o `parse_args`;
+  - mutante: os tetos antigos;
+- **o custo** pelos tokens só na 2.3, com a v3 no `cost`;
+  - mutante: sem o desvio;
+- **o motor:**
+  - a 2.3 usa o motor DeepSeek só no processo;
+  - a v3 continua no OpenRouter, mesmo com o `.env` em `deepseek`;
+  - sem a chave, recusa sem registrar nada;
+- **a chave** nunca aparece na falha inicial, na falha de infra nem nos arquivos;
+  - mutante: o erro com a mensagem;
+- **o `resultado.json` e o recálculo:**
+  - sem resultado;
+  - aprovado;
+  - arquivo editado;
+  - rodadas sem o motor;
+  - rodadas com os hashes da 2.2;
+  - b) reprovado na r2;
+  - dois mutantes: aceitar o arquivo sem recalcular e não conferir o motor;
+- **o plano é grátis.**
+
+**Testes antigos ajustados à estrutura nova, sem mudar o que verificam:**
+
+- dois mutantes do orçamento (`teto_rodada`/`teto_total`);
+- o mutante do E-6, que agora inclui a 2.3;
+- a contagem de registros próprios por versão.
+
+Na Parte 3, a trava ganhou os cenários e os mutantes "A sem 2.3" e "A com 2.3 reprovada".
+
+### Comandos pagos, NESTA ordem (de dentro de `orchestrator/`)
+
+```bash
+# 1. teste de conexão (< US$ 0,0001)
+.venv/bin/python -m orchestrator.rag.parte3 --teste-conexao
+# 2. teste da ficha, com o tool_choice nomeado (~US$ 0,0006)
+.venv/bin/python -m orchestrator.rag.parte3 --teste-ficha
+# 3. Parte 2.3 (projeção US$ 0,0461 por rodada) e o resultado (grátis)
+.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r1 --orcamento 0.05
+.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --executar --rodada r2 --orcamento 0.05
+.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --resultado
+# 4. SÓ se a 2.3 passar (o script recusa sem ela): a medição A
+.venv/bin/python -m orchestrator.rag.parte3 --executar a --orcamento 0.06
+```
+
+O plano grátis é `.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash`.
+
 ## Pendências
 
 > **q02: a v1 (padrão) aceitou frango congelado a −10 °C em 7/10 amostras no mini-teste de 21/11 (docs/exploracao/mini-teste-q02.md). Não ligar o RAG em ambiente real antes de corrigir.**
@@ -3748,6 +4079,12 @@ obedeceram ao "marque aplica=false"), o redator NUNCA pode decidir aceitar/recus
 ao funcionário, ou diz que não consegue verificar.
 *Implementado em 24/11/2026* (ver *Parte 3*): a nota NÃO VERIFICÁVEL (`rag_limites.py`) e a regra 6b da
 v5. Continua pendente até a Parte 3 medir.
+
+**Parte 3, emenda do motor (24/11/2026): os comandos pagos, NESTA ordem** (ver *Parte 2.3*):
+1. `--teste-conexao` (< US$ 0,0001);
+2. `--teste-ficha` (~US$ 0,0006): confere o `tool_choice` nomeado na DeepSeek;
+3. a Parte 2.3 (a ficha v3 no `deepseek-flash`): r1, r2 e o `--resultado`;
+4. **só se a 2.3 passar:** a medição A. O `parte3.py` trava o `--executar a` sem ela.
 
 **Parte 1.1** (registrado em 22/11/2026, decisão do Max na emenda E-4 da Parte 2): o
 `ler_temperatura` aceitar "X graus abaixo de zero" (fala comum de funcionário), com prova

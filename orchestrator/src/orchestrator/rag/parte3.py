@@ -15,6 +15,7 @@ C) prova lacrada: prova10-v1.yaml, FORA do repo. O sha256 e conferido ANTES de l
 
     cd orchestrator
     .venv/bin/python -m orchestrator.rag.parte3                                   # plano (gratis)
+    .venv/bin/python -m orchestrator.rag.parte3 --teste-conexao                   # PAGO, minimo: 1 chamada
     .venv/bin/python -m orchestrator.rag.parte3 --executar a --orcamento 0.06     # pago
     .venv/bin/python -m orchestrator.rag.parte3 --classificar a                   # gratis
     .venv/bin/python -m orchestrator.rag.parte3 --resultado a                     # gratis
@@ -27,6 +28,12 @@ Falhas (as regras de antes): falha na 1a chamada = falha inicial (nada medido; a
 falha de infra depois = tentativa INVALIDA, repetida UMA vez; 2a invalida encerra a
 unidade sem resultado; estouro de orcamento = invalida sem repeticao. Na medicao, erro
 do LLM da ficha (que no produto vira NAO VERIFICAVEL) conta como infra.
+
+Emenda de 24/11/2026 (antes de qualquer resultado da A): A, B e C rodam com o motor
+DeepSeek direto (llm_motor.py: deepseek-flash, pensamento desligado), forcado SO neste
+processo, para a v1 e a v5 igualmente; o juiz da B continua o pre-registrado (OpenRouter).
+As tentativas sao contadas POR MOTOR: as do OpenRouter (registradas antes da emenda, sem o
+campo `motor_do_agente`) nao gastam as repeticoes nem o teto do motor novo.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ from pathlib import Path
 
 import yaml
 
+from orchestrator import llm_motor
 from orchestrator.rag import avaliar_respostas as av
 from orchestrator.rag import medir_extracao as me
 from orchestrator.rag import mini_q02 as mq
@@ -61,7 +69,9 @@ HASH_REGRAS_V1 = m10.HASH_REGRAS_V1  # 3f4ca553... (Missoes 8-10 e mini-teste)
 HASH_REGRAS_V5 = "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
 HASH_REGRAS = {"v1": HASH_REGRAS_V1, "v5": HASH_REGRAS_V5}
 CODIGO_PASSO = av.ORCHESTRATOR_DIR / "src" / "orchestrator" / "graph" / "rag_limites.py"
-HASH_CODIGO_PASSO = "bdccb1db6ee18ae539c3bd31fe5748eb7545bc1e02ac67db5e77ee077cd5147b"
+HASH_CODIGO_PASSO = "be379f946308820451a0c8d721ea699299434eeb1fbe5077d89c36f0611c59f4"
+CODIGO_MOTOR = av.ORCHESTRATOR_DIR / "src" / "orchestrator" / "llm_motor.py"
+HASH_CODIGO_MOTOR = "cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623"
 HASH_PROVA10 = "819c0eb716736837c9d78e179aa8058869c48db89cd55879a9b1df5fece6b33f"
 N_PROVA10 = 10
 
@@ -93,6 +103,10 @@ TETO_MEDICAO_USD = {"a": 0.12, "b": 1.00, "c": 0.24}
 
 MARCA_FALHA_DO_PASSO = "a verificação da temperatura falhou agora"
 
+# Emenda de 24/11/2026: o motor do agente nas tres medicoes (o .env nao muda).
+PROVEDOR_DA_MEDICAO = "deepseek"
+PROVEDOR_ANTES_DA_EMENDA = "openrouter"  # tentativas sem o campo `motor_do_agente`
+
 
 # --- versoes ---------------------------------------------------------------------------
 
@@ -114,6 +128,21 @@ def com_versao(versao: str):
             setattr(settings, k, v)
 
 
+@contextmanager
+def com_motor(provedor: str = PROVEDOR_DA_MEDICAO):
+    """Liga o motor da medicao no `settings` so durante o bloco; restaura depois."""
+    from orchestrator.config import settings
+
+    if provedor not in llm_motor.PROVEDORES:
+        raise ValueError(f"provedor desconhecido: {provedor!r}")
+    antes = settings.llm_provedor
+    settings.llm_provedor = provedor
+    try:
+        yield
+    finally:
+        settings.llm_provedor = antes
+
+
 def sha256_arquivo(caminho: Path) -> str:
     return hashlib.sha256(Path(caminho).read_bytes()).hexdigest()
 
@@ -132,6 +161,14 @@ def conferir_sistema(settings) -> list[str]:
     h = sha256_arquivo(CODIGO_PASSO)
     if h != HASH_CODIGO_PASSO:
         problemas.append(f"rag_limites.py: sha256 {h} != {HASH_CODIGO_PASSO} (pre-registro)")
+    h = sha256_arquivo(CODIGO_MOTOR)
+    if h != HASH_CODIGO_MOTOR:
+        problemas.append(f"llm_motor.py: sha256 {h} != {HASH_CODIGO_MOTOR} (emenda de 24/11)")
+    cfg = settings.model_copy(update={"llm_provedor": PROVEDOR_DA_MEDICAO})
+    try:
+        llm_motor.descrever(cfg)
+    except llm_motor.MotorIndisponivel as exc:
+        problemas.append(f"motor {PROVEDOR_DA_MEDICAO}: {exc}")
     problemas += [f"ficha v3: {p}" for p in me.conferir_pre_registro(settings, versao="v3")]
     return problemas
 
@@ -143,6 +180,7 @@ def _hashes_parte3() -> dict:
         "regras_v1": av.sha256_texto(rag_specialist.regras_da_etapa1("v1")),
         "regras_v5": av.sha256_texto(rag_specialist.regras_da_etapa1("v5")),
         "codigo_passo": sha256_arquivo(CODIGO_PASSO),
+        "codigo_motor": sha256_arquivo(CODIGO_MOTOR),
         "ficha_v3": me.hashes_atuais(me.CONJUNTO, "v3"),
     }
 
@@ -170,11 +208,40 @@ def problemas_da_versao(versao: str, respostas: Sequence[dict], rotulo: str) -> 
     return problemas
 
 
+def problemas_do_motor(hashes: dict, respostas: Sequence[dict], rotulo: str) -> list[str]:
+    """Emenda de 24/11: o llm_motor.py congelado e TODA resposta com o motor da medicao."""
+    problemas = []
+    if hashes.get("codigo_motor") != HASH_CODIGO_MOTOR:
+        problemas.append(f"{rotulo}: llm_motor.py diferente da emenda de 24/11")
+    fora = sorted({r.get("id") for r in respostas if r.get("provedor") != PROVEDOR_DA_MEDICAO})
+    if fora:
+        problemas.append(f"{rotulo}: resposta sem o motor {PROVEDOR_DA_MEDICAO} ({', '.join(map(str, fora))})")
+    return problemas
+
+
 # --- registro das tentativas (o molde do medir_extracao) ------------------------------
 
 
 def _agora() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def motor_da_tentativa(t: dict) -> str:
+    return t.get("motor_do_agente", PROVEDOR_ANTES_DA_EMENDA)
+
+
+def falhas_iniciais_esgotadas(tentativas: Sequence[dict], unidade: str) -> bool:
+    """Decisao do Max (24/11): as falhas iniciais NAO recomecam no motor novo. O limite
+    (me.MAX_FALHAS_INICIAIS, o mesmo de todas as medicoes) conta as de TODOS os motores;
+    a A ja teve 1 no OpenRouter, entao resta 1 no motor novo."""
+    n = sum(t["unidade"] == unidade and t["estado"] == me.ESTADO_FALHA_INICIAL for t in tentativas)
+    return n >= me.MAX_FALHAS_INICIAIS
+
+
+def do_motor(tentativas: Sequence[dict], provedor: str = PROVEDOR_DA_MEDICAO) -> list[dict]:
+    """So as tentativas feitas com este motor (emenda de 24/11: as repeticoes, as falhas
+    iniciais e o teto da medicao contam por motor)."""
+    return [t for t in tentativas if motor_da_tentativa(t) == provedor]
 
 
 def unidades(medicao: str) -> tuple[str, ...]:
@@ -227,11 +294,13 @@ def validar_orcamento(orcamento: float, medicao: str, chave_teto: str, tentativa
         raise ValueError(f"--orcamento {orcamento} acima do que resta do teto da medicao (US$ {restante:.4f})")
 
 
-def _iniciar(diretorio: Path, unidade: str, orcamento: float) -> tuple[list[dict], dict]:
+def _iniciar(diretorio: Path, unidade: str, orcamento: float,
+             motor: str = PROVEDOR_DA_MEDICAO) -> tuple[list[dict], dict]:
     tentativas = me.ler_registro(diretorio)
     n = 1 + sum(t["unidade"] == unidade and t["estado"] != me.ESTADO_FALHA_INICIAL for t in tentativas)
     t = {"unidade": unidade, "n": n, "estado": me.ESTADO_INICIADA, "arquivo": None,
-         "orcamento_usd": orcamento, "custo_usd": None, "inicio": _agora(), "fim": None}
+         "orcamento_usd": orcamento, "custo_usd": None, "inicio": _agora(), "fim": None,
+         "motor_do_agente": motor}
     tentativas.append(t)
     me.gravar_registro(tentativas, diretorio)
     return tentativas, t
@@ -263,6 +332,7 @@ def _config_da_coleta(settings) -> dict:
         "rag_colecao": settings.rag_colecao,
         "rag_rerank_model": settings.rag_rerank_model,
         "indice_meta": av._meta_do_indice(settings),
+        "motor": llm_motor.descrever(settings),
         "metodo": "graph.ainvoke + callback (sem streaming); MemorySaver; n8n/gateway neutralizados; sem juiz",
     }
 
@@ -325,6 +395,8 @@ async def coletar(
                 raise FalhaInicial(tipo)
             custo = av._custo_das_chamadas(r.get("chamadas_llm", []), settings)
             registro = {**r, **passo, "regras_sha256": regras, "rag_limites": limites_ligado,
+                        "provedor": llm_motor.provedor(settings),
+                        "modelo_efetivo": llm_motor.modelo_efetivo(settings, settings.general_model),
                         "notas_limite": notas_limite(r), "custo_usd": custo, "tempo_total_s": duracao}
             saida["respostas"].append(registro)
             saida["custo_usd"] += custo
@@ -525,6 +597,7 @@ def _integridade_da_coleta(dados: dict, mapa: dict, n_por_versao: int, indice_me
         problemas.append("codigo do passo ou regras v5 diferentes do pre-registro")
     if (h.get("ficha_v3") or {}) != me._pre_registro("v3"):
         problemas.append("ficha v3 diferente da Parte 2.2")
+    problemas += problemas_do_motor(h, dados["respostas"], "coleta")
     if indice_meta_m8 is not None and (dados.get("config") or {}).get("indice_meta") != indice_meta_m8:
         problemas.append("indice diferente do da Missao 8 (indice_meta)")
     return problemas
@@ -588,6 +661,7 @@ def comparar_b(rodadas: dict, gabarito: list[dict], fatos: dict, fmt: dict, indi
         if (h.get("codigo_passo"), h.get("regras_v5"), h.get("ficha_v3")) != (
                 HASH_CODIGO_PASSO, HASH_REGRAS_V5, me._pre_registro("v3")):
             problemas.append(f"{nome}: codigo do passo, regras v5 ou ficha v3 diferentes do pre-registro")
+        problemas += problemas_do_motor(h, resp.get("perguntas", []), nome)
         problemas += problemas_da_versao(v, resp.get("perguntas", []), nome)
         if julg.get("alvo") != ALVO_DO_JUIZ:
             problemas.append(f"{nome}: juiz julgou {julg.get('alvo')!r}, nao {ALVO_DO_JUIZ!r}")
@@ -636,7 +710,9 @@ def carregar_b(diretorio: Path = DIR_B) -> dict:
 # A prova lacrada roda UMA vez: a B so roda com a A aprovada e a C so com a A e a B
 # aprovadas. Uma reprovacao bloqueia o que vem depois (a prova continua intacta).
 
-PRE_REQUISITOS = {"a": (), "b": ("a",), "c": ("a", "b")}
+# "2.3" = a revalidacao da ficha v3 no deepseek-flash (medir_extracao --versao v3-flash),
+# decisao do Max de 24/11: a A so roda com ela aprovada.
+PRE_REQUISITOS = {"a": ("2.3",), "b": ("a",), "c": ("a", "b")}
 NOME_RESULTADO = "resultado.json"
 
 
@@ -669,6 +745,8 @@ def gravar_resultado(medicao: str, res: dict) -> None:
 def veredito(medicao: str) -> tuple[bool | None, str]:
     """(passa, descricao) de A ou B. None = ainda sem resultado. Exige o resultado.json do
     --resultado E recalcula das entradas: um resultado.json editado ou velho nao libera nada."""
+    if medicao == "2.3":
+        return me.veredito_v3_flash()
     nome = medicao.upper()
     arquivo = (DIR_A if medicao == "a" else DIR_B) / NOME_RESULTADO
     if not arquivo.is_file():
@@ -688,6 +766,12 @@ def trava_da_ordem(medicao: str, veredito_de: Callable[[str], tuple[bool | None,
     veredito_de = veredito_de or veredito
     for anterior in PRE_REQUISITOS[medicao]:
         passa, descricao = veredito_de(anterior)
+        if anterior == "2.3":
+            if passa is None:
+                return f"a A so roda depois da Parte 2.3 (a ficha v3 no deepseek-flash) aprovada ({descricao})"
+            if not passa:
+                return f"Parte 2.3 reprovou ({descricao}). A A fica bloqueada: o Max decide o proximo passo."
+            continue
         if passa is None:
             return (f"a ordem e A -> B -> C: a {medicao.upper()} so roda depois de {anterior.upper()} aprovada "
                     f"({descricao})")
@@ -849,8 +933,14 @@ def custos_reais() -> dict:
 def projecao(settings, gabarito: list[dict]) -> dict:
     from orchestrator.graph import rag_limites, rag_specialist
 
-    real = custos_reais()
-    pe, _ = av.PRECOS.get(settings.general_model, av.PRECO_DESCONHECIDO)
+    real = custos_reais()  # medidos pelo OpenRouter (Missoes 8-10, mini-teste, Parte 2.2)
+    # Motor deepseek: os custos antigos x o fator de preco por token (pico, sem cache).
+    # E so projecao: o numero de tokens do modelo novo pode ser outro. O juiz nao muda.
+    deepseek = llm_motor.provedor(settings) == "deepseek"
+    fator = llm_motor.fator_vs_openrouter_antigo() if deepseek else 1.0
+    real = {**real, **{k: real[k] * fator for k in ("q02_v1", "b_respostas_v1", "por_resposta_v1", "ficha_max")}}
+    pe = (llm_motor.PRECO_DEEPSEEK_FLASH["pico"]["entrada_cache_miss"] if deepseek
+          else av.PRECOS.get(settings.general_model, av.PRECO_DESCONHECIDO)[0])
     regra6 = len(rag_specialist._REGRA_LIMITES_V5) / av.CHARS_POR_TOKEN * pe / 1e6
     nota = 600 / av.CHARS_POR_TOKEN * pe / 1e6  # a nota [limite] no prompt do synth (folga)
     com_ficha = real["ficha_max"] + nota
@@ -863,7 +953,7 @@ def projecao(settings, gabarito: list[dict]) -> dict:
     c = {"v1": C_N * N_PROVA10 * real["por_resposta_v1"],
          "v5": C_N * N_PROVA10 * (real["por_resposta_v1"] + regra6 + com_ficha)}
     total = {k: sum(x.values()) for k, x in (("a", a), ("b", b), ("c", c))}
-    return {"real": real, "prefiltro_b": pref_b, "regra6_usd": regra6, "com_ficha_usd": com_ficha,
+    return {"real": real, "fator_de_preco": fator, "prefiltro_b": pref_b, "regra6_usd": regra6, "com_ficha_usd": com_ficha,
             "a": a, "b": b, "b_v5_por_rodada": b_v5, "c": c, "total": total, "total_geral": sum(total.values())}
 
 
@@ -875,6 +965,8 @@ def comandos() -> dict[str, list[str]]:
           for v, r in ORDEM_B]
     prova = "~/Documentos/Kali\\ Linux/lacre/prova10-v1.yaml"
     return {
+        "teste": [f"{base} --teste-conexao", f"{base} --teste-ficha"],
+        "2.3": me.comandos(me.orcamento_v3_flash(None), me.VERSAO_FLASH),
         "a": [f"{base} --executar a --orcamento {TETO_TENTATIVA_USD['a']:.2f}", f"{base} --classificar a",
               f"{base} --resultado a"],
         "b": [*b, f"{base} --resultado b"],
@@ -887,7 +979,7 @@ def mostrar_plano(settings, gabarito: list[dict]) -> int:
     meta_m8, meta = m9.indice_meta_m8(), av._meta_do_indice(settings)
     print("Parte 3 - ferramenta de limites no agente, v1 x v5 (NADA executado)")
     problemas = conferir_sistema(settings)
-    print("pre-registro: " + ("OK (regras v1 e v5, rag_limites.py e ficha v3 = pre-registro)" if not problemas
+    print("pre-registro: " + ("OK (regras v1 e v5, rag_limites.py, llm_motor.py e ficha v3 = pre-registro e emendas)" if not problemas
                               else "DIFERENTE: " + "; ".join(problemas)))
     print(f"versoes     : v1 = regras v1 + RAG_LIMITES desligado; v5 = regras v5 ({HASH_REGRAS_V5[:12]}...) "
           "+ RAG_LIMITES ligado")
@@ -895,10 +987,39 @@ def mostrar_plano(settings, gabarito: list[dict]) -> int:
           "ao da Missao 8")
     print(f"busca       : modo {settings.rag_search_mode}, top_k {settings.rag_top_k}, rerank "
           f"{settings.rag_rerank_model or 'nao'}; modelos {settings.router_model} / {settings.general_model}")
+    mt = llm_motor.descrever(settings)
+    print(f"motor       : {mt['provedor']} ({mt['base_url']}), modelo efetivo {mt['modelo_efetivo_general']}"
+          + (f" ({mt['versao_documentada']}), pensamento {mt['pensamento']}" if mt["provedor"] == "deepseek" else "")
+          + "; supervisor, ficha e redator. O juiz da B continua no OpenRouter (pre-registrado)")
+    if mt["provedor"] == "deepseek":
+        pp, pf = llm_motor.PRECO_DEEPSEEK_FLASH["pico"], llm_motor.PRECO_DEEPSEEK_FLASH["fora_de_pico"]
+        print(f"preco       : {llm_motor.DEEPSEEK_MODELO}, US$ por 1M: entrada cache hit {pp['entrada_cache_hit']} / "
+              f"cache miss {pp['entrada_cache_miss']} / saida {pp['saida']} no pico (fora de pico: "
+              f"{pf['entrada_cache_hit']} / {pf['entrada_cache_miss']} / {pf['saida']}); o custo usa SEMPRE o pico. "
+              f"Fonte {llm_motor.FONTE_PRECO}, lida em {llm_motor.DATA_PRECO}")
+    print(f"chaves      : DEEPSEEK_API_KEY {'existe' if settings.deepseek_api_key else 'NAO EXISTE'}; "
+          f"ORCHESTRATOR_OPENROUTER_API_KEY (juiz da B) {'existe' if settings.openrouter_api_key else 'NAO EXISTE'}")
+    reg_a = me.ler_registro(DIR_A)
+    antigas = do_motor(reg_a, PROVEDOR_ANTES_DA_EMENDA)
+    novas = do_motor(reg_a, mt["provedor"])
+    if antigas and mt["provedor"] != PROVEDOR_ANTES_DA_EMENDA:
+        print(f"A antes     : {len(antigas)} tentativas no {PROVEDOR_ANTES_DA_EMENDA} ("
+              + ", ".join(sorted({t['estado'] for t in antigas})) + f"), US$ {me.gasto_registrado(antigas):.4f}, "
+              "sem resultado; nao contam para o motor novo (emenda de 24/11)")
+    fi = sum(t["unidade"] == "a" and t["estado"] == me.ESTADO_FALHA_INICIAL for t in reg_a)
+    print(f"A {mt['provedor']:<9} : {len(novas)} tentativa(s); resta US$ "
+          f"{TETO_MEDICAO_USD['a'] - me.gasto_registrado(novas):.4f} do teto da medicao; falhas iniciais: "
+          f"{fi} de {me.MAX_FALHAS_INICIAIS} (todos os motores), resta {max(me.MAX_FALHAS_INICIAIS - fi, 0)}")
+    p23 = me.projecao_v3_flash()
+    print(f"Parte 2.3   : a ficha v3 no deepseek-flash, 2 x 100 chamadas; projecao US$ "
+          f"{p23['duas_rodadas_usd'] if p23 else float('nan'):.4f} (US$ {me._tetos(me.VERSAO_FLASH)[0]:.2f}/rodada, "
+          f"teto US$ {me._tetos(me.VERSAO_FLASH)[1]:.2f}); {me.veredito_v3_flash()[1]}")
     p = projecao(settings, gabarito)
     r = p["real"]
     print(f"custo real  : q02 v1 US$ {r['q02_v1']:.5f}/resposta (mini-teste); B v1 US$ {r['b_respostas_v1']:.4f} "
-          f"respostas + US$ {r['b_juiz_v1']:.4f} juiz por rodada (M10); ficha ate US$ {r['ficha_max']:.6f}/chamada (P2.2)")
+          f"respostas + US$ {r['b_juiz_v1']:.4f} juiz por rodada (M10); ficha ate US$ {r['ficha_max']:.6f}/chamada (P2.2)"
+          + (f"; ja x {p['fator_de_preco']:.4f} (preco do motor novo / preco antigo; o juiz nao)" if p["fator_de_preco"] != 1
+             else ""))
     print(f"v5 a mais   : regra 6 ~US$ {p['regra6_usd']:.6f}/resposta; ficha + nota ~US$ {p['com_ficha_usd']:.6f} "
           "quando o codigo acha numero/temperatura")
     print(f"pre-filtro B: o codigo chama a ficha em {', '.join(p['prefiltro_b']) or 'nenhuma'} (das 20)")
@@ -916,9 +1037,12 @@ def mostrar_plano(settings, gabarito: list[dict]) -> int:
     print(f"total       : projetado US$ {p['total_geral']:.4f}; teto sem repeticao US$ {sem_rep:.2f}; teto maximo "
           f"(com as repeticoes) US$ {sum(TETO_MEDICAO_USD.values()):.2f}")
     print("C           : o arquivo lacrado NAO e aberto no plano; o --executar confere o sha256 antes de ler")
-    estados = {m: veredito(m)[1] for m in ("a", "b")}
-    print(f"ordem       : A -> B -> C (trava, emenda de 24/11): A: {estados['a']}; B: {estados['b']}; "
+    estados = {m: veredito(m)[1] for m in ("2.3", "a", "b")}
+    print(f"ordem       : 2.3 -> A -> B -> C (travas de 24/11): 2.3: {estados['2.3']}; A: {estados['a']}; "
+          f"B: {estados['b']}; "
           + "; ".join(f"--executar {m}: {'liberado' if trava_da_ordem(m) is None else 'BLOQUEADO'}" for m in "abc"))
+    print("pagos, nesta ordem: 1. --teste-conexao; 2. --teste-ficha; 3. Parte 2.3 r1, r2 e --resultado; "
+          "4. so se a 2.3 passar, a A (depois B e C, pelas travas)")
     for m, cmds in comandos().items():
         print(f"comandos {m.upper()}  :")
         for i, cmd in enumerate(cmds, 1):
@@ -926,7 +1050,30 @@ def mostrar_plano(settings, gabarito: list[dict]) -> int:
     if av._aviso_tracing():
         print("AVISO       : tracing do LangSmith ligado (a C recusa rodar assim)")
     if not settings.openrouter_api_key:
-        print("AVISO       : ORCHESTRATOR_OPENROUTER_API_KEY ausente (rode de dentro de orchestrator/, com o .env)")
+        print("AVISO       : ORCHESTRATOR_OPENROUTER_API_KEY ausente (o juiz da B precisa; rode de dentro de orchestrator/)")
+    if mt["provedor"] == "deepseek" and not settings.deepseek_api_key:
+        print("AVISO       : DEEPSEEK_API_KEY ausente (o motor da medicao precisa; rode de dentro de orchestrator/)")
+    return 0
+
+
+def _teste(args, settings) -> int:
+    """--teste-conexao / --teste-ficha: PAGOS, minimos; mostram so ok, modelo e custo."""
+    print(f"motor       : deepseek ({llm_motor.DEEPSEEK_BASE_URL}), modelo pedido {llm_motor.DEEPSEEK_MODELO}, "
+          "pensamento desligado")
+    r = (llm_motor.teste_conexao if args.teste_conexao else llm_motor.teste_ficha)(settings)
+    if not r["ok"]:
+        status = f", HTTP {r['status_http']}" if r.get("status_http") else ""
+        print(f"conexao     : FALHOU ({r['erro_tipo']}{status})")
+        return 1
+    print("conexao     : OK")
+    print(f"modelo      : {r['modelo_devolvido'] or '(nao devolvido)'}")
+    if args.teste_conexao:
+        print(f"resposta    : {'comecou com ok' if r['respondeu_ok'] else 'NAO comecou com ok'}")
+    else:
+        print(f"ferramenta  : {'veio (tool_choice nomeado funciona)' if r['chamou_a_ferramenta'] else 'NAO veio'}")
+    tk = r["tokens"] or {}
+    print(f"custo       : US$ {r['custo_usd']:.6f} (tokens x preco oficial, tarifa de pico; cache hit "
+          f"{tk.get('entrada_cache_hit', '?')}, miss {tk.get('entrada_cache_miss', '?')}, saida {tk.get('saida', '?')})")
     return 0
 
 
@@ -941,6 +1088,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     acao.add_argument("--classificar", choices=("a", "c"), help="gratis: arquivo cego + mapa")
     acao.add_argument("--resultado", choices=("a", "b", "c"), help="gratis: aplica a regra pre-registrada")
     acao.add_argument("--estimativa", action="store_true", help="gratis: notas sobre as fichas da Parte 2.2")
+    acao.add_argument("--teste-conexao", action="store_true",
+                      help="PAGO (minimo): 1 chamada 'responda so: ok' com o motor deepseek; mostra ok, modelo e custo")
+    acao.add_argument("--teste-ficha", action="store_true",
+                      help="PAGO (minimo, opcional): 1 chamada do extrator com o motor deepseek (tool_choice nomeado)")
     p.add_argument("--versao", choices=VERSOES)
     p.add_argument("--rodada", choices=RODADAS)
     p.add_argument("--orcamento", type=float)
@@ -973,9 +1124,15 @@ def _executar(args, settings, gabarito: list[dict]) -> int:
     if motivo:
         print(f"RECUSADO: {motivo}")
         return 2
-    if not settings.openrouter_api_key:
+    if args.julgar and not settings.openrouter_api_key:  # o juiz continua no OpenRouter
         print("erro: ORCHESTRATOR_OPENROUTER_API_KEY ausente (rode de dentro de orchestrator/, com o .env)", file=sys.stderr)
         return 2
+    if args.executar:
+        try:  # o motor da medicao (emenda de 24/11); a mensagem so cita o NOME da chave
+            llm_motor.conexao(settings, settings.general_model)
+        except llm_motor.MotorIndisponivel as exc:
+            print(f"erro: {exc}", file=sys.stderr)
+            return 2
     problemas = conferir_sistema(settings)
     if problemas:
         print("RECUSADO: o sistema nao e o pre-registrado:", *problemas, sep="\n  - ")
@@ -1000,17 +1157,24 @@ def _executar(args, settings, gabarito: list[dict]) -> int:
         print(f"erro: indice ausente em {settings.rag_index_path}", file=sys.stderr)
         return 2
     tentativas = me.ler_registro(diretorio)
-    ok, motivo = pode_executar(tentativas, medicao, unidade)
+    if concluida(tentativas, unidade):  # concluida com qualquer motor: nao roda de novo
+        print(f"RECUSADO: {unidade} ja foi concluida")
+        return 2
+    if falhas_iniciais_esgotadas(tentativas, unidade):
+        print(f"RECUSADO: {unidade} ja teve {me.MAX_FALHAS_INICIAIS} falhas iniciais (contando todos os motores)")
+        return 2
+    do_motor_atual = do_motor(tentativas, llm_motor.provedor(settings))
+    ok, motivo = pode_executar(do_motor_atual, medicao, unidade)
     if not ok:
-        print(f"RECUSADO: {motivo}")
+        print(f"RECUSADO: {motivo} (motor {llm_motor.provedor(settings)})")
         return 2
     try:
-        validar_orcamento(args.orcamento, medicao, chave, tentativas)
+        validar_orcamento(args.orcamento, medicao, chave, do_motor_atual)
     except ValueError as exc:
         print(f"RECUSADO: {exc}")
         return 2
 
-    tentativas, t = _iniciar(diretorio, unidade, args.orcamento)
+    tentativas, t = _iniciar(diretorio, unidade, args.orcamento, llm_motor.provedor(settings))
     arquivo = f"{'julgamento' if args.julgar else 'respostas'}-{unidade.removeprefix('juiz-')}-t{t['n']}.json"
     try:
         if medicao in ("a", "c"):
@@ -1023,9 +1187,11 @@ def _executar(args, settings, gabarito: list[dict]) -> int:
                 dados = asyncio.run(av.etapa_respostas(gabarito, orcamento=args.orcamento, regras=args.versao,
                                                        aceitas=VERSOES))
                 dados["parte3"] = {"versao": args.versao, "rag_limites": settings.rag_limites,
-                                   "hashes": _hashes_parte3()}
+                                   "hashes": _hashes_parte3(), "motor": llm_motor.descrever(settings)}
             for x in dados["perguntas"]:
                 x["notas_limite"] = notas_limite(x)
+                x["provedor"] = llm_motor.provedor(settings)
+                x["modelo_efetivo"] = llm_motor.modelo_efetivo(settings, settings.general_model)
             infra = problemas_da_versao(args.versao, dados["perguntas"], unidade)
             estado = (me.ESTADO_ORCAMENTO if dados["abortado_por_orcamento"]
                       else me.ESTADO_INFRA if infra else me.ESTADO_CONCLUIDA)
@@ -1115,13 +1281,16 @@ def main(argv=None) -> int:
     args = parse_args(argv)
     from orchestrator.config import settings
 
+    if args.teste_conexao or args.teste_ficha:
+        return _teste(args, settings)
     gabarito = av.carregar_gabarito()
     if args.estimativa:
         print(relatorio_estimativa(estimativa_notas(), gabarito))
         return 0
     try:
         if args.executar or args.julgar:
-            return _executar(args, settings, gabarito)
+            with com_motor():
+                return _executar(args, settings, gabarito)
         if args.classificar:
             return _classificar(args)
         if args.resultado:
@@ -1134,7 +1303,8 @@ def main(argv=None) -> int:
             print(f"erro na C ({type(exc).__name__}); detalhe omitido para nao vazar a prova", file=sys.stderr)
             return 2
         raise
-    return mostrar_plano(settings, gabarito)
+    with com_motor():
+        return mostrar_plano(settings, gabarito)
 
 
 if __name__ == "__main__":

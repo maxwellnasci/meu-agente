@@ -702,11 +702,12 @@ def test_orcamento():
     ("original", "novo"),
     [
         (
-            "    if not 0 < orcamento <= TETO_RODADA_USD:\n",
-            "    if not 0 < orcamento <= TETO_TOTAL_USD:\n",
+            # 24/11 (Parte 2.3): o teto vem do _tetos(versao); v1-v3 = TETO_RODADA_USD/TETO_TOTAL_USD
+            "    if not 0 < orcamento <= teto_rodada:\n",
+            "    if not 0 < orcamento <= teto_total:\n",
         ),
         (
-            "        if not 0 < a.orcamento <= TETO_RODADA_USD:\n",
+            "        if not 0 < a.orcamento <= teto_rodada:\n",
             "        if not 0 < a.orcamento:\n",
         ),
         ("    if orcamento > restante + 1e-12:\n", "    if False:\n"),

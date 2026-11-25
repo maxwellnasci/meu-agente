@@ -13,6 +13,7 @@ from langchain_core.messages import (
 )
 from langchain_openai import ChatOpenAI
 
+from orchestrator import llm_motor
 from orchestrator.clients.n8n_client import (
     InvalidN8nInput,
     N8nClient,
@@ -371,11 +372,10 @@ async def supervisor_node(state: GraphState) -> dict:
     if last_error:
         prompt += f"\n\nUltimo erro reportado por um especialista: {last_error}"
 
+    # Motor (llm_motor.py): openrouter (padrao, o de antes) ou a API direta da DeepSeek.
     llm = ChatOpenAI(
-        model=settings.router_model,
+        **llm_motor.conexao(settings, settings.router_model),
         temperature=0,
-        api_key=settings.openrouter_api_key,
-        base_url="https://openrouter.ai/api/v1",
     ).bind_tools([dispatch_tool(settings.rag_enabled)])
 
     try:
@@ -887,11 +887,8 @@ async def synthesize_final_node(state: GraphState) -> dict:
     if last_error:
         prompt += f"\n\nUm especialista reportou um erro: {last_error}"
 
-    llm = ChatOpenAI(
-        model=settings.general_model,
-        api_key=settings.openrouter_api_key,
-        base_url="https://openrouter.ai/api/v1",
-    )
+    # Motor (llm_motor.py): o mesmo do supervisor; a etapa 2 da v3 recebe este LLM.
+    llm = ChatOpenAI(**llm_motor.conexao(settings, settings.general_model))
     # Sempre que o rag rodou (com trecho, sem trecho ou com erro) - B-01.
     # Versao das regras: settings.rag_regras_versao (Missao 9; padrao v1; a v3
     # da Missao 10 usa as regras v1 nesta etapa).

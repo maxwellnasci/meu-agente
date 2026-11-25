@@ -34,6 +34,7 @@ import logging
 import re
 from collections.abc import Callable
 
+from orchestrator import llm_motor
 from orchestrator.config import settings
 from orchestrator.rag import limites
 from orchestrator.rag import limites_extracao_v2 as lx2
@@ -96,8 +97,10 @@ Chamar = Callable[[list], object]  # mensagens -> AIMessage
 
 
 def _chamar_padrao() -> Chamar:
-    """A MESMA chamada medida na Parte 2.2 (modelo, temperatura 0, tool_choice)."""
-    return lx3.chamar_openrouter(settings)
+    """A MESMA chamada medida na Parte 2.2 (prompt, schema, temperatura 0, tool_choice),
+    pelo motor do settings: no openrouter, `lx3.chamar_openrouter` (o de antes); no
+    deepseek, a API direta (llm_motor.py; emenda de 24/11 da Parte 3)."""
+    return llm_motor.chamar_ficha(settings)
 
 
 # Ponto de injecao dos testes (LLM falso); em producao, o ChatOpenAI da v1.

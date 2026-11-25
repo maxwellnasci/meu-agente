@@ -457,6 +457,13 @@ def _tempos_do_synth(coletor: ColetorGrafo) -> dict:
 
 
 def _custo_das_chamadas(chamadas: list[dict], settings) -> float:
+    # Motor deepseek (API direta, sem `cost` no usage): tokens x preco oficial da
+    # DeepSeek (cache hit/miss, tarifa de pico; llm_motor.custo_deepseek). Vale para
+    # TODAS as chamadas do agente capturadas aqui (supervisor, ficha e redator).
+    from orchestrator import llm_motor
+
+    if llm_motor.provedor(settings) == "deepseek":
+        return sum(llm_motor.custo_deepseek(c.get("token_usage"), c.get("usage_metadata")) for c in chamadas)
     pedido = {"supervisor": settings.router_model, "synthesize_final": settings.general_model}
     return sum(custo_usd(pedido.get(c.get("no"), c.get("modelo_devolvido") or ""), c.get("token_usage"),
                          c.get("usage_metadata"))

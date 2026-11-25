@@ -28,6 +28,16 @@ PERGUNTAS_FALSAS = [f"{MARCADOR} pergunta {i}: o iogurte chegou a {i} graus, ace
     f"{MARCADOR} pergunta {i}: cliente quer trocar um produto comprado ha {i} dias, pode?" for i in range(6, 11)]
 
 
+@pytest.fixture(autouse=True)
+def chave_deepseek_falsa(monkeypatch):
+    """Emenda de 24/11: o --executar exige a chave do motor da medicao (DeepSeek direto).
+    Valor FALSO (rede bloqueada e LLM falso de qualquer jeito)."""
+    from hermetic_support import FAKE_SECRET
+    from pydantic import SecretStr
+
+    monkeypatch.setattr(settings, "deepseek_api_key", SecretStr(FAKE_SECRET))
+
+
 def _prova_falsa(tmp_path, itens=None, texto=None):
     d = tmp_path / "lacre"
     d.mkdir(exist_ok=True)
@@ -167,7 +177,11 @@ def _responder_falso(falhar_em=None, resposta="Recuse (POP-01).", ecoa_pergunta=
                 "resposta_crua": texto, "resposta_final": texto, "erro": None,
                 "erros_llm": [{"erro_tipo": "APITimeoutError"}] if n == falhar_em else [],
                 "falha_de_infra": n == falhar_em,
-                "chamadas_llm": [{"no": "synthesize_final", "token_usage": {"cost": 0.001}}]}
+                # `cost` (OpenRouter) + as contagens da DeepSeek (motor da medicao desde a
+                # emenda de 24/11): 2000 x 0,30 + 300 x 1,20 por 1M = US$ 0,00096
+                "chamadas_llm": [{"no": "synthesize_final", "token_usage": {
+                    "cost": 0.001, "prompt_tokens": 2000, "completion_tokens": 300,
+                    "prompt_cache_hit_tokens": 0, "prompt_cache_miss_tokens": 2000}}]}
 
     responder.chamadas = chamadas
     return responder
@@ -227,8 +241,9 @@ def _coletar(responder, passos=None):
 
     passos = passos or p3.passos_a()
     itens = {"q02": {"id": "q02", "tipo": "direta", "pergunta": "chegou frango congelado a -10 graus, aceito?"}}
-    return asyncio.run(p3.coletar(passos, itens, orcamento=0.06, experimento="teste",
-                                  graph_factory=lambda cp: None, responder=responder, log=lambda _: None))
+    with p3.com_motor():  # emenda de 24/11: a coleta valida e com o motor da medicao
+        return asyncio.run(p3.coletar(passos, itens, orcamento=0.06, experimento="teste",
+                                      graph_factory=lambda cp: None, responder=responder, log=lambda _: None))
 
 
 def test_coleta_intercala_e_grava_a_versao_de_cada_resposta(monkeypatch):
@@ -315,8 +330,9 @@ def _c_classificada(monkeypatch, classe):
              for i, q in enumerate(PERGUNTAS_FALSAS, 1)}
     import asyncio
 
-    dados = asyncio.run(p3.coletar(passos, itens, orcamento=0.12, experimento="t", graph_factory=lambda cp: None,
-                                   responder=_responder_falso(), log=lambda _: None))
+    with p3.com_motor():
+        dados = asyncio.run(p3.coletar(passos, itens, orcamento=0.12, experimento="t", graph_factory=lambda cp: None,
+                                       responder=_responder_falso(), log=lambda _: None))
     yaml_cego, mapa = p3.gerar_cego(dados["respostas"], p3.CABECALHO_C, {k: {} for k in itens})
     cego = yaml.safe_load(yaml_cego)
     for it in cego["itens"]:
@@ -354,6 +370,8 @@ def _rodadas_b():
         resp["config"]["rag_regras_versao"] = v
         resp["hashes"]["regras_do_manual"] = p3.HASH_REGRAS[v]
         resp["parte3"] = {"versao": v, "rag_limites": v == "v5", "hashes": p3._hashes_parte3()}
+        for x in resp["perguntas"]:  # emenda de 24/11: o motor da medicao em cada resposta
+            x["provedor"] = p3.PROVEDOR_DA_MEDICAO
         rodadas[(v, r)] = (resp, julg)
     return rodadas
 
@@ -442,8 +460,11 @@ def test_cli_aceita_todos_os_comandos_do_plano():
     """Cada comando que o plano imprime passa no parse_args (pegou o --executar b recusado)."""
     import shlex
 
-    for cmds in p3.comandos().values():
+    for chave, cmds in p3.comandos().items():
         for cmd in cmds:
+            if chave == "2.3":  # a Parte 2.3 roda pelo medir_extracao
+                me.parse_args(shlex.split(cmd.split("orchestrator.rag.medir_extracao", 1)[1]))
+                continue
             argv = shlex.split(cmd.split("orchestrator.rag.parte3", 1)[1])
             p3.parse_args(argv)
 
@@ -491,7 +512,9 @@ def _vereditos(**estado):
 
 
 CENARIOS_DA_TRAVA = [
-    ("a", {}, None),
+    ("a", {}, "depois da Parte 2.3"),                # A sem a 2.3 (decisao de 24/11)
+    ("a", {"2.3": False}, "Parte 2.3 reprovou"),
+    ("a", {"2.3": True}, None),
     ("b", {}, "depois de A aprovada"),               # B sem A
     ("b", {"a": False}, "A reprovou"),
     ("b", {"a": True}, None),
@@ -518,11 +541,15 @@ def problemas_trava(mod) -> list[str]:
 
 
 MUTANTES_TRAVA = {
-    "B sem A": ('PRE_REQUISITOS = {"a": (), "b": ("a",), "c": ("a", "b")}\n',
-                'PRE_REQUISITOS = {"a": (), "b": (), "c": ("a", "b")}\n'),
-    "C sem B": ('PRE_REQUISITOS = {"a": (), "b": ("a",), "c": ("a", "b")}\n',
-                'PRE_REQUISITOS = {"a": (), "b": ("a",), "c": ("a",)}\n'),
-    "C com A ou B reprovado": ("        if not passa:\n", "        if False:\n"),
+    "A sem 2.3": ('PRE_REQUISITOS = {"a": ("2.3",), "b": ("a",), "c": ("a", "b")}\n',
+                  'PRE_REQUISITOS = {"a": (), "b": ("a",), "c": ("a", "b")}\n'),
+    "A com 2.3 reprovada": ("            if not passa:\n                return f\"Parte 2.3 reprovou",
+                            "            if False:\n                return f\"Parte 2.3 reprovou"),
+    "B sem A": ('PRE_REQUISITOS = {"a": ("2.3",), "b": ("a",), "c": ("a", "b")}\n',
+                'PRE_REQUISITOS = {"a": ("2.3",), "b": (), "c": ("a", "b")}\n'),
+    "C sem B": ('PRE_REQUISITOS = {"a": ("2.3",), "b": ("a",), "c": ("a", "b")}\n',
+                'PRE_REQUISITOS = {"a": ("2.3",), "b": ("a",), "c": ("a",)}\n'),
+    "C com A ou B reprovado": ("        if not passa:\n            fim", "        if False:\n            fim"),
 }
 
 

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Chaves `ORCHESTRATOR_*` que moram no MESMO `orchestrator/.env` mas NAO sao
@@ -122,6 +122,28 @@ class Settings(BaseSettings):
     # do roteador acima - modelo separado pra poder trocar independente do
     # roteador (classificacao barata vs conversa natural) sem acoplar os dois.
     general_model: str = "deepseek/deepseek-chat"
+
+    # "Motor" das chamadas do agente que usam os dois modelos acima: supervisor
+    # (router_model), extrator da ficha (rag_limites) e redator (synthesize_final).
+    # openrouter (PADRAO: nada muda sem querer) | deepseek = API direta da
+    # DeepSeek (base_url https://api.deepseek.com, modelo deepseek-flash com o
+    # pensamento DESLIGADO; ver llm_motor.py). O especialista n8n e o juiz das
+    # medicoes NAO mudam: continuam no OpenRouter.
+    llm_provedor: Literal["openrouter", "deepseek"] = "openrouter"
+    # Chave da API direta da DeepSeek: SO pela variavel DEEPSEEK_API_KEY (sem o
+    # prefixo ORCHESTRATOR_, no ambiente ou no .env). SecretStr: o valor nunca
+    # aparece em repr/log/JSON (so `get_secret_value()`, no cliente HTTP).
+    deepseek_api_key: SecretStr | None = Field(default=None, validation_alias=AliasChoices("DEEPSEEK_API_KEY"))
+
+    @field_validator("deepseek_api_key", mode="before")
+    @classmethod
+    def _normalizar_deepseek_api_key(cls, v: object) -> object:
+        """Mesma normalizacao de api_token: vazia/so espacos vira None."""
+        if isinstance(v, SecretStr):
+            v = v.get_secret_value()
+        if isinstance(v, str):
+            return v.strip() or None
+        return v
 
     # Trava de loop infinito do Enxame: quantas vezes o no `supervisor` pode
     # rodar numa unica execucao do grafo antes de `synthesize_final` abortar
