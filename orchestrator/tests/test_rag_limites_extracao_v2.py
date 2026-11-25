@@ -695,7 +695,7 @@ MUTANTES_E6 = {
         "        if True:\n            vazia_segura",
     ),
     "so na v2": (
-        'VERSOES_COM_E6 = ("v2", "v3")',
+        'VERSOES_COM_E6 = ("v2", "v3", "v3-flash")',  # a 2.3 (24/11) tambem usa o E-6
         'VERSOES_COM_E6 = ("v2",)',
     ),
 }

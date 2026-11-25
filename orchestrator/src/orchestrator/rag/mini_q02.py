@@ -279,8 +279,11 @@ async def etapa_coleta(
     neutralizar_efeitos_externos(settings)
     rag_antes = settings.rag_enabled
     versao_antes = settings.rag_regras_versao
+    limites_antes = settings.rag_limites
     settings.rag_enabled = True
     settings.rag_regras_versao = "v1"  # garante etapa 2 desligada; v4 entra so via _com_regras_no_synth
+    # o mini-teste (v1 x v4) foi medido SEM a ferramenta de limites (padrao ligado desde 25/11/2026)
+    settings.rag_limites = False
 
     try:
         graph = (graph_factory or builder.build_graph)(MemorySaver())
@@ -366,6 +369,7 @@ async def etapa_coleta(
         return saida
     finally:
         settings.rag_regras_versao = versao_antes
+        settings.rag_limites = limites_antes
         settings.rag_enabled = rag_antes
 
 

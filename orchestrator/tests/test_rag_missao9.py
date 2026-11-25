@@ -69,8 +69,10 @@ def test_regras_alteradas_depois_do_pre_registro_invalidam(monkeypatch):
     assert not c["valido"] and c["v2_vira_padrao"] is False
 
 
-def test_seletor_padrao_v1_e_recusa_versao_desconhecida(monkeypatch):
-    assert settings.rag_regras_versao == "v1"
+def test_seletor_segue_o_settings_e_recusa_versao_desconhecida(monkeypatch):
+    assert settings.rag_regras_versao == "v5"  # padrao desde 25/11/2026 (Parte 3)
+    assert rag_specialist.regras_do_manual() == rag_specialist.REGRAS_DO_MANUAL_V5
+    monkeypatch.setattr(settings, "rag_regras_versao", "v1")
     assert rag_specialist.regras_do_manual() == rag_specialist.REGRAS_DO_MANUAL
     monkeypatch.setattr(settings, "rag_regras_versao", "v2")
     assert rag_specialist.regras_do_manual() == rag_specialist.REGRAS_DO_MANUAL_V2

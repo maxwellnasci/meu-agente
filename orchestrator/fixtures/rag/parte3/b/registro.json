@@ -1,0 +1,92 @@
+{
+  "tentativas": [
+    {
+      "unidade": "v1-r1",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "respostas-v1-r1-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.028347828,
+      "inicio": "2026-11-25T06:28:50-03:00",
+      "fim": "2026-11-25T06:31:19-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "v5-r1",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "respostas-v5-r1-t1.json",
+      "orcamento_usd": 0.07,
+      "custo_usd": 0.027929328,
+      "inicio": "2026-11-25T06:31:21-03:00",
+      "fim": "2026-11-25T06:33:47-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "v1-r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "respostas-v1-r2-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.026340455999999998,
+      "inicio": "2026-11-25T06:33:49-03:00",
+      "fim": "2026-11-25T06:36:14-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "v5-r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "respostas-v5-r2-t1.json",
+      "orcamento_usd": 0.07,
+      "custo_usd": 0.027211152,
+      "inicio": "2026-11-25T06:36:16-03:00",
+      "fim": "2026-11-25T06:38:41-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "juiz-v1-r1",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "julgamento-v1-r1-t1.json",
+      "orcamento_usd": 0.12,
+      "custo_usd": 0.069615,
+      "inicio": "2026-11-25T06:38:43-03:00",
+      "fim": "2026-11-25T06:41:30-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "juiz-v5-r1",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "julgamento-v5-r1-t1.json",
+      "orcamento_usd": 0.12,
+      "custo_usd": 0.07217699999999996,
+      "inicio": "2026-11-25T06:41:32-03:00",
+      "fim": "2026-11-25T06:44:24-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "juiz-v1-r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "julgamento-v1-r2-t1.json",
+      "orcamento_usd": 0.12,
+      "custo_usd": 0.06988425,
+      "inicio": "2026-11-25T06:44:26-03:00",
+      "fim": "2026-11-25T06:46:42-03:00",
+      "motor_do_agente": "deepseek"
+    },
+    {
+      "unidade": "juiz-v5-r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "julgamento-v5-r2-t1.json",
+      "orcamento_usd": 0.12,
+      "custo_usd": 0.070611,
+      "inicio": "2026-11-25T06:46:43-03:00",
+      "fim": "2026-11-25T06:49:12-03:00",
+      "motor_do_agente": "deepseek"
+    }
+  ]
+}

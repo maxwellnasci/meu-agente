@@ -445,7 +445,7 @@ def test_pre_registro_v3_congelado():
         assert me.PRE_REGISTRO_V3[k] == me.PRE_REGISTRO[k]
     assert me.hashes_atuais() == me.PRE_REGISTRO  # a v1 nao mudou
     assert me.hashes_atuais(versao="v2") == me.PRE_REGISTRO_V2  # nem a v2
-    assert len({me._diretorio(v) for v in me.VERSOES}) == 3  # registros proprios
+    assert len({me._diretorio(v) for v in me.VERSOES}) == len(me.VERSOES)  # registros proprios (a 2.3 tambem)
     assert v3.schema_ferramenta is lx1.schema_ferramenta
     assert v3.prompt_sistema is lx1.prompt_sistema
 

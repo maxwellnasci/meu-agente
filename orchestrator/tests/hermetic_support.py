@@ -46,6 +46,9 @@ SDK_ENV_VARS_REMOVED = (
     "OPENAI_ORG_ID",
     "OPENAI_ORGANIZATION",
     "OPENROUTER_API_KEY",
+    # Lida direto pelo Settings (validation_alias, sem prefixo): chave da API direta da
+    # DeepSeek (llm_motor.py). Fora do ambiente da suite; os testes usam valor falso.
+    "DEEPSEEK_API_KEY",
     "HF_TOKEN",
     "HUGGING_FACE_HUB_TOKEN",
 )

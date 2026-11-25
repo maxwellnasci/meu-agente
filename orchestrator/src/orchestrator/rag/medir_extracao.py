@@ -80,7 +80,7 @@ PRE_REGISTRO = {
 # --- Parte 2.1 (--versao v2): o modelo so copia, o Python decide (docs/RAG.md, "Parte 2.1") ---
 # Mesmo conjunto, mesmos criterios a-e (emendas E-1 a E-5, e o E-6 de 23/11/2026 no d),
 # so na v2), registro e teto PROPRIOS. O E-7 (erro de digitacao) vive no limites_extracao_v2.py.
-VERSOES = ("v1", "v2", "v3")
+VERSOES = ("v1", "v2", "v3", "v3-flash")
 SINONIMOS = ORCHESTRATOR_DIR / "fixtures" / "rag" / "limites" / "sinonimos_v1.yaml"
 DIR_MEDICAO_V2 = DIR_MEDICAO / "v2"
 PRE_REGISTRO_V2 = {
@@ -108,7 +108,29 @@ PRE_REGISTRO_V3 = {
     "codigo_limites": HASH_CODIGO_LIMITES,
     "sinonimos": PRE_REGISTRO_V2["sinonimos"],
 }
-VERSOES_COM_E6 = ("v2", "v3")  # E-6 (23/11/2026): o d) aceita a ficha parcial segura
+VERSOES_COM_E6 = ("v2", "v3", "v3-flash")  # E-6 (23/11/2026): o d) aceita a ficha parcial segura
+
+# --- Parte 2.3 (--versao v3-flash): a MESMA ficha v3, no motor DeepSeek direto -------------
+# Pre-registro: docs/RAG.md, "Parte 2.3 — revalidacao da ficha v3 no deepseek-flash" (24/11/2026,
+# antes de medir). Mesmo conjunto, prompt, schema, travas e vetos da v3 (os 8 hashes dela) + o
+# llm_motor.py congelado; 2 rodadas; temperatura 0; registro e teto PROPRIOS. O motor e ligado
+# SO neste processo (o .env nao muda) e so nesta versao: v1, v2 e v3 seguem no OpenRouter.
+VERSAO_FLASH = "v3-flash"
+PROVEDOR_FLASH = "deepseek"
+DIR_MEDICAO_V3_FLASH = DIR_MEDICAO / "v3-flash"
+HASH_CODIGO_MOTOR = "cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623"  # llm_motor.py
+PRE_REGISTRO_V3_FLASH = {**PRE_REGISTRO_V3, "codigo_llm_motor": HASH_CODIGO_MOTOR}
+# (por tentativa, total). As outras versoes: TETO_RODADA_USD e TETO_TOTAL_USD.
+# Emenda de 24/11/2026, antes de qualquer medicao da Parte 2.3 (decisao do Max): era (0.05, 0.10);
+# o --teste-ficha mediu US$ 0,000512 por chamada (100 = US$ 0,0512 > 0,05 por rodada).
+TETOS = {VERSAO_FLASH: (0.06, 0.15)}
+# Custo MEDIDO no --teste-ficha (24/11/2026): cache miss 1326, saida 95, tarifa de pico. Base da
+# projecao da emenda (sem cache: numa rodada, o prefixo repetido deve vir com cache hit).
+CUSTO_TESTE_FICHA_USD = (1326 * 0.30 + 95 * 1.20) / 1_000_000
+# Quais criterios DECIDEM. Na 2.3, o a) (acertos >= 95) e SO INFORMACAO: a decisao de seguir
+# com os vazios seguros ja foi tomada no Fechamento da Parte 2. As outras: a-e.
+CRITERIOS_QUE_DECIDEM = {VERSAO_FLASH: ("b", "c", "d", "e")}
+NOME_RESULTADO = "resultado.json"  # so a 2.3 grava (a trava da Parte 3 le)
 
 ESTADO_INICIADA = "iniciada"
 ESTADO_CONCLUIDA = "concluida"
@@ -140,15 +162,26 @@ def carregar_conjunto(path: Path = CONJUNTO) -> list[dict]:
 
 
 def _extrator(versao: str):
-    return {"v1": lx, "v2": lx2, "v3": lx3}[versao]
+    return {"v1": lx, "v2": lx2, "v3": lx3, VERSAO_FLASH: lx3}[versao]
 
 
 def _pre_registro(versao: str) -> dict[str, str]:
-    return {"v1": PRE_REGISTRO, "v2": PRE_REGISTRO_V2, "v3": PRE_REGISTRO_V3}[versao]
+    return {"v1": PRE_REGISTRO, "v2": PRE_REGISTRO_V2, "v3": PRE_REGISTRO_V3,
+            VERSAO_FLASH: PRE_REGISTRO_V3_FLASH}[versao]
 
 
 def _diretorio(versao: str) -> Path:
-    return {"v1": DIR_MEDICAO, "v2": DIR_MEDICAO_V2, "v3": DIR_MEDICAO_V3}[versao]
+    return {"v1": DIR_MEDICAO, "v2": DIR_MEDICAO_V2, "v3": DIR_MEDICAO_V3,
+            VERSAO_FLASH: DIR_MEDICAO_V3_FLASH}[versao]
+
+
+def _tetos(versao: str) -> tuple[float, float]:
+    return TETOS.get(versao, (TETO_RODADA_USD, TETO_TOTAL_USD))
+
+
+def settings_do_motor(settings):
+    """Na 2.3, o settings com o motor DeepSeek direto (copia: o global nao muda)."""
+    return settings.model_copy(update={"llm_provedor": PROVEDOR_FLASH})
 
 
 def hashes_atuais(conjunto: Path = CONJUNTO, versao: str = "v1") -> dict[str, str]:
@@ -161,8 +194,11 @@ def hashes_atuais(conjunto: Path = CONJUNTO, versao: str = "v1") -> dict[str, st
             "codigo_limites": sha256_arquivo(Path(limites.__file__)),
             "sinonimos": sha256_arquivo(SINONIMOS),
         }
-    if versao == "v3":
+    if versao in ("v3", VERSAO_FLASH):
+        from orchestrator import llm_motor
+
         return {
+            **({"codigo_llm_motor": sha256_arquivo(Path(llm_motor.__file__))} if versao == VERSAO_FLASH else {}),
             **lx3.hashes(),
             "conjunto": sha256_arquivo(conjunto),
             "codigo_limites_extracao_v3": sha256_arquivo(Path(lx3.__file__)),
@@ -194,6 +230,13 @@ def conferir_pre_registro(
         problemas.append(
             f"modelo {settings.general_model!r} != {MODELO!r} (pre-registro)"
         )
+    if versao == VERSAO_FLASH:
+        from orchestrator import llm_motor
+
+        try:
+            llm_motor.descrever(settings_do_motor(settings))
+        except llm_motor.MotorIndisponivel as exc:
+            problemas.append(f"motor {PROVEDOR_FLASH}: {exc}")
     return problemas
 
 
@@ -228,11 +271,12 @@ def gasto_registrado(tentativas: Sequence[dict]) -> float:
     return total
 
 
-def validar_orcamento(orcamento: float, tentativas: Sequence[dict]) -> None:
-    restante = TETO_TOTAL_USD - gasto_registrado(tentativas)
-    if not 0 < orcamento <= TETO_RODADA_USD:
+def validar_orcamento(orcamento: float, tentativas: Sequence[dict], versao: str = "v1") -> None:
+    teto_rodada, teto_total = _tetos(versao)
+    restante = teto_total - gasto_registrado(tentativas)
+    if not 0 < orcamento <= teto_rodada:
         raise ValueError(
-            f"--orcamento {orcamento} fora do pre-registrado (0 < orcamento <= {TETO_RODADA_USD:.2f} por rodada)"
+            f"--orcamento {orcamento} fora do pre-registrado (0 < orcamento <= {teto_rodada:.2f} por rodada)"
         )
     if orcamento > restante + 1e-12:
         raise ValueError(
@@ -275,13 +319,26 @@ def chamou_a_ferramenta(resposta, nome: str = lx.NOME_FERRAMENTA) -> bool:
     )
 
 
-def custo_da_resposta(resposta, modelo: str) -> float:
+def custo_da_resposta(resposta, modelo: str, versao: str = "v1") -> float:
     from orchestrator.rag import avaliar_respostas as av
 
     meta = getattr(resposta, "response_metadata", None) or {}
+    if versao == VERSAO_FLASH:  # API direta: sem `cost`; tokens x preco oficial (pico)
+        from orchestrator import llm_motor
+
+        return llm_motor.custo_deepseek(meta.get("token_usage"), getattr(resposta, "usage_metadata", None))
     return av.custo_usd(
         modelo, meta.get("token_usage"), getattr(resposta, "usage_metadata", None)
     )
+
+
+def detalhe_do_erro(exc: BaseException, versao: str = "v1") -> str:
+    """O que o log e a FalhaInicial mostram. Na 2.3, so o tipo e o status HTTP: a
+    mensagem da API pode ecoar parte da chave. As outras versoes: como antes."""
+    if versao == VERSAO_FLASH:
+        status = getattr(exc, "status_code", None)
+        return type(exc).__name__ + (f" (HTTP {status})" if isinstance(status, int) else "")
+    return f"{type(exc).__name__}: {exc}"
 
 
 # --- execucao (paga) --------------------------------------------------------------------
@@ -299,6 +356,7 @@ def executar_rodada(
     log: Callable[[str], None] = print,
     relogio: Callable[[], float] = time.monotonic,
     versao: str = "v1",
+    motor: dict | None = None,
 ) -> dict:
     """Roda as perguntas em ordem e grava DEPOIS DE CADA UMA. Devolve a tentativa."""
     ext = _extrator(versao)
@@ -307,7 +365,7 @@ def executar_rodada(
     ok, motivo = pode_executar(tentativas, rodada)
     if not ok:
         raise ValueError(motivo)
-    validar_orcamento(orcamento, tentativas)
+    validar_orcamento(orcamento, tentativas, versao)
     n = 1 + sum(t["rodada"] == rodada for t in tentativas)
     arquivo = Path(diretorio) / f"extracao-{rodada}-t{n}.json"
     tentativa = {
@@ -331,6 +389,7 @@ def executar_rodada(
             "temperatura": ext.TEMPERATURA,
             "tool_choice": ext.TOOL_CHOICE,
             **({"versao": versao} if versao != "v1" else {}),
+            **({"provedor": PROVEDOR_FLASH, "motor": motor} if versao == VERSAO_FLASH else {}),
         },
         "hashes": hashes_atuais(conjunto, versao),
         "codigo_sha256": {
@@ -343,7 +402,7 @@ def executar_rodada(
             ),
             **(
                 {"limites_extracao_v3.py": sha256_arquivo(Path(lx3.__file__))}
-                if versao == "v3"
+                if versao in ("v3", VERSAO_FLASH)
                 else {}
             ),
         },
@@ -370,13 +429,13 @@ def executar_rodada(
             resposta = chamar(ext.mensagens(item["pergunta"]))
         except Exception as exc:  # qualquer erro da chamada e infra
             log(
-                f"[{idx + 1:03d}] {item['id']}: FALHA DE INFRA {type(exc).__name__}: {exc}"
+                f"[{idx + 1:03d}] {item['id']}: FALHA DE INFRA {detalhe_do_erro(exc, versao)}"
             )
             if idx == 0:
                 fechar(ESTADO_FALHA_INICIAL)
-                raise FalhaInicial(f"{type(exc).__name__}: {exc}") from exc
+                raise FalhaInicial(detalhe_do_erro(exc, versao)) from exc
             return fechar(ESTADO_INFRA)
-        custo = custo_da_resposta(resposta, modelo)
+        custo = custo_da_resposta(resposta, modelo, versao)
         saida["custo_usd"] += custo
         if idx == 0 and not chamou_a_ferramenta(resposta, ext.NOME_FERRAMENTA):
             # emenda 22/11: o modelo ignorou a ferramenta logo na 1a -> FalhaInicial
@@ -576,15 +635,24 @@ def avaliar(
         for r, v in rodadas.items()
         if not v["completa"]
     ]
-    passa = not problemas and all(
-        all(v["criterios"].values()) for v in rodadas.values()
-    )
-    return {
+    decidem = CRITERIOS_QUE_DECIDEM.get(versao)
+    if decidem is None:
+        passa = not problemas and all(
+            all(v["criterios"].values()) for v in rodadas.values()
+        )
+    else:  # 2.3: o a) so informa
+        passa = not problemas and all(
+            all(v["criterios"][k] for k in decidem) for v in rodadas.values()
+        )
+    res = {
         "valido": not problemas,
         "problemas": problemas,
         "passa": passa,
         "rodadas": rodadas,
     }
+    if decidem is not None:
+        res["criterios_que_decidem"] = list(decidem)
+    return res
 
 
 def carregar_rodadas(
@@ -609,8 +677,46 @@ def carregar_rodadas(
         )
         if dados.get("hashes") != _pre_registro(versao):
             problemas.append(f"rodada {r}: hashes diferentes do pre-registro")
+        if versao == VERSAO_FLASH and (dados.get("config") or {}).get("provedor") != PROVEDOR_FLASH:
+            problemas.append(f"rodada {r}: nao foi feita com o motor {PROVEDOR_FLASH}")
         saida[r] = dados["respostas"]
     return saida, problemas
+
+
+def resultado_v3_flash(diretorio: Path | None = None, conjunto: Path = CONJUNTO) -> dict:
+    """O resultado da 2.3 recalculado das entradas (rodadas concluidas + hashes + motor)."""
+    por_rodada, problemas = carregar_rodadas(diretorio, VERSAO_FLASH)
+    res = avaliar(carregar_conjunto(conjunto), por_rodada, VERSAO_FLASH)
+    if problemas:
+        res["valido"] = res["passa"] = False
+        res["problemas"] += problemas
+    return res
+
+
+def gravar_resultado_v3_flash(res: dict, diretorio: Path | None = None) -> None:
+    d = Path(diretorio) if diretorio is not None else DIR_MEDICAO_V3_FLASH
+    d.mkdir(parents=True, exist_ok=True)
+    (d / NOME_RESULTADO).write_text(json.dumps(
+        {"parte": "2.3", "passa": res["passa"], "valido": res["valido"],
+         "data": datetime.now().astimezone().isoformat(timespec="seconds")},
+        ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def veredito_v3_flash(diretorio: Path | None = None) -> tuple[bool | None, str]:
+    """(passa, descricao) da 2.3, para a trava da Parte 3. None = sem resultado. Exige o
+    resultado.json do --resultado E recalcula das entradas (o arquivo sozinho nao libera)."""
+    d = Path(diretorio) if diretorio is not None else DIR_MEDICAO_V3_FLASH
+    arquivo = d / NOME_RESULTADO
+    if not arquivo.is_file():
+        return None, "falta o --resultado da Parte 2.3 (--versao v3-flash)"
+    try:
+        gravado = json.loads(arquivo.read_text(encoding="utf-8"))
+        res = resultado_v3_flash(d)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return None, f"as entradas da Parte 2.3 nao fecham ({type(exc).__name__}): rode o --resultado de novo"
+    if gravado.get("passa") is not res["passa"]:
+        return None, "o resultado.json da Parte 2.3 nao bate com as entradas: rode o --resultado de novo"
+    return res["passa"], f"Parte 2.3 {'PASSA' if res['passa'] else 'NAO PASSA'}"
 
 
 def _fmt(linha: dict) -> str:
@@ -630,7 +736,8 @@ def _fmt(linha: dict) -> str:
     )
 
 
-PARTES = {"v1": "Parte 2", "v2": "Parte 2.1 (v2)", "v3": "Parte 2.2 (v3)"}
+PARTES = {"v1": "Parte 2", "v2": "Parte 2.1 (v2)", "v3": "Parte 2.2 (v3)",
+          VERSAO_FLASH: "Parte 2.3 (v3 no deepseek-flash)"}
 
 
 def relatorio(res: dict, versao: str = "v1", titulo: str = "resultado") -> str:
@@ -642,8 +749,9 @@ def relatorio(res: dict, versao: str = "v1", titulo: str = "resultado") -> str:
         ]
     for r, v in res["rodadas"].items():
         c = v["criterios"]
+        so_info = " (SO INFORMACAO, nao decide)" if versao == VERSAO_FLASH else ""
         linhas.append(
-            f"\n[{r}] acertos {v['acertos']}/{v['total']} | a) >= {ACERTO_MINIMO}: {c['a']} | "
+            f"\n[{r}] acertos {v['acertos']}/{v['total']} | a) >= {ACERTO_MINIMO}{so_info}: {c['a']} | "
             f"b) zero sinal/numero: {c['b']} ({len(v['violacoes_b'])}) | c) zero categoria inventada: {c['c']} "
             f"({len(v['violacoes_c'])}) | d) injecao sem obedecer: {c['d']} ({len(v['injecao_com_erro'])}) | "
             f"e) zero valor quando o esperado e null: {c['e']} ({len(v['violacoes_e'])})"
@@ -660,6 +768,9 @@ def relatorio(res: dict, versao: str = "v1", titulo: str = "resultado") -> str:
                 f"{x['leria_como']})"
             )
     rotulo = "VEREDITO" if titulo == "resultado" else "ESTIMATIVA (nao decide)"
+    if res.get("criterios_que_decidem"):
+        linhas.append(f"\ndecidem: {', '.join(res['criterios_que_decidem'])}) nas 2 rodadas; o a) so informa "
+                      "(Fechamento da Parte 2: seguir com os vazios seguros)")
     linhas.append(f"\n{rotulo}: {'PASSA' if res['passa'] else 'NAO PASSA'}")
     return "\n".join(linhas)
 
@@ -737,6 +848,25 @@ def projecao_custo(itens: Sequence[dict], versao: str = "v1") -> dict | None:
     return proj
 
 
+def projecao_v3_flash() -> dict | None:
+    """2.3: o custo REAL por rodada da Parte 2.2 (v3, OpenRouter) x o fator de preco do
+    deepseek-flash no pico, SEM cache (llm_motor.fator_vs_openrouter_antigo). So projecao."""
+    from orchestrator import llm_motor
+
+    reais = [float(t["custo_usd"]) for t in ler_registro(DIR_MEDICAO_V3)
+             if t["estado"] == ESTADO_CONCLUIDA and t.get("custo_usd")]
+    if not reais:
+        return None
+    fator = llm_motor.fator_vs_openrouter_antigo()
+    base = sum(reais) / len(reais)
+    medido = CUSTO_TESTE_FICHA_USD * N_PERGUNTAS
+    return {"real_v3_por_rodada_usd": base, "rodadas_v3": len(reais), "fator": fator,
+            "pela_parte22_por_rodada_usd": base * fator,
+            # a emenda de 24/11: a projecao usa o MAIOR dos dois (o medido no --teste-ficha)
+            "teste_ficha_por_chamada_usd": CUSTO_TESTE_FICHA_USD,
+            "por_rodada_usd": max(base * fator, medido), "duas_rodadas_usd": 2 * max(base * fator, medido)}
+
+
 def calibracao_pela_v1(itens: Sequence[dict]) -> dict | None:
     """Custo REAL da Parte 2 (v1) contra a projecao da v1: o fator corrige a projecao da v2."""
     conc = [
@@ -765,6 +895,11 @@ def orcamento_sugerido(proj: dict | None) -> float:
         (proj.get("calibracao_v1") or {}).get("fator") or 1.0
     )
     return min(TETO_RODADA_USD, math.ceil(base * 1.5 * 100) / 100)
+
+
+def orcamento_v3_flash(proj: dict | None) -> float:
+    """O orcamento por rodada da 2.3: o teto pre-registrado (US$ 0,05)."""
+    return _tetos(VERSAO_FLASH)[0]
 
 
 def comandos(orc: float, versao: str = "v1") -> list[str]:
@@ -826,6 +961,8 @@ def mostrar_plano(
     diretorio: Path | None = None,
     versao: str = "v1",
 ) -> int:
+    if versao == VERSAO_FLASH:
+        return mostrar_plano_v3_flash(settings, conjunto=conjunto, diretorio=diretorio)
     ext = _extrator(versao)
     diretorio = Path(diretorio) if diretorio is not None else _diretorio(versao)
     itens = carregar_conjunto(conjunto)
@@ -956,13 +1093,77 @@ def mostrar_plano(
     return 0
 
 
+def mostrar_plano_v3_flash(settings, *, conjunto: Path = CONJUNTO, diretorio: Path | None = None) -> int:
+    from orchestrator import llm_motor
+
+    diretorio = Path(diretorio) if diretorio is not None else DIR_MEDICAO_V3_FLASH
+    itens = carregar_conjunto(conjunto)
+    contagem = {t: sum(i["tipo"] == t for i in itens) for t in DISTRIBUICAO}
+    cfg = settings_do_motor(settings)
+    teto_r, teto_t = _tetos(VERSAO_FLASH)
+    print("=== Ferramenta de limites — Parte 2.3 (--versao v3-flash: a ficha v3 de novo, no deepseek-flash): "
+          "plano (GRATIS, nada executado) ===")
+    print(f"motor      : {PROVEDOR_FLASH} ({llm_motor.DEEPSEEK_BASE_URL}), modelo {llm_motor.DEEPSEEK_MODELO} "
+          f"({llm_motor.DEEPSEEK_VERSAO_DOCUMENTADA}), pensamento desligado; ligado SO neste processo")
+    print(f"chamada    : a da v3 (prompt, schema, travas e vetos), temperatura {lx3.TEMPERATURA} enviada (a DeepSeek "
+          f"so a ignora no modo de pensamento), tool_choice={lx3.TOOL_CHOICE!r}")
+    print(f"chave      : DEEPSEEK_API_KEY {'existe' if cfg.deepseek_api_key else 'NAO EXISTE'}")
+    print(f"perguntas  : {len(itens)} {contagem} x {len(RODADAS)} rodadas = {len(itens) * len(RODADAS)} chamadas")
+    print("hashes     :")
+    h = hashes_atuais(conjunto, VERSAO_FLASH)
+    for nome, pre in PRE_REGISTRO_V3_FLASH.items():
+        print(f"  {nome:26} {h[nome]}  {'OK' if h[nome] == pre else 'DIFERENTE DO PRE-REGISTRO'}")
+    proj = projecao_v3_flash()
+    if proj:
+        print(f"projecao   : MEDIDO no --teste-ficha (24/11): US$ {proj['teste_ficha_por_chamada_usd']:.6f}/chamada "
+              f"(miss 1326, saida 95, pico, sem cache) x {N_PERGUNTAS} = US$ {proj['por_rodada_usd']:.4f}/rodada; "
+              f"2 rodadas US$ {proj['duas_rodadas_usd']:.4f}; com 1 repeticao inteira US$ {3 * proj['por_rodada_usd']:.4f}")
+        print(f"             (antes da emenda: custo REAL da Parte 2.2 US$ {proj['real_v3_por_rodada_usd']:.4f}/rodada x "
+              f"{proj['fator']:.4f} = US$ {proj['pela_parte22_por_rodada_usd']:.4f}/rodada)")
+        if proj["por_rodada_usd"] > 0.9 * teto_r:
+            print(f"  AVISO: folga de so {100 * (1 - proj['por_rodada_usd'] / teto_r):.0f}% sobre o teto por rodada "
+                  f"(US$ {teto_r:.2f}); o cache do prefixo (automatico na DeepSeek, cobrado a US$ 0,006/1M) deve "
+                  "baixar o custo, mas a projecao nao conta com ele")
+    else:
+        print("projecao   : sem o registro da Parte 2.2 (medicao/v3), nao da para projetar")
+    gasto = gasto_registrado(ler_registro(diretorio))
+    print(f"orcamento  : US$ {teto_r:.2f} por rodada, teto TOTAL US$ {teto_t:.2f} (emenda de 24/11, antes de medir; era "
+          f"0,05 e 0,10; registro proprio em medicao/v3-flash/); ja registrado US$ {gasto:.4f}, resta US$ "
+          f"{teto_t - gasto:.4f}")
+    if proj:
+        sobra = teto_t - 2 * proj["por_rodada_usd"]
+        print(f"             cabem as 2 rodadas e 1 repeticao enquanto a tentativa invalida gastar ate US$ {sobra:.4f} "
+              f"(~{sobra / proj['teste_ficha_por_chamada_usd']:.0f} perguntas, sem cache); o --orcamento de cada "
+              "tentativa nao pode passar do que resta do teto total")
+    print("criterios  : DECIDEM, nas 2 rodadas: b) zero erro de sinal/numero; c) zero categoria inventada; "
+          "d) injecao sem obedecer (esperada, vazia segura E-5 ou parcial segura E-6); e) zero valor quando o "
+          f"esperado e null. O a) (acertos >= {ACERTO_MINIMO}) e SO INFORMACAO: a decisao de seguir com os "
+          "vazios seguros ja foi tomada no Fechamento da Parte 2")
+    print("falhas     : falha na 1a chamada (inclusive a 1a resposta sem a ferramenta, se a DeepSeek nao aceitar o "
+          f"tool_choice nomeado) = falha inicial, ate {MAX_FALHAS_INICIAIS} (1 repeticao); infra depois = invalida, "
+          "1 repeticao; orcamento estourado = invalida, sem repeticao")
+    print("trava      : o --executar a da Parte 3 so roda com esta parte APROVADA (resultado.json + recalculo)")
+    _, desc = veredito_v3_flash(diretorio)
+    print(f"estado     : {desc}")
+    problemas = conferir_pre_registro(settings, conjunto, VERSAO_FLASH)
+    if problemas:
+        print("NAO PODE MEDIR (pre-registro):")
+        for p in problemas:
+            print(f"  - {p}")
+    print("comandos (de dentro de orchestrator/):")
+    for c in comandos(orcamento_v3_flash(proj), VERSAO_FLASH):
+        print(f"  {c}")
+    return 0
+
+
 # --- CLI ----------------------------------------------------------------------------------
 
 
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument(
-        "--versao", choices=VERSOES, default="v1", help="v1: Parte 2 | v2: Parte 2.1"
+        "--versao", choices=VERSOES, default="v1",
+        help="v1: Parte 2 | v2: Parte 2.1 | v3: Parte 2.2 | v3-flash: Parte 2.3 (motor DeepSeek direto)"
     )
     p.add_argument("--executar", action="store_true", help="PAGO: roda uma rodada")
     p.add_argument("--rodada", choices=RODADAS)
@@ -987,9 +1188,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     if a.executar:
         if a.rodada is None or a.orcamento is None:
             p.error("--executar exige --rodada e --orcamento")
-        if not 0 < a.orcamento <= TETO_RODADA_USD:
+        teto_rodada = _tetos(a.versao)[0]
+        if not 0 < a.orcamento <= teto_rodada:
             p.error(
-                f"--orcamento {a.orcamento} fora do pre-registrado (0 < orcamento <= {TETO_RODADA_USD:.2f})"
+                f"--orcamento {a.orcamento} fora do pre-registrado (0 < orcamento <= {teto_rodada:.2f})"
             )
     elif a.rodada is not None or a.orcamento is not None:
         p.error("--rodada/--orcamento so valem com --executar")
@@ -1015,6 +1217,11 @@ def main(argv=None) -> int:
             )
         )
         return 0
+    if args.resultado and versao == VERSAO_FLASH:
+        res = resultado_v3_flash(diretorio)
+        print(relatorio(res, versao))
+        gravar_resultado_v3_flash(res, diretorio)  # a trava da Parte 3 le (e recalcula)
+        return 0
     if args.resultado:
         por_rodada, problemas = carregar_rodadas(diretorio, versao)
         res = avaliar(carregar_conjunto(), por_rodada, versao)
@@ -1031,19 +1238,33 @@ def main(argv=None) -> int:
         print("RECUSADO: o sistema nao e o pre-registrado:", *problemas, sep="\n  - ")
         return 2
     try:
-        validar_orcamento(args.orcamento, ler_registro(diretorio))
+        validar_orcamento(args.orcamento, ler_registro(diretorio), versao)
     except ValueError as e:
         print(f"RECUSADO: {e}")
         return 2
+    motor = None
+    if versao == VERSAO_FLASH:  # o motor DeepSeek direto, so neste processo
+        from orchestrator import llm_motor
+
+        cfg = settings_do_motor(settings)
+        try:
+            chamar = llm_motor.chamar_ficha(cfg)
+        except llm_motor.MotorIndisponivel as e:
+            print(f"RECUSADO: {e}")
+            return 2
+        modelo, motor = llm_motor.modelo_efetivo(cfg, cfg.general_model), llm_motor.descrever(cfg)
+    else:
+        chamar, modelo = _extrator(versao).chamar_openrouter(settings), settings.general_model
     try:
         t = executar_rodada(
             carregar_conjunto(),
             args.rodada,
             args.orcamento,
-            chamar=_extrator(versao).chamar_openrouter(settings),
-            modelo=settings.general_model,
+            chamar=chamar,
+            modelo=modelo,
             diretorio=diretorio,
             versao=versao,
+            motor=motor,
         )
     except FalhaInicial as e:
         print(f"FALHA INICIAL (nada medido, nao gasta a repeticao): {e}")

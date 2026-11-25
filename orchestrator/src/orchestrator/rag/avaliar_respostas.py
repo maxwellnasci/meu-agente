@@ -457,6 +457,13 @@ def _tempos_do_synth(coletor: ColetorGrafo) -> dict:
 
 
 def _custo_das_chamadas(chamadas: list[dict], settings) -> float:
+    # Motor deepseek (API direta, sem `cost` no usage): tokens x preco oficial da
+    # DeepSeek (cache hit/miss, tarifa de pico; llm_motor.custo_deepseek). Vale para
+    # TODAS as chamadas do agente capturadas aqui (supervisor, ficha e redator).
+    from orchestrator import llm_motor
+
+    if llm_motor.provedor(settings) == "deepseek":
+        return sum(llm_motor.custo_deepseek(c.get("token_usage"), c.get("usage_metadata")) for c in chamadas)
     pedido = {"supervisor": settings.router_model, "synthesize_final": settings.general_model}
     return sum(custo_usd(pedido.get(c.get("no"), c.get("modelo_devolvido") or ""), c.get("token_usage"),
                          c.get("usage_metadata"))
@@ -481,51 +488,60 @@ async def etapa_respostas(perguntas: list[dict], *, orcamento: float = ORCAMENTO
         raise ValueError(f"versao {regras!r} nao aceita nesta avaliacao (aceitas: {', '.join(aceitas)})")
     rag_specialist.regras_da_etapa1(regras)  # recusa versao desconhecida antes de gastar
     settings.rag_regras_versao = regras
-    graph = (graph_factory or builder.build_graph)(MemorySaver())
+    # Ferramenta de limites (padrao LIGADO desde 25/11/2026): as Missoes 8-10 e a v1 da
+    # Parte 3 foram medidas SEM ela; so a v5 a usa. Fixada aqui e restaurada no fim, para
+    # que o padrao novo nao mude as condicoes de uma medicao ja fechada.
+    limites_antes = settings.rag_limites
+    if regras != "v5":
+        settings.rag_limites = False
+    try:
+        graph = (graph_factory or builder.build_graph)(MemorySaver())
 
-    saida = {
-        "versao": 1,
-        "missao": 8,
-        "data": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "git": _git(),
-        "config": {
-            "router_model": settings.router_model,
-            "general_model": settings.general_model,
-            "temperatura_supervisor": 0,
-            "temperatura_synthesize": None,  # o no nao define: padrao do provedor (rodada = amostra)
-            "rag_regras_versao": settings.rag_regras_versao,
-            "rag_search_mode": settings.rag_search_mode,
-            "rag_top_k": settings.rag_top_k,
-            "rag_colecao": settings.rag_colecao,
-            "rag_rerank_model": settings.rag_rerank_model,
-            "indice_meta": _meta_do_indice(settings),
-            "metodo": "graph.ainvoke + callback (sem streaming); MemorySaver; n8n/gateway neutralizados",
-            "provedor_devolvido": "o OpenRouter nao expoe o provedor no response_metadata do langchain; ver modelo_devolvido",
-        },
-        "hashes": _hashes_do_sistema(settings),
-        "custo_usd": 0.0,
-        "custo_etapa2_usd": 0.0,  # Missao 10: ja incluido no custo_usd; relatado separado
-        "orcamento_usd": orcamento,
-        "abortado_por_orcamento": False,
-        "perguntas": [],
-    }
-    for i, item in enumerate(perguntas):
-        r = await responder(graph, item)
-        if i == 0 and r.get("falha_de_infra"):
-            raise FalhaInicial(f"a 1a pergunta ({item['id']}) falhou: erro={r.get('erro')} erros_llm={r.get('erros_llm')}")
-        r["custo_usd"] = _custo_das_chamadas(r["chamadas_llm"], settings)
-        r["custo_etapa2_usd"] = _custo_das_chamadas(
-            [c for c in r["chamadas_llm"] if c.get("nome") == _nome_formatador()], settings)
-        saida["perguntas"].append(r)
-        saida["custo_usd"] += r["custo_usd"]
-        saida["custo_etapa2_usd"] += r["custo_etapa2_usd"]
-        log(f"{item['id']}: {' -> '.join(r['caminho']) or '(sem caminho)'}  US$ {r['custo_usd']:.4f}"
-            + ("  INFRA " + str(r.get("erro") or r.get("erros_llm")) if r.get("falha_de_infra") else ""))
-        if saida["custo_usd"] > orcamento:
-            saida["abortado_por_orcamento"] = True
-            log(f"ORCAMENTO estourado (US$ {saida['custo_usd']:.4f} > {orcamento:.2f}): interrompido")
-            break
-    return saida
+        saida = {
+            "versao": 1,
+            "missao": 8,
+            "data": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "git": _git(),
+            "config": {
+                "router_model": settings.router_model,
+                "general_model": settings.general_model,
+                "temperatura_supervisor": 0,
+                "temperatura_synthesize": None,  # o no nao define: padrao do provedor (rodada = amostra)
+                "rag_regras_versao": settings.rag_regras_versao,
+                "rag_search_mode": settings.rag_search_mode,
+                "rag_top_k": settings.rag_top_k,
+                "rag_colecao": settings.rag_colecao,
+                "rag_rerank_model": settings.rag_rerank_model,
+                "indice_meta": _meta_do_indice(settings),
+                "metodo": "graph.ainvoke + callback (sem streaming); MemorySaver; n8n/gateway neutralizados",
+                "provedor_devolvido": "o OpenRouter nao expoe o provedor no response_metadata do langchain; ver modelo_devolvido",
+            },
+            "hashes": _hashes_do_sistema(settings),
+            "custo_usd": 0.0,
+            "custo_etapa2_usd": 0.0,  # Missao 10: ja incluido no custo_usd; relatado separado
+            "orcamento_usd": orcamento,
+            "abortado_por_orcamento": False,
+            "perguntas": [],
+        }
+        for i, item in enumerate(perguntas):
+            r = await responder(graph, item)
+            if i == 0 and r.get("falha_de_infra"):
+                raise FalhaInicial(f"a 1a pergunta ({item['id']}) falhou: erro={r.get('erro')} erros_llm={r.get('erros_llm')}")
+            r["custo_usd"] = _custo_das_chamadas(r["chamadas_llm"], settings)
+            r["custo_etapa2_usd"] = _custo_das_chamadas(
+                [c for c in r["chamadas_llm"] if c.get("nome") == _nome_formatador()], settings)
+            saida["perguntas"].append(r)
+            saida["custo_usd"] += r["custo_usd"]
+            saida["custo_etapa2_usd"] += r["custo_etapa2_usd"]
+            log(f"{item['id']}: {' -> '.join(r['caminho']) or '(sem caminho)'}  US$ {r['custo_usd']:.4f}"
+                + ("  INFRA " + str(r.get("erro") or r.get("erros_llm")) if r.get("falha_de_infra") else ""))
+            if saida["custo_usd"] > orcamento:
+                saida["abortado_por_orcamento"] = True
+                log(f"ORCAMENTO estourado (US$ {saida['custo_usd']:.4f} > {orcamento:.2f}): interrompido")
+                break
+        return saida
+    finally:
+        settings.rag_limites = limites_antes
 
 
 async def etapa_julgar(respostas: dict, gabarito: list[dict], api_key: str, *, orcamento: float = ORCAMENTO_USD,

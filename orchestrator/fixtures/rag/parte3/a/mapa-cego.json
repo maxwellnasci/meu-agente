@@ -1,0 +1,149 @@
+{
+  "versao": 2,
+  "semente": 219870623024086460986291193968385158917,
+  "elo": "7194f8926719fcbd3676700dd5b401da",
+  "total": 20,
+  "respostas_sha256": "64be8f8b24670d2a1941ef4a3adf7d569586fd00333199632bdecc82d73f2362",
+  "mapa": {
+    "r01": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 1,
+      "indice_execucao": 2,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r02": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 3,
+      "indice_execucao": 6,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r03": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 2,
+      "indice_execucao": 4,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r04": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 9,
+      "indice_execucao": 17,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r05": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 10,
+      "indice_execucao": 20,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r06": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 3,
+      "indice_execucao": 5,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r07": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 9,
+      "indice_execucao": 18,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r08": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 4,
+      "indice_execucao": 8,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r09": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 5,
+      "indice_execucao": 10,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r10": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 6,
+      "indice_execucao": 12,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r11": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 8,
+      "indice_execucao": 15,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r12": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 6,
+      "indice_execucao": 11,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r13": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 1,
+      "indice_execucao": 1,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r14": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 7,
+      "indice_execucao": 13,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r15": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 8,
+      "indice_execucao": 16,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r16": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 2,
+      "indice_execucao": 3,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r17": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 4,
+      "indice_execucao": 7,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r18": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 10,
+      "indice_execucao": 19,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    },
+    "r19": {
+      "versao": "v5",
+      "pergunta_id": "q02",
+      "amostra": 7,
+      "indice_execucao": 14,
+      "regras_sha256": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34"
+    },
+    "r20": {
+      "versao": "v1",
+      "pergunta_id": "q02",
+      "amostra": 5,
+      "indice_execucao": 9,
+      "regras_sha256": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240"
+    }
+  }
+}

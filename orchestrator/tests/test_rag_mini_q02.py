@@ -153,11 +153,13 @@ def test_hash_v4_congelado_e_recusa_adulteracao(tmp_path):
         mini_q02.carregar_regras_v4(adulterado, verificar_hash=True)
 
 
-def test_padrao_de_producao_e_regras_por_versao_continuam_v1(monkeypatch):
-    assert Settings.model_fields["rag_regras_versao"].default == "v1"
-    assert settings.rag_regras_versao == "v1"
-    assert tuple(rag_specialist.REGRAS_POR_VERSAO) == ("v1", "v2")
-    assert tuple(rag_specialist.REGRAS_DA_ETAPA1_POR_VERSAO) == ("v1", "v2", "v3")
+def test_padrao_de_producao_e_regras_por_versao(monkeypatch):
+    assert Settings.model_fields["rag_regras_versao"].default == "v5"
+    assert settings.rag_regras_versao == "v5"
+    # A v5 (Parte 3 da ferramenta de limites) entrou como versao SELECIONAVEL em 24/11/2026
+    # e virou o padrao em 25/11/2026 (A, B e C passaram); a v4 continua so dentro do mini-teste.
+    assert tuple(rag_specialist.REGRAS_POR_VERSAO) == ("v1", "v2", "v5")
+    assert tuple(rag_specialist.REGRAS_DA_ETAPA1_POR_VERSAO) == ("v1", "v2", "v3", "v5")
     with pytest.raises(ValueError):
         rag_specialist.regras_do_manual("v4")
     with pytest.raises(ValueError):
@@ -187,9 +189,12 @@ async def test_coleta_intercala_v1_v4_injeta_regras_e_restaura(ambiente_grafo): 
     synth_base = base(temperature=None)
     antigo = synth_base.ainvoke.side_effect
     sistemas_vistos: list[str] = []
+    limites_vistos: set[bool] = set()
+    regras_antes, limites_antes = settings.rag_regras_versao, settings.rag_limites
 
     async def synth_espiado(msgs, *a, **k):
         sistemas_vistos.append(msgs[0].content)
+        limites_vistos.add(settings.rag_limites)
         assert msgs[0].content != rag_specialist.PROMPT_FORMATADOR_V3  # etapa 2 nunca roda
         return await antigo(msgs, *a, **k)
 
@@ -203,9 +208,11 @@ async def test_coleta_intercala_v1_v4_injeta_regras_e_restaura(ambiente_grafo): 
     with patch("orchestrator.graph.nodes.ChatOpenAI", side_effect=fabrica):
         dados = await mini_q02.etapa_coleta(GABARITO, n_amostras=2, orcamento=0.10, log=logs.append)
 
-    # Restaura o modulo e mantem o padrao de producao v1
+    # Restaura o modulo e o padrao de producao; a coleta roda SEM a ferramenta de limites
+    # (o mini-teste foi medido sem ela; o padrao ligado desde 25/11/2026 nao vaza)
     assert rag_specialist.regras_da_etapa1 is original_fn
-    assert settings.rag_regras_versao == "v1"
+    assert (settings.rag_regras_versao, settings.rag_limites) == (regras_antes, limites_antes) == ("v5", True)
+    assert limites_vistos == {False}
     with pytest.raises(ValueError):
         rag_specialist.regras_da_etapa1("v4")
 
@@ -735,7 +742,8 @@ async def test_b03_excecao_no_meio_grava_parcial_abortado_e_restaura(ambiente_gr
     assert dados["abortado_por_infra"] == {"indice_execucao": 3, "id": "q04", "versao": "v1", "amostra": 1,
                                            "erro_tipo": "ConnectionError"}
     assert "mensagem do provedor" not in json.dumps(dados, ensure_ascii=False)
-    assert rag_specialist.regras_da_etapa1 is original_fn and settings.rag_regras_versao == "v1"
+    assert rag_specialist.regras_da_etapa1 is original_fn
+    assert (settings.rag_regras_versao, settings.rag_limites) == ("v5", True)  # restaurados ao padrao
 
     # Excecao logo na 1a chamada: FalhaInicial (nada gravado), so com o TIPO do erro.
     async def cai_no_primeiro(graph, item):
@@ -897,7 +905,8 @@ async def test_b03_falha_de_infra_na_amostra_para_a_coleta_na_hora(ambiente_graf
     assert dados["abortado_por_infra"] == {"indice_execucao": idx_falha, "id": passo["id"], "versao": passo["versao"],
                                            "amostra": passo["amostra"], "erro_tipo": "APITimeoutError"}
     assert "mensagem do provedor" not in json.dumps(dados["abortado_por_infra"])
-    assert rag_specialist.regras_da_etapa1 is original_fn and settings.rag_regras_versao == "v1"
+    assert rag_specialist.regras_da_etapa1 is original_fn
+    assert (settings.rag_regras_versao, settings.rag_limites) == ("v5", True)  # restaurados ao padrao
     # e o --resultado desse respostas.json e INVALIDO
     problemas = mini_q02._checar_integridade(dados, {"elo": "x"}, {"elo": "x"}, indice_meta_m8=None,
                                              caminho_v4=mini_q02.CAMINHO_PROPOSTA_V4)

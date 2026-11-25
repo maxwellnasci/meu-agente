@@ -53,6 +53,34 @@ critérios foram fixados antes de medir.
 | Sem afirmação grave (juiz, **não calibrado**) | 15/20; os 5 graves foram conferidos por humano depois do juiz, com 5/5 de acordo |
 | Formato do Max (Sim/Não primeiro, resposta curta, oferta de detalhes) | 0/17 na linha de base. A Missão 9 testou a v2, que formatou 15,5/17 mas derrubou fatos e correção e errou o Sim/Não: **não adotada**. A próxima é a v3, "pensa primeiro, formata depois" |
 
+**Ferramenta de limites (concluída em 25/11/2026):** no mini-teste, a v1 aceitou frango congelado a −10 °C
+(o limite é −12 °C) em 7/10 amostras. A comparação de números saiu do LLM. O modelo só preenche uma ficha
+(contexto, produto e temperatura), e o Python confere a ficha e faz a conta com a tabela do manual. O
+resultado vai para o redator como uma nota `[limite]`, que traz a decisão ou diz que não dá para verificar.
+
+As 5 etapas do caminho de uma pergunta no agente, com o número que mede cada uma:
+
+| Etapa | O que faz | Medida |
+|---|---|---|
+| 1. Supervisor | decide quem cuida da pergunta | 19/20 roteadas para o `rag` (Missão 8) |
+| 2. Busca / rag | acha os 5 trechos do manual | recall@5 16/17 (94%) |
+| 3. Ficha | o modelo extrai contexto, categoria e valor; o código confere com travas e vetos | 93 e 94/100 (Parte 2.2); 95 e 95/100 (Parte 2.3), segurança b–e zero |
+| 4. Calculadora | `limites.py` compara com a tabela do manual | oráculo 874/874 |
+| 5. Redator | `synthesize_final` com as regras v5: usa a decisão da nota `[limite]` e nunca decide sozinho quando a nota diz NÃO VERIFICÁVEL | 0/10 erros no frango; 0 erros na prova lacrada (a v1 teve 3) |
+
+Ordem de construção: Parte 1 (calculadora) → Parte 2 (ficha, fechada com a v3) → Parte 2.3 (ficha no
+`deepseek-flash`, passa) → Parte 3 (ferramenta no agente: A, B e C passam). Pelo pré-registro, as regras v5 e
+`ORCHESTRATOR_RAG_LIMITES=true` passaram a ser o padrão com o rag ligado.
+
+- **Frango a −10 °C:** 7/10 erros (v1, DeepSeek V3) → **0/10** (v5).
+- **Prova lacrada** (perguntas de temperatura nunca vistas): v1 com 3 erros em 10 → v5 com **0 erros**. No
+  motor novo, a v1 tinha acertado o frango 10/10. Mesmo assim, errou em pergunta nova. Quem garante o acerto
+  é a calculadora, não o modelo sozinho.
+- **Gabarito:** a v5 ficou igual ou melhor que a v1 nas 5 métricas.
+- **Custo total da Parte 3:** US$ 0,51 (A 0,06, B 0,39, C 0,06).
+- O rag continua **desligado por padrão** e sem deploy. O motor de produção não mudou. Detalhes em
+  [docs/RAG.md](docs/RAG.md).
+
 Aprendizado: **citação não garante verdade.** Na q10, a resposta citou o
 POP-04 §5 com uma frase que não existe nessa seção. Só um juiz de fidelidade,
 que compara a resposta com os trechos, pega isso.
@@ -65,6 +93,7 @@ que compara a resposta com os trechos, pega isso.
 - Formato e conteúdo competem (Missão 9, não adotada). Exigir Sim/Não na 1ª palavra e no máximo 3 linhas levou o formato de 0 para 15,5/17. Mas derrubou fatos-chave (13,5 → 10,5) e correção (15,5 → 12,5), e respondeu "Sim" para aceitar frango a −10 °C. Hipótese: o modelo decide antes de raciocinar. Próximo passo: pensar primeiro, formatar depois.
 - Comparação numérica ("faltam 3 reais: cabe em até R$ 5,00?") é limite do RAG.
   Dado numérico ou estruturado vai por SQL ou camada semântica, não por busca.
+  A ferramenta de limites aplica essa ideia à temperatura: o LLM extrai, e o código compara.
 
 **Como foi feito:**
 - critérios de decisão pré-registrados antes de cada medição, e só eles

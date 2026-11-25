@@ -1,0 +1,24 @@
+{
+  "tentativas": [
+    {
+      "rodada": "r1",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "extracao-r1-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.017139300000000003,
+      "inicio": "2026-11-24T21:53:06-03:00",
+      "fim": "2026-11-24T21:55:19-03:00"
+    },
+    {
+      "rodada": "r2",
+      "n": 1,
+      "estado": "concluida",
+      "arquivo": "extracao-r2-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.017140500000000003,
+      "inicio": "2026-11-24T21:55:21-03:00",
+      "fim": "2026-11-24T21:57:27-03:00"
+    }
+  ]
+}

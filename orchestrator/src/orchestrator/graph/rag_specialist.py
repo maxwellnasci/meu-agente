@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from orchestrator.config import settings
+from orchestrator.graph import rag_limites
 from orchestrator.rag.embeddings import Embedder
 from orchestrator.rag.rerank import Reranker, reordenar
 from orchestrator.rag.search import SearchHit, search
@@ -102,7 +103,26 @@ _REGRA_FORMATO_V2 = (
     "termina em \"?\" (ex.: \"Quer mais detalhes?\"). Nada depois dela, nem citacao."
 )
 REGRAS_DO_MANUAL_V2 = REGRAS_DO_MANUAL + _REGRA_FORMATO_V2
-REGRAS_POR_VERSAO = {"v1": REGRAS_DO_MANUAL, "v2": REGRAS_DO_MANUAL_V2}
+
+# Parte 3 da ferramenta de limites (docs/RAG.md): v5 = v1 INTEIRA + a regra 6, so
+# sobre a nota [limite] (graph/rag_limites.py). SEM regra de formato (licao das
+# v2/v3/v4: nada de Sim/Nao forcado na 1a palavra). Os rotulos vem das MESMAS
+# constantes que montam a nota. Texto CONGELADO: sha256 em orchestrator.rag.parte3;
+# mudar = v6. A v5 so vira padrao (com ORCHESTRATOR_RAG_LIMITES ligado) se A, B e C
+# da Parte 3 passarem.
+_REGRA_LIMITES_V5 = (
+    f"\n6. NOTA {rag_limites.LIMITE_TAG} (verificacao de temperatura feita por codigo, com a tabela de limites do "
+    f"manual; as regras 1 a 5 continuam valendo; sem nota {rag_limites.LIMITE_TAG}, esta regra nao se aplica):\n"
+    f"   a) Se a nota traz uma decisao ({', '.join(rag_limites.ROTULOS_DE_DECISAO)}), a conclusao da resposta e "
+    "a decisao da nota. Nao refaca a comparacao do numero com o limite e nao conclua o contrario da nota. Cite a "
+    "fonte que a nota traz, no formato (POP-XX, secao \"titulo da secao\"), e inclua a ressalva da nota, quando "
+    "ela tiver uma.\n"
+    f"   b) Se a nota diz {rag_limites.NAO_VERIFICAVEL}, nao diga que aceita nem que recusa (nem que esta dentro "
+    "ou fora da faixa) e nao compare voce mesmo o numero com o limite. Diga o que falta para verificar, como a "
+    "nota explica, e peca essa informacao ao funcionario; se a nota disser que nao da para verificar, diga isso."
+)
+REGRAS_DO_MANUAL_V5 = REGRAS_DO_MANUAL + _REGRA_LIMITES_V5
+REGRAS_POR_VERSAO = {"v1": REGRAS_DO_MANUAL, "v2": REGRAS_DO_MANUAL_V2, "v5": REGRAS_DO_MANUAL_V5}
 
 
 def regras_do_manual(versao: str | None = None) -> str:
@@ -118,7 +138,7 @@ def regras_do_manual(versao: str | None = None) -> str:
 # chamada de hoje com as regras v1 (mesmo hash); a etapa 2 so reescreve a
 # resposta da etapa 1 no formato do Max, sem ver os trechos. Por isso
 # `regras_do_manual("v3")` continua recusando (contrato da Missao 9).
-REGRAS_DA_ETAPA1_POR_VERSAO = {"v1": "v1", "v2": "v2", "v3": "v1"}
+REGRAS_DA_ETAPA1_POR_VERSAO = {"v1": "v1", "v2": "v2", "v3": "v1", "v5": "v5"}
 NOME_FORMATADOR_V3 = "formatador_v3"  # run_name da chamada da etapa 2 (custo/tempo no callback)
 
 # Texto CONGELADO (pre-registro da Missao 10; sha256 em orchestrator.rag.missao10).
@@ -361,12 +381,21 @@ def ja_consultado(entradas: Sequence[str]) -> bool:
     return any(e.startswith(RAG_TAG) for e in entradas)
 
 
+NOTA_LIMITE_PARA_SUPERVISOR = (
+    f"{rag_limites.LIMITE_TAG} Verificacao de temperatura registrada (conteudo omitido aqui; vai direto para a "
+    "resposta final). NAO redespache o rag nesta tarefa."
+)
+
+
 def scratchpad_para_supervisor(entradas: Sequence[str]) -> list[str]:
     """O supervisor ve so a primeira linha de cada nota do rag (montada aqui,
     sem texto do corpus). O conteudo dos trechos vai so para o synthesize_final."""
     saida = []
     for entrada in entradas:
-        if entrada.startswith(RAG_TAG) and "\n" in entrada:
+        if entrada.startswith(rag_limites.LIMITE_TAG):
+            # Parte 3: a nota [limite] e para o redator; o supervisor ve so esta linha fixa.
+            saida.append(NOTA_LIMITE_PARA_SUPERVISOR)
+        elif entrada.startswith(RAG_TAG) and "\n" in entrada:
             cabecalho = entrada.split("\n", 1)[0]
             saida.append(f"{cabecalho} (Conteudo dos trechos omitido aqui; vai direto para a resposta final.)")
         else:
