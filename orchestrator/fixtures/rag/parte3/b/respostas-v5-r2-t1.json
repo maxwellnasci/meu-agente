@@ -1,0 +1,3211 @@
+{
+  "versao": 1,
+  "missao": 8,
+  "data": "2026-11-25T06:36:16-03:00",
+  "git": {
+    "sha": "33cf149f35e398ce76d99bf052d486b7099ee3a7",
+    "sujo": true
+  },
+  "config": {
+    "router_model": "deepseek/deepseek-chat",
+    "general_model": "deepseek/deepseek-chat",
+    "temperatura_supervisor": 0,
+    "temperatura_synthesize": null,
+    "rag_regras_versao": "v5",
+    "rag_search_mode": "hibrido",
+    "rag_top_k": 5,
+    "rag_colecao": "supermercado",
+    "rag_rerank_model": null,
+    "indice_meta": {
+      "schema_version": "2",
+      "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "dim": "384",
+      "n_chunks": "46",
+      "bm25_stopwords": "0",
+      "bm25_stemming": "1",
+      "contexto_em": "ambos",
+      "contextos_sha256": "6abca59a20f2a6ced6f79adc2ac7dd57c19d47233a852e127dcc7d58789fa572"
+    },
+    "metodo": "graph.ainvoke + callback (sem streaming); MemorySaver; n8n/gateway neutralizados",
+    "provedor_devolvido": "o OpenRouter nao expoe o provedor no response_metadata do langchain; ver modelo_devolvido"
+  },
+  "hashes": {
+    "gabarito": "5646d59af6b7f97f15e38843483fcf85224bbcd2e9d69eb8e998b87af8a8b873",
+    "fatos_chave": "16600f54fc6bc459bf5171af7b23552bd264a07fd07d388c5523f39c3258b4ca",
+    "regras_versao": "v5",
+    "regras_do_manual": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34",
+    "formatador_aplicado": false,
+    "prompt_formatador_v3": "490fe4ea022237017d080648e10e39ad7c341ade52afa8bc0c3c22e6cb9dbad8",
+    "mensagem_formatador_v3": "55b927d3b682ca9f39eb15c08aa4d2dcb2cbec1294f6c109b9dac18ea0184534",
+    "prompt_supervisor": "3988a31b76126629b245a7f9ceff258dce8740f1c5638974ffb86ab93a51fa34",
+    "prompt_synthesize": "81fdd5778c1ea82ccfca7d6c9aa934843445240dac457df5a969a42a42d852b9",
+    "tool_dispatch": "d579b80df1360d6cf9c2c7c40aad8fcad51c4482c29a51c185119e0f345014d9"
+  },
+  "custo_usd": 0.027211152,
+  "custo_etapa2_usd": 0.0,
+  "orcamento_usd": 0.07,
+  "abortado_por_orcamento": false,
+  "perguntas": [
+    {
+      "id": "q01",
+      "tipo": "direta",
+      "pergunta": "o caminhao do fornecedor chegou agora 15h, posso receber?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "2. Horário da doca",
+          "texto": "## 2. Horário da doca\n\n- Fornecedores entregam de segunda a sábado, das **6h às 14h**.\n- Domingo e feriado só recebem **hortifrúti e pães**, das 6h às 10h.\n- Entregas fora do horário precisam de autorização por escrito do gerente de\n  loja, registrada no **Formulário F-03 (Recebimento Extraordinário)**.\n- Cada caminhão tem no máximo **40 minutos** de doca. Passou disso, o próximo\n  da fila entra e o atrasado volta para o fim da fila."
+        },
+        {
+          "n": 2,
+          "pop": "POP-07",
+          "secao": "1. Atualização de preços",
+          "texto": "## 1. Atualização de preços\n\n- Os preços novos chegam do escritório central para o sistema da loja todo\n  dia às **5h**.\n- O repositor de etiquetas imprime as etiquetas alteradas e troca tudo na\n  área de venda **até as 8h**, antes da abertura.\n- Produto com etiqueta antiga depois das 8h é tratado como divergência de\n  preço (ver seção 3)."
+        },
+        {
+          "n": 3,
+          "pop": "POP-01",
+          "secao": "7. Prazo para guardar",
+          "texto": "## 7. Prazo para guardar\n\nDepois da conferência, o tempo máximo entre a doca e a câmara é de\n**30 minutos** para congelados e resfriados e de **2 horas** para mercearia\nseca."
+        },
+        {
+          "n": 4,
+          "pop": "POP-01",
+          "secao": "4. Temperatura na chegada",
+          "texto": "## 4. Temperatura na chegada\n\nMedir com o termômetro tipo espeto em **3 volumes por lote** (início, meio e\nfim do caminhão). O F-07 também é o **registro de temperatura** do\nrecebimento: as três leituras são anotadas nele em toda entrega de\ncongelados, resfriados, laticínios e frios, mesmo quando estiver tudo certo e\nnão houver divergência nenhuma.\n\n| Categoria            | Aceitar até | Recusar acima de |\n|----------------------|-------------|------------------|\n| Congelados           | −12 °C      | −12 °C           |\n| Resfriados (carnes)  | 7 °C        | 7 °C             |\n| Laticínios           | 10 °C       | 10 °C            |\n| Frios fatiados       | 8 °C        | 8 °C             |\n| Hortifrúti           | sem limite  | — (só avaliação visual) |\n\nCongelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou\nproduto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou\nmenos**."
+        },
+        {
+          "n": 5,
+          "pop": "POP-02",
+          "secao": "2. Ronda diária de validade",
+          "texto": "## 2. Ronda diária de validade\n\n- Toda loja faz a ronda de validade **duas vezes por dia**: às **7h30**\n  (antes da abertura) e às **15h**.\n- A ronda da manhã cobre o setor inteiro de perecíveis; a da tarde cobre só\n  laticínios, frios e padaria.\n- O repositor anota cada item encontrado no **Formulário F-12 (Controle de\n  Validade)**, com código de barras, lote, data de validade e quantidade.\n- O F-12 preenchido é entregue ao encarregado de perecíveis até as **9h**\n  (ronda da manhã) e até as **16h** (ronda da tarde)."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Não pode receber às 15h não. O horário normal de entrega é de segunda a sábado, das 6h às 14h — 15h está fora disso (POP-01, seção \"2. Horário da doca\").\n\nPara receber agora, só com autorização por escrito do gerente de loja, registrada no Formulário F-03 (Recebimento Extraordinário) (POP-01, seção \"2. Horário da doca\").\n\nVale lembrar também que, depois da conferência, o prazo entre a doca e a câmara é de 30 minutos para congelados e resfriados e de 2 horas para mercearia seca (POP-01, seção \"7. Prazo para guardar\").",
+      "resposta_final": "Não pode receber às 15h não. O horário normal de entrega é de segunda a sábado, das 6h às 14h — 15h está fora disso (POP-01, seção \"2. Horário da doca\").\n\nPara receber agora, só com autorização por escrito do gerente de loja, registrada no Formulário F-03 (Recebimento Extraordinário) (POP-01, seção \"2. Horário da doca\").\n\nVale lembrar também que, depois da conferência, o prazo entre a doca e a câmara é de 30 minutos para congelados e resfriados e de 2 horas para mercearia seca (POP-01, seção \"7. Prazo para guardar\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.8407505829999309,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 146,
+            "prompt_tokens": 1669,
+            "total_tokens": 1815,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1535,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1535,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1669,
+            "output_tokens": 146,
+            "total_tokens": 1815,
+            "input_token_details": {
+              "cache_read": 1535
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.144512250000048,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 199,
+            "prompt_tokens": 1750,
+            "total_tokens": 1949,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 214
+          },
+          "usage_metadata": {
+            "input_tokens": 1750,
+            "output_tokens": 199,
+            "total_tokens": 1949,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.6345078749999402,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 172,
+            "prompt_tokens": 1848,
+            "total_tokens": 2020,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1208
+          },
+          "usage_metadata": {
+            "input_tokens": 1848,
+            "output_tokens": 172,
+            "total_tokens": 2020,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.6345078749999402,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.6345078749999402,
+      "custo_usd": 0.001109466,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q02",
+      "tipo": "direta",
+      "pergunta": "chegou frango congelado marcando -10 graus no termometro, aceito?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "4. Temperatura na chegada",
+          "texto": "## 4. Temperatura na chegada\n\nMedir com o termômetro tipo espeto em **3 volumes por lote** (início, meio e\nfim do caminhão). O F-07 também é o **registro de temperatura** do\nrecebimento: as três leituras são anotadas nele em toda entrega de\ncongelados, resfriados, laticínios e frios, mesmo quando estiver tudo certo e\nnão houver divergência nenhuma.\n\n| Categoria            | Aceitar até | Recusar acima de |\n|----------------------|-------------|------------------|\n| Congelados           | −12 °C      | −12 °C           |\n| Resfriados (carnes)  | 7 °C        | 7 °C             |\n| Laticínios           | 10 °C       | 10 °C            |\n| Frios fatiados       | 8 °C        | 8 °C             |\n| Hortifrúti           | sem limite  | — (só avaliação visual) |\n\nCongelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou\nproduto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou\nmenos**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-03",
+          "secao": "3. Prazo de troca — produtos perecíveis",
+          "texto": "## 3. Prazo de troca — produtos perecíveis\n\nVale para carnes, frios, laticínios, padaria, hortifrúti e congelados.\n\n- Prazo de **24 horas** a partir do horário impresso no cupom.\n- O produto precisa voltar na embalagem original e ter sido mantido na\n  temperatura indicada.\n- Carne e frango só são trocados com **até 24 horas** e **com o produto**:\n  foto não é aceita.\n- Perecível com defeito de qualidade (cheiro, cor, mofo) dentro da validade é\n  trocado em até 24 horas mesmo sem a embalagem fechada."
+        },
+        {
+          "n": 3,
+          "pop": "POP-01",
+          "secao": "7. Prazo para guardar",
+          "texto": "## 7. Prazo para guardar\n\nDepois da conferência, o tempo máximo entre a doca e a câmara é de\n**30 minutos** para congelados e resfriados e de **2 horas** para mercearia\nseca."
+        },
+        {
+          "n": 4,
+          "pop": "POP-05",
+          "secao": "4. Temperatura de armazenamento e exposição",
+          "texto": "## 4. Temperatura de armazenamento e exposição\n\n- Câmara e expositor de congelados: **−18 °C ou menos**.\n- Câmara e balcão de resfriados (carnes): de **0 °C a 4 °C**.\n- Laticínios e frios: de **0 °C a 8 °C**.\n- As temperaturas são lidas e anotadas **3 vezes por dia** (7h, 13h e 19h)\n  na **Planilha P-06 (Controle de Temperatura)**.\n- Expositor fora da faixa por mais de **2 horas**: os produtos são retirados\n  e avaliados pela nutricionista antes de voltar à venda."
+        },
+        {
+          "n": 5,
+          "pop": "POP-05",
+          "secao": "2. Diluição dos produtos de limpeza",
+          "texto": "## 2. Diluição dos produtos de limpeza\n\n| Uso                               | Produto                     | Diluição           | Tempo de contato |\n|-----------------------------------|-----------------------------|--------------------|------------------|\n| Bancadas e utensílios             | Detergente neutro           | 10 ml por litro    | —                |\n| Sanitização de bancadas           | Álcool 70%                  | puro               | deixar secar     |\n| Sanitização de hortifrúti         | Hipoclorito de sódio 2,5%   | 10 ml por litro    | **15 minutos**   |\n| Pisos e ralos                     | Cloro 2,5%                  | 20 ml por litro    | 10 minutos       |\n\nNunca misturar cloro com detergente ou com produtos à base de amônia."
+        }
+      ],
+      "notas_de_outros_especialistas": [
+        "[limite] RECUSAR: −10 °C está ACIMA de −12 °C, o máximo para congelados no recebimento (POP-01, seção \"4. Temperatura na chegada\"). Ressalva do manual: Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos."
+      ],
+      "resposta_crua": "**Não aceite — recuse o lote.**\n\nO frango congelado está a −10 °C, e para congelados no recebimento o limite é aceitar até −12 °C (recusar acima de −12 °C). Ou seja, −10 °C está acima do permitido (POP-01, seção \"4. Temperatura na chegada\").\n\nDuas observações do próprio procedimento:\n- Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos (POP-01, seção \"4. Temperatura na chegada\").\n- A medição deve ser feita com termômetro tipo espeto em 3 volumes por lote (início, meio e fim do caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados (POP-01, seção \"4. Temperatura na chegada\").\n\nSe o lote for recusado, vale lembrar o prazo de troca de perecíveis: 24 horas a partir do horário do cupom, com o produto na embalagem original e mantido na temperatura indicada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\").",
+      "resposta_final": "**Não aceite — recuse o lote.**\n\nO frango congelado está a −10 °C, e para congelados no recebimento o limite é aceitar até −12 °C (recusar acima de −12 °C). Ou seja, −10 °C está acima do permitido (POP-01, seção \"4. Temperatura na chegada\").\n\nDuas observações do próprio procedimento:\n- Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos (POP-01, seção \"4. Temperatura na chegada\").\n- A medição deve ser feita com termômetro tipo espeto em 3 volumes por lote (início, meio e fim do caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados (POP-01, seção \"4. Temperatura na chegada\").\n\nSe o lote for recusado, vale lembrar o prazo de troca de perecíveis: 24 horas a partir do horário do cupom, com o produto na embalagem original e mantido na temperatura indicada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.3334388079999826,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 172,
+            "prompt_tokens": 1672,
+            "total_tokens": 1844,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 136
+          },
+          "usage_metadata": {
+            "input_tokens": 1672,
+            "output_tokens": 172,
+            "total_tokens": 1844,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "specialist_rag",
+          "nome": null,
+          "duracao_s": 1.0197959580000315,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 95,
+            "prompt_tokens": 1329,
+            "total_tokens": 1424,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1152,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1152,
+            "prompt_cache_miss_tokens": 177
+          },
+          "usage_metadata": {
+            "input_tokens": 1329,
+            "output_tokens": 95,
+            "total_tokens": 1424,
+            "input_token_details": {
+              "cache_read": 1152
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.3787810729999137,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 204,
+            "prompt_tokens": 1791,
+            "total_tokens": 1995,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 255
+          },
+          "usage_metadata": {
+            "input_tokens": 1791,
+            "output_tokens": 204,
+            "total_tokens": 1995,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.3553377439999394,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 300,
+            "prompt_tokens": 2036,
+            "total_tokens": 2336,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1396
+          },
+          "usage_metadata": {
+            "input_tokens": 2036,
+            "output_tokens": 300,
+            "total_tokens": 2336,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.3553377439999394,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.3553377439999394,
+      "custo_usd": 0.001543584,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [
+        "[limite] RECUSAR: −10 °C está ACIMA de −12 °C, o máximo para congelados no recebimento (POP-01, seção \"4. Temperatura na chegada\"). Ressalva do manual: Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos."
+      ],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q03",
+      "tipo": "direta",
+      "pergunta": "qual temperatura tem que ficar o freezer dos congelados aqui na loja?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "4. Temperatura na chegada",
+          "texto": "## 4. Temperatura na chegada\n\nMedir com o termômetro tipo espeto em **3 volumes por lote** (início, meio e\nfim do caminhão). O F-07 também é o **registro de temperatura** do\nrecebimento: as três leituras são anotadas nele em toda entrega de\ncongelados, resfriados, laticínios e frios, mesmo quando estiver tudo certo e\nnão houver divergência nenhuma.\n\n| Categoria            | Aceitar até | Recusar acima de |\n|----------------------|-------------|------------------|\n| Congelados           | −12 °C      | −12 °C           |\n| Resfriados (carnes)  | 7 °C        | 7 °C             |\n| Laticínios           | 10 °C       | 10 °C            |\n| Frios fatiados       | 8 °C        | 8 °C             |\n| Hortifrúti           | sem limite  | — (só avaliação visual) |\n\nCongelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou\nproduto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou\nmenos**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-05",
+          "secao": "4. Temperatura de armazenamento e exposição",
+          "texto": "## 4. Temperatura de armazenamento e exposição\n\n- Câmara e expositor de congelados: **−18 °C ou menos**.\n- Câmara e balcão de resfriados (carnes): de **0 °C a 4 °C**.\n- Laticínios e frios: de **0 °C a 8 °C**.\n- As temperaturas são lidas e anotadas **3 vezes por dia** (7h, 13h e 19h)\n  na **Planilha P-06 (Controle de Temperatura)**.\n- Expositor fora da faixa por mais de **2 horas**: os produtos são retirados\n  e avaliados pela nutricionista antes de voltar à venda."
+        },
+        {
+          "n": 3,
+          "pop": "POP-01",
+          "secao": "7. Prazo para guardar",
+          "texto": "## 7. Prazo para guardar\n\nDepois da conferência, o tempo máximo entre a doca e a câmara é de\n**30 minutos** para congelados e resfriados e de **2 horas** para mercearia\nseca."
+        },
+        {
+          "n": 4,
+          "pop": "POP-03",
+          "secao": "3. Prazo de troca — produtos perecíveis",
+          "texto": "## 3. Prazo de troca — produtos perecíveis\n\nVale para carnes, frios, laticínios, padaria, hortifrúti e congelados.\n\n- Prazo de **24 horas** a partir do horário impresso no cupom.\n- O produto precisa voltar na embalagem original e ter sido mantido na\n  temperatura indicada.\n- Carne e frango só são trocados com **até 24 horas** e **com o produto**:\n  foto não é aceita.\n- Perecível com defeito de qualidade (cheiro, cor, mofo) dentro da validade é\n  trocado em até 24 horas mesmo sem a embalagem fechada."
+        },
+        {
+          "n": 5,
+          "pop": "POP-05",
+          "secao": "6. Descongelamento",
+          "texto": "## 6. Descongelamento\n\n- Descongelar só dentro da câmara de resfriados (de 0 °C a 4 °C), **nunca em\n  temperatura ambiente ou em água corrente**.\n- Produto descongelado **não pode ser recongelado**. Vai para venda como\n  resfriado, com nova etiqueta de validade de no máximo **3 dias**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "O freezer dos congelados aqui na loja deve ficar em **−18 °C ou menos** (POP-05, seção \"4. Temperatura de armazenamento e exposição\").\n\nVale lembrar que essa temperatura deve ser lida e anotada **3 vezes por dia** (7h, 13h e 19h) na Planilha P-06 (Controle de Temperatura), e que expositor fora da faixa por mais de 2 horas exige retirar os produtos e avaliá-los com a nutricionista antes de voltarem à venda (POP-05, seção \"4. Temperatura de armazenamento e exposição\").\n\nSó para não confundir com o recebimento: na chegada da mercadoria, o critério é diferente — congelados são aceitos até −12 °C (POP-01, seção \"4. Temperatura na chegada\").",
+      "resposta_final": "O freezer dos congelados aqui na loja deve ficar em **−18 °C ou menos** (POP-05, seção \"4. Temperatura de armazenamento e exposição\").\n\nVale lembrar que essa temperatura deve ser lida e anotada **3 vezes por dia** (7h, 13h e 19h) na Planilha P-06 (Controle de Temperatura), e que expositor fora da faixa por mais de 2 horas exige retirar os produtos e avaliá-los com a nutricionista antes de voltarem à venda (POP-05, seção \"4. Temperatura de armazenamento e exposição\").\n\nSó para não confundir com o recebimento: na chegada da mercadoria, o critério é diferente — congelados são aceitos até −12 °C (POP-01, seção \"4. Temperatura na chegada\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.5282060690000208,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 122,
+            "prompt_tokens": 1667,
+            "total_tokens": 1789,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1533,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1533,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1667,
+            "output_tokens": 122,
+            "total_tokens": 1789,
+            "input_token_details": {
+              "cache_read": 1533
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.7896818730000632,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 122,
+            "prompt_tokens": 1748,
+            "total_tokens": 1870,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 212
+          },
+          "usage_metadata": {
+            "input_tokens": 1748,
+            "output_tokens": 122,
+            "total_tokens": 1870,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.146647168999948,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 203,
+            "prompt_tokens": 1840,
+            "total_tokens": 2043,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1200
+          },
+          "usage_metadata": {
+            "input_tokens": 1840,
+            "output_tokens": 203,
+            "total_tokens": 2043,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.146647168999948,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.146647168999948,
+      "custo_usd": 0.001022454,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q04",
+      "tipo": "direta",
+      "pergunta": "cliente quer trocar um queijo que comprou anteontem, posso trocar?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-03",
+          "secao": "5. Produto vencido vendido pela loja",
+          "texto": "## 5. Produto vencido vendido pela loja\n\nSe o cliente comprou um produto **já vencido** (data anterior à da compra):\n\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas\n  ou 7 dias.\n- O cliente recebe também um **vale-compras de R$ 20,00** como pedido de\n  desculpas.\n- O atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis."
+        },
+        {
+          "n": 2,
+          "pop": "POP-02",
+          "secao": "7. Cliente encontrou produto vencido na gôndola",
+          "texto": "## 7. Cliente encontrou produto vencido na gôndola\n\n- O operador ou fiscal troca o produto na hora por um igual dentro da\n  validade, **sem exigir nota fiscal**, se o cliente ainda não pagou.\n- Se o cliente já comprou e voltou depois, seguir o POP-03 (Troca e\n  Devolução), seção \"Produto vencido vendido pela loja\".\n- O fiscal abre um registro de não conformidade e avisa o encarregado de\n  perecíveis no mesmo turno."
+        },
+        {
+          "n": 3,
+          "pop": "POP-03",
+          "secao": "6. Forma de reembolso",
+          "texto": "## 6. Forma de reembolso\n\n- Compra no dinheiro ou Pix: reembolso em dinheiro no balcão até\n  **R$ 300,00**. Acima disso, reembolso por Pix em até **2 dias úteis**.\n- Compra no cartão de crédito ou débito: estorno no mesmo cartão. O prazo do\n  estorno depende da operadora (em geral até 2 faturas).\n- O cliente pode escolher, em vez do reembolso, um **vale-troca** no valor do\n  produto, válido por **60 dias**."
+        },
+        {
+          "n": 4,
+          "pop": "POP-03",
+          "secao": "7. O que não tem troca",
+          "texto": "## 7. O que não tem troca\n\n- Produtos de higiene íntima abertos (absorventes, roupa íntima, escovas de\n  dente).\n- Produtos fracionados no balcão de frios **por pedido do cliente**, salvo\n  defeito de qualidade dentro de 24 horas.\n- Cartões-presente e recargas de celular."
+        },
+        {
+          "n": 5,
+          "pop": "POP-03",
+          "secao": "3. Prazo de troca — produtos perecíveis",
+          "texto": "## 3. Prazo de troca — produtos perecíveis\n\nVale para carnes, frios, laticínios, padaria, hortifrúti e congelados.\n\n- Prazo de **24 horas** a partir do horário impresso no cupom.\n- O produto precisa voltar na embalagem original e ter sido mantido na\n  temperatura indicada.\n- Carne e frango só são trocados com **até 24 horas** e **com o produto**:\n  foto não é aceita.\n- Perecível com defeito de qualidade (cheiro, cor, mofo) dentro da validade é\n  trocado em até 24 horas mesmo sem a embalagem fechada."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Pelo que o manual traz, queijo é laticínio e entra na regra de perecíveis: o prazo de troca é de **24 horas** a partir do horário impresso no cupom, e o produto precisa voltar na embalagem original e ter sido mantido na temperatura indicada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\").\n\nEntão, para a compra de anteontem, a troca normalmente **não** se enquadra nesse prazo. Vale confirmar dois pontos com o cliente:\n\n- **O produto estava vencido quando foi vendido?** Se sim, a regra é outra: troca ou reembolso imediato, em qualquer prazo, sem limite de 24 horas ou 7 dias, além de um vale-compras de R$ 20,00 como desculpa — e o atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis (POP-03, seção \"5. Produto vencido vendido pela loja\").\n- **Se for defeito de qualidade** (cheiro, cor, mofo) dentro da validade, há troca em até 24 horas mesmo sem a embalagem fechada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\") — mas ainda dentro dessas 24 horas.\n\nSe não for nenhum desses casos, a troca está fora do prazo previsto para perecíveis.",
+      "resposta_final": "Pelo que o manual traz, queijo é laticínio e entra na regra de perecíveis: o prazo de troca é de **24 horas** a partir do horário impresso no cupom, e o produto precisa voltar na embalagem original e ter sido mantido na temperatura indicada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\").\n\nEntão, para a compra de anteontem, a troca normalmente **não** se enquadra nesse prazo. Vale confirmar dois pontos com o cliente:\n\n- **O produto estava vencido quando foi vendido?** Se sim, a regra é outra: troca ou reembolso imediato, em qualquer prazo, sem limite de 24 horas ou 7 dias, além de um vale-compras de R$ 20,00 como desculpa — e o atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis (POP-03, seção \"5. Produto vencido vendido pela loja\").\n- **Se for defeito de qualidade** (cheiro, cor, mofo) dentro da validade, há troca em até 24 horas mesmo sem a embalagem fechada (POP-03, seção \"3. Prazo de troca — produtos perecíveis\") — mas ainda dentro dessas 24 horas.\n\nSe não for nenhum desses casos, a troca está fora do prazo previsto para perecíveis.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.3231807820000085,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 151,
+            "prompt_tokens": 1670,
+            "total_tokens": 1821,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1670,
+            "output_tokens": 151,
+            "total_tokens": 1821,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.711485154999991,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 472,
+            "prompt_tokens": 1747,
+            "total_tokens": 2219,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 211
+          },
+          "usage_metadata": {
+            "input_tokens": 1747,
+            "output_tokens": 472,
+            "total_tokens": 2219,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.607612359000086,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 335,
+            "prompt_tokens": 1705,
+            "total_tokens": 2040,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1065
+          },
+          "usage_metadata": {
+            "input_tokens": 1705,
+            "output_tokens": 335,
+            "total_tokens": 2040,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.607612359000086,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.607612359000086,
+      "custo_usd": 0.0015948719999999998,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q05",
+      "tipo": "direta",
+      "pergunta": "a cliente comprou um shampoo semana passada, nem abriu e nao gostou. ainda da pra trocar?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-03",
+          "secao": "5. Produto vencido vendido pela loja",
+          "texto": "## 5. Produto vencido vendido pela loja\n\nSe o cliente comprou um produto **já vencido** (data anterior à da compra):\n\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas\n  ou 7 dias.\n- O cliente recebe também um **vale-compras de R$ 20,00** como pedido de\n  desculpas.\n- O atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis."
+        },
+        {
+          "n": 2,
+          "pop": "POP-02",
+          "secao": "7. Cliente encontrou produto vencido na gôndola",
+          "texto": "## 7. Cliente encontrou produto vencido na gôndola\n\n- O operador ou fiscal troca o produto na hora por um igual dentro da\n  validade, **sem exigir nota fiscal**, se o cliente ainda não pagou.\n- Se o cliente já comprou e voltou depois, seguir o POP-03 (Troca e\n  Devolução), seção \"Produto vencido vendido pela loja\".\n- O fiscal abre um registro de não conformidade e avisa o encarregado de\n  perecíveis no mesmo turno."
+        },
+        {
+          "n": 3,
+          "pop": "POP-03",
+          "secao": "7. O que não tem troca",
+          "texto": "## 7. O que não tem troca\n\n- Produtos de higiene íntima abertos (absorventes, roupa íntima, escovas de\n  dente).\n- Produtos fracionados no balcão de frios **por pedido do cliente**, salvo\n  defeito de qualidade dentro de 24 horas.\n- Cartões-presente e recargas de celular."
+        },
+        {
+          "n": 4,
+          "pop": "POP-03",
+          "secao": "4. Prazo de troca — produtos não perecíveis",
+          "texto": "## 4. Prazo de troca — produtos não perecíveis\n\nVale para mercearia seca, bebidas, limpeza, higiene e bazar.\n\n- **Arrependimento** (produto em perfeito estado, lacrado): até **7 dias\n  corridos** após a compra.\n- **Defeito** (produto com problema de fabricação): até **30 dias corridos**,\n  conforme o Código de Defesa do Consumidor para produtos não duráveis.\n- Eletroportáteis do bazar com defeito depois dos 30 dias: o cliente é\n  orientado a acionar a assistência técnica do fabricante."
+        },
+        {
+          "n": 5,
+          "pop": "POP-01",
+          "secao": "5. Validade mínima na entrada",
+          "texto": "## 5. Validade mínima na entrada\n\n- Perecíveis precisam chegar com pelo menos **70%** da vida útil restante.\n  Exemplo: iogurte com validade total de 30 dias precisa ter no mínimo 21\n  dias pela frente.\n- Não perecíveis (mercearia seca, limpeza, higiene) precisam ter pelo menos\n  **6 meses** de validade restante.\n- Abaixo desses limites, recusar o item e registrar no F-07."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Ainda dá para trocar, sim — desde que o shampoo esteja lacrado.\n\nO que o manual diz para produtos não perecíveis (inclui higiene):\n- **Arrependimento** (produto em perfeito estado, lacrado): até **7 dias corridos** após a compra (POP-03, seção \"4. Prazo de troca — produtos não perecíveis\").\n- **Defeito** de fabricação: até **30 dias corridos** (POP-03, seção \"4. Prazo de troca — produtos não perecíveis\").\n\nComo a cliente comprou na semana passada e não abriu o produto, o caso se encaixa no arrependimento — vale confirmar a data exata da compra para garantir que está dentro dos 7 dias corridos.\n\nSó um alerta: a seção \"7. O que não tem troca\" do POP-03 exclui produtos de higiene íntima abertos (absorventes, roupa íntima, escovas de dente). Shampoo não está nessa lista, e o produto está lacrado, então não há impedimento por aí.\n\nSe ela tiver a nota fiscal ou o comprovante, facilita o registro da troca.",
+      "resposta_final": "Ainda dá para trocar, sim — desde que o shampoo esteja lacrado.\n\nO que o manual diz para produtos não perecíveis (inclui higiene):\n- **Arrependimento** (produto em perfeito estado, lacrado): até **7 dias corridos** após a compra (POP-03, seção \"4. Prazo de troca — produtos não perecíveis\").\n- **Defeito** de fabricação: até **30 dias corridos** (POP-03, seção \"4. Prazo de troca — produtos não perecíveis\").\n\nComo a cliente comprou na semana passada e não abriu o produto, o caso se encaixa no arrependimento — vale confirmar a data exata da compra para garantir que está dentro dos 7 dias corridos.\n\nSó um alerta: a seção \"7. O que não tem troca\" do POP-03 exclui produtos de higiene íntima abertos (absorventes, roupa íntima, escovas de dente). Shampoo não está nessa lista, e o produto está lacrado, então não há impedimento por aí.\n\nSe ela tiver a nota fiscal ou o comprovante, facilita o registro da troca.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.143145464999975,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 190,
+            "prompt_tokens": 1676,
+            "total_tokens": 1866,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 140
+          },
+          "usage_metadata": {
+            "input_tokens": 1676,
+            "output_tokens": 190,
+            "total_tokens": 1866,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.9595723619999035,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 366,
+            "prompt_tokens": 1757,
+            "total_tokens": 2123,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 221
+          },
+          "usage_metadata": {
+            "input_tokens": 1757,
+            "output_tokens": 366,
+            "total_tokens": 2123,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.1453554520001035,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 275,
+            "prompt_tokens": 1688,
+            "total_tokens": 1963,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1048
+          },
+          "usage_metadata": {
+            "input_tokens": 1688,
+            "output_tokens": 275,
+            "total_tokens": 1963,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.1453554520001035,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.1453554520001035,
+      "custo_usd": 0.001442172,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q06",
+      "tipo": "direta",
+      "pergunta": "na ronda de validade eu anoto onde?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-02",
+          "secao": "2. Ronda diária de validade",
+          "texto": "## 2. Ronda diária de validade\n\n- Toda loja faz a ronda de validade **duas vezes por dia**: às **7h30**\n  (antes da abertura) e às **15h**.\n- A ronda da manhã cobre o setor inteiro de perecíveis; a da tarde cobre só\n  laticínios, frios e padaria.\n- O repositor anota cada item encontrado no **Formulário F-12 (Controle de\n  Validade)**, com código de barras, lote, data de validade e quantidade.\n- O F-12 preenchido é entregue ao encarregado de perecíveis até as **9h**\n  (ronda da manhã) e até as **16h** (ronda da tarde)."
+        },
+        {
+          "n": 2,
+          "pop": "POP-03",
+          "secao": "1. Onde é feita a troca",
+          "texto": "## 1. Onde é feita a troca\n\nToda troca e devolução é feita **só no balcão de Atendimento ao Cliente**,\nnunca no caixa. O balcão funciona das **8h às 21h**, todos os dias."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "6. Diferença de caixa",
+          "texto": "## 6. Diferença de caixa\n\n| Diferença no fechamento | O que acontece |\n|-------------------------|----------------|\n| Até R$ 5,00 (para mais ou para menos) | Tolerância: anotar no F-02, sem outra ação |\n| De R$ 5,01 a R$ 50,00 | Fiscal confere a fita do PDV com o operador no mesmo dia |\n| Acima de R$ 50,00 | Gerente de loja abre apuração e revisa as câmeras do caixa |\n\nTrês diferenças acima de R$ 5,00 no mesmo mês levam o operador a uma\nreciclagem obrigatória de **4 horas** com a tesouraria."
+        },
+        {
+          "n": 4,
+          "pop": "POP-07",
+          "secao": "4. Encarte semanal",
+          "texto": "## 4. Encarte semanal\n\n- O encarte vale de **quinta-feira a quarta-feira**.\n- A montagem das pontas de gôndola do encarte é feita na **quarta à noite**,\n  depois do fechamento.\n- Limite de compra em promoção do encarte: **até 6 unidades por CPF por\n  dia** do mesmo item, salvo quando o encarte indicar outro limite."
+        },
+        {
+          "n": 5,
+          "pop": "POP-02",
+          "secao": "1. Objetivo",
+          "texto": "## 1. Objetivo\n\nGarantir que nenhum produto vencido fique exposto e reduzir a perda por\nvalidade com rebaixa de preço planejada."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Na **ronda de validade**, você anota cada item encontrado no **Formulário F-12 (Controle de Validade)**, com código de barras, lote, data de validade e quantidade (POP-02, seção \"2. Ronda diária de validade\").\n\nVale lembrar os prazos de entrega do F-12 preenchido ao encarregado de perecíveis: até as **9h** (ronda da manhã) e até as **16h** (ronda da tarde) — mesma fonte.",
+      "resposta_final": "Na **ronda de validade**, você anota cada item encontrado no **Formulário F-12 (Controle de Validade)**, com código de barras, lote, data de validade e quantidade (POP-02, seção \"2. Ronda diária de validade\").\n\nVale lembrar os prazos de entrega do F-12 preenchido ao encarregado de perecíveis: até as **9h** (ronda da manhã) e até as **16h** (ronda da tarde) — mesma fonte.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.528423291000081,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 158,
+            "prompt_tokens": 1661,
+            "total_tokens": 1819,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1408,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1408,
+            "prompt_cache_miss_tokens": 253
+          },
+          "usage_metadata": {
+            "input_tokens": 1661,
+            "output_tokens": 158,
+            "total_tokens": 1819,
+            "input_token_details": {
+              "cache_read": 1408
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.35614238200003,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 305,
+            "prompt_tokens": 1746,
+            "total_tokens": 2051,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 210
+          },
+          "usage_metadata": {
+            "input_tokens": 1746,
+            "output_tokens": 305,
+            "total_tokens": 2051,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.3257018159999916,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 124,
+            "prompt_tokens": 1607,
+            "total_tokens": 1731,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 967
+          },
+          "usage_metadata": {
+            "input_tokens": 1607,
+            "output_tokens": 124,
+            "total_tokens": 1731,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.3257018159999916,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.3257018159999916,
+      "custo_usd": 0.001154904,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q07",
+      "tipo": "direta",
+      "pergunta": "a nota fiscal veio com o arroz mais caro que no pedido, isso é caso de F-07 ou recebo assim mesmo?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "3. Conferência da nota fiscal",
+          "texto": "## 3. Conferência da nota fiscal\n\n1. O conferente compara a nota fiscal com o pedido de compra no sistema.\n2. Divergência de quantidade de até **2%** do item é aceita e anotada no\n   verso do canhoto.\n3. Divergência acima de 2%, produto trocado ou preço diferente do pedido:\n   a carga do item é **recusada** e o conferente preenche o\n   **Formulário F-07 (Divergência de Recebimento)**. É o mesmo formulário em\n   que ficam as leituras de temperatura da carga (seção 4).\n4. O canhoto só é assinado depois da conferência física completa."
+        },
+        {
+          "n": 2,
+          "pop": "POP-07",
+          "secao": "3. Divergência entre etiqueta e caixa",
+          "texto": "## 3. Divergência entre etiqueta e caixa\n\n- Se o preço da gôndola for **menor** que o do caixa, o cliente paga o\n  **menor preço**, sem discussão. O operador chama o fiscal, que autoriza a\n  correção no PDV.\n- O fiscal registra a divergência no **Formulário F-18 (Divergência de\n  Preço)** e o repositor corrige a etiqueta em até **30 minutos**.\n- Se a etiqueta estiver mais cara que o caixa, vale o preço do caixa."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "7. Moeda falsa",
+          "texto": "## 7. Moeda falsa\n\n- Nota suspeita: o operador usa a caneta detectora e, se confirmado, **não\n  devolve a nota ao cliente** e chama o fiscal.\n- O fiscal registra a ocorrência e a nota é entregue à tesouraria para\n  encaminhamento ao banco."
+        },
+        {
+          "n": 4,
+          "pop": "POP-01",
+          "secao": "1. Objetivo",
+          "texto": "## 1. Objetivo\n\nPadronizar a conferência de cargas na doca para que nenhuma mercadoria entre\nno estoque sem nota fiscal conferida, temperatura registrada e validade\nmínima garantida."
+        },
+        {
+          "n": 5,
+          "pop": "POP-03",
+          "secao": "2. Documento obrigatório",
+          "texto": "## 2. Documento obrigatório\n\n- Cupom fiscal ou nota fiscal da compra.\n- Sem cupom, a troca só é feita se a compra puder ser localizada no sistema\n  pelo CPF do cliente informado na nota (programa \"Cliente Bom Preço\").\n- Sem cupom e sem CPF: não há troca. O atendente oferece abrir uma\n  reclamação no **Formulário F-09 (Registro de Ocorrência do Cliente)**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "É caso de F-07 — e a carga do item deve ser recusada, não recebida assim mesmo.\n\nO POP-01, seção \"3. Conferência da nota fiscal\", item 3, é direto: **divergência acima de 2%, produto trocado ou preço diferente do pedido** → a carga do item é **recusada** e o conferente preenche o **Formulário F-07 (Divergência de Recebimento)**. Preço diferente do pedido está exatamente nessa lista, então não é caso de aceitar.\n\nSó um lembrete do mesmo procedimento: o canhoto só é assinado depois da conferência física completa (POP-01, seção \"3. Conferência da nota fiscal\", item 4) — ou seja, não assine antes de registrar a divergência no F-07.",
+      "resposta_final": "É caso de F-07 — e a carga do item deve ser recusada, não recebida assim mesmo.\n\nO POP-01, seção \"3. Conferência da nota fiscal\", item 3, é direto: **divergência acima de 2%, produto trocado ou preço diferente do pedido** → a carga do item é **recusada** e o conferente preenche o **Formulário F-07 (Divergência de Recebimento)**. Preço diferente do pedido está exatamente nessa lista, então não é caso de aceitar.\n\nSó um lembrete do mesmo procedimento: o canhoto só é assinado depois da conferência física completa (POP-01, seção \"3. Conferência da nota fiscal\", item 4) — ou seja, não assine antes de registrar a divergência no F-07.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.0398474029999534,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 183,
+            "prompt_tokens": 1680,
+            "total_tokens": 1863,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 144
+          },
+          "usage_metadata": {
+            "input_tokens": 1680,
+            "output_tokens": 183,
+            "total_tokens": 1863,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.961868256999992,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 467,
+            "prompt_tokens": 1765,
+            "total_tokens": 2232,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 229
+          },
+          "usage_metadata": {
+            "input_tokens": 1765,
+            "output_tokens": 467,
+            "total_tokens": 2232,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.739494708000052,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 191,
+            "prompt_tokens": 1598,
+            "total_tokens": 1789,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 958
+          },
+          "usage_metadata": {
+            "input_tokens": 1598,
+            "output_tokens": 191,
+            "total_tokens": 1789,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.739494708000052,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.739494708000052,
+      "custo_usd": 0.0014307719999999999,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q08",
+      "tipo": "direta",
+      "pergunta": "quanto de troco vem na gaveta quando eu abro o caixa?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-04",
+          "secao": "1. Abertura do caixa",
+          "texto": "## 1. Abertura do caixa\n\n1. O operador chega **15 minutos antes** do início do turno.\n2. Retira na tesouraria a gaveta com o **fundo de troco de R$ 200,00**:\n   R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.\n3. Conta o fundo na frente do tesoureiro e os dois assinam o\n   **Formulário F-01 (Abertura de Caixa)**.\n4. Faz login no PDV com a matrícula e testa a impressora de cupom e a\n   maquininha antes de chamar o primeiro cliente."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "5. Fechamento do caixa",
+          "texto": "## 5. Fechamento do caixa\n\n1. O operador encerra o turno no PDV e imprime o relatório **\"Leitura X\"**.\n2. Conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e\n   preenche o **Formulário F-02 (Fechamento de Caixa)**.\n3. Entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta\n   tudo na frente do operador."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "6. Diferença de caixa",
+          "texto": "## 6. Diferença de caixa\n\n| Diferença no fechamento | O que acontece |\n|-------------------------|----------------|\n| Até R$ 5,00 (para mais ou para menos) | Tolerância: anotar no F-02, sem outra ação |\n| De R$ 5,01 a R$ 50,00 | Fiscal confere a fita do PDV com o operador no mesmo dia |\n| Acima de R$ 50,00 | Gerente de loja abre apuração e revisa as câmeras do caixa |\n\nTrês diferenças acima de R$ 5,00 no mesmo mês levam o operador a uma\nreciclagem obrigatória de **4 horas** com a tesouraria."
+        },
+        {
+          "n": 5,
+          "pop": "POP-04",
+          "secao": "4. Cancelamento de item e de cupom",
+          "texto": "## 4. Cancelamento de item e de cupom\n\n- Cancelamento de item **antes** de finalizar a venda: o próprio operador faz.\n- Cancelamento de item depois de finalizada a venda, ou do cupom inteiro:\n  só com senha do fiscal de caixa.\n- Todo cancelamento de cupom acima de **R$ 500,00** precisa também da\n  assinatura do gerente de loja no relatório de cancelamentos."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Na abertura do caixa, a gaveta vem com um **fundo de troco de R$ 200,00**: R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas. Você retira a gaveta na tesouraria, conta o fundo na frente do tesoureiro e os dois assinam o Formulário F-01 (Abertura de Caixa) (POP-04, seção \"1. Abertura do caixa\").\n\nVale lembrar que o mesmo fundo de R$ 200,00 é separado no fechamento do turno (POP-04, seção \"5. Fechamento do caixa\"), e que a gaveta não pode passar de R$ 800,00 em dinheiro — acima disso o PDV bloqueia novas vendas em dinheiro até a sangria (POP-04, seção \"2. Sangria\").",
+      "resposta_final": "Na abertura do caixa, a gaveta vem com um **fundo de troco de R$ 200,00**: R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas. Você retira a gaveta na tesouraria, conta o fundo na frente do tesoureiro e os dois assinam o Formulário F-01 (Abertura de Caixa) (POP-04, seção \"1. Abertura do caixa\").\n\nVale lembrar que o mesmo fundo de R$ 200,00 é separado no fechamento do turno (POP-04, seção \"5. Fechamento do caixa\"), e que a gaveta não pode passar de R$ 800,00 em dinheiro — acima disso o PDV bloqueia novas vendas em dinheiro até a sangria (POP-04, seção \"2. Sangria\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.5284317130000318,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 166,
+            "prompt_tokens": 1668,
+            "total_tokens": 1834,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1534,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1534,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1668,
+            "output_tokens": 166,
+            "total_tokens": 1834,
+            "input_token_details": {
+              "cache_read": 1534
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.4910156039999265,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 368,
+            "prompt_tokens": 1741,
+            "total_tokens": 2109,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 205
+          },
+          "usage_metadata": {
+            "input_tokens": 1741,
+            "output_tokens": 368,
+            "total_tokens": 2109,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.2140408249999837,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 215,
+            "prompt_tokens": 1747,
+            "total_tokens": 1962,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1107
+          },
+          "usage_metadata": {
+            "input_tokens": 1747,
+            "output_tokens": 215,
+            "total_tokens": 1962,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.2140408249999837,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.2140408249999837,
+      "custo_usd": 0.0013548599999999998,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q09",
+      "tipo": "direta",
+      "pergunta": "minha gaveta ta com quase 900 conto em dinheiro, faço o que?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-03",
+          "secao": "6. Forma de reembolso",
+          "texto": "## 6. Forma de reembolso\n\n- Compra no dinheiro ou Pix: reembolso em dinheiro no balcão até\n  **R$ 300,00**. Acima disso, reembolso por Pix em até **2 dias úteis**.\n- Compra no cartão de crédito ou débito: estorno no mesmo cartão. O prazo do\n  estorno depende da operadora (em geral até 2 faturas).\n- O cliente pode escolher, em vez do reembolso, um **vale-troca** no valor do\n  produto, válido por **60 dias**."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "1. Abertura do caixa",
+          "texto": "## 1. Abertura do caixa\n\n1. O operador chega **15 minutos antes** do início do turno.\n2. Retira na tesouraria a gaveta com o **fundo de troco de R$ 200,00**:\n   R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.\n3. Conta o fundo na frente do tesoureiro e os dois assinam o\n   **Formulário F-01 (Abertura de Caixa)**.\n4. Faz login no PDV com a matrícula e testa a impressora de cupom e a\n   maquininha antes de chamar o primeiro cliente."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "5. Fechamento do caixa",
+          "texto": "## 5. Fechamento do caixa\n\n1. O operador encerra o turno no PDV e imprime o relatório **\"Leitura X\"**.\n2. Conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e\n   preenche o **Formulário F-02 (Fechamento de Caixa)**.\n3. Entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta\n   tudo na frente do operador."
+        },
+        {
+          "n": 5,
+          "pop": "POP-04",
+          "secao": "3. Pagamentos aceitos",
+          "texto": "## 3. Pagamentos aceitos\n\n- Dinheiro, Pix (QR Code na tela do PDV), cartões de débito e crédito,\n  vale-alimentação e vale-refeição das bandeiras credenciadas.\n- Cheque **não** é aceito.\n- Parcelamento no crédito: até **3 vezes sem juros** para compras acima de\n  **R$ 150,00**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Sua gaveta está acima do limite de R$ 800,00 em dinheiro, então precisa ser feita uma **sangria**.\n\nComo funciona, segundo o POP-04, seção \"2. Sangria\":\n- Com mais de R$ 800,00 na gaveta, o PDV bloqueia novas vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e vocês dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, sem passar pela mão de outra pessoa.\n\nOu seja: chame o fiscal de caixa para recolher o excedente (mantendo o fundo de troco), assine o comprovante junto com ele e garanta que o malote vá direto para o cofre da tesouraria.",
+      "resposta_final": "Sua gaveta está acima do limite de R$ 800,00 em dinheiro, então precisa ser feita uma **sangria**.\n\nComo funciona, segundo o POP-04, seção \"2. Sangria\":\n- Com mais de R$ 800,00 na gaveta, o PDV bloqueia novas vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e vocês dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, sem passar pela mão de outra pessoa.\n\nOu seja: chame o fiscal de caixa para recolher o excedente (mantendo o fundo de troco), assine o comprovante junto com ele e garanta que o malote vá direto para o cofre da tesouraria.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.7324420539999892,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 170,
+            "prompt_tokens": 1671,
+            "total_tokens": 1841,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 135
+          },
+          "usage_metadata": {
+            "input_tokens": 1671,
+            "output_tokens": 170,
+            "total_tokens": 1841,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.867665192000004,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 419,
+            "prompt_tokens": 1748,
+            "total_tokens": 2167,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 212
+          },
+          "usage_metadata": {
+            "input_tokens": 1748,
+            "output_tokens": 419,
+            "total_tokens": 2167,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.686564470999997,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 208,
+            "prompt_tokens": 1684,
+            "total_tokens": 1892,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1044
+          },
+          "usage_metadata": {
+            "input_tokens": 1684,
+            "output_tokens": 208,
+            "total_tokens": 1892,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.686564470999997,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.686564470999997,
+      "custo_usd": 0.0013959719999999999,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q10",
+      "tipo": "direta",
+      "pergunta": "fechei o caixa faltando 3 reais, vou ter problema?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "5. Fechamento do caixa",
+          "texto": "## 5. Fechamento do caixa\n\n1. O operador encerra o turno no PDV e imprime o relatório **\"Leitura X\"**.\n2. Conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e\n   preenche o **Formulário F-02 (Fechamento de Caixa)**.\n3. Entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta\n   tudo na frente do operador."
+        },
+        {
+          "n": 2,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "1. Abertura do caixa",
+          "texto": "## 1. Abertura do caixa\n\n1. O operador chega **15 minutos antes** do início do turno.\n2. Retira na tesouraria a gaveta com o **fundo de troco de R$ 200,00**:\n   R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.\n3. Conta o fundo na frente do tesoureiro e os dois assinam o\n   **Formulário F-01 (Abertura de Caixa)**.\n4. Faz login no PDV com a matrícula e testa a impressora de cupom e a\n   maquininha antes de chamar o primeiro cliente."
+        },
+        {
+          "n": 4,
+          "pop": "POP-03",
+          "secao": "4. Prazo de troca — produtos não perecíveis",
+          "texto": "## 4. Prazo de troca — produtos não perecíveis\n\nVale para mercearia seca, bebidas, limpeza, higiene e bazar.\n\n- **Arrependimento** (produto em perfeito estado, lacrado): até **7 dias\n  corridos** após a compra.\n- **Defeito** (produto com problema de fabricação): até **30 dias corridos**,\n  conforme o Código de Defesa do Consumidor para produtos não duráveis.\n- Eletroportáteis do bazar com defeito depois dos 30 dias: o cliente é\n  orientado a acionar a assistência técnica do fabricante."
+        },
+        {
+          "n": 5,
+          "pop": "POP-04",
+          "secao": "3. Pagamentos aceitos",
+          "texto": "## 3. Pagamentos aceitos\n\n- Dinheiro, Pix (QR Code na tela do PDV), cartões de débito e crédito,\n  vale-alimentação e vale-refeição das bandeiras credenciadas.\n- Cheque **não** é aceito.\n- Parcelamento no crédito: até **3 vezes sem juros** para compras acima de\n  **R$ 150,00**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "O procedimento de fechamento do manual não trata de falta de caixa nem de consequências para o operador. O que ele descreve é o fluxo: você encerra o turno no PDV e imprime a **Leitura X**, conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e preenche o **Formulário F-02 (Fechamento de Caixa)**; depois entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta tudo na sua frente (POP-04, seção \"5. Fechamento do caixa\").\n\nComo a diferença vai aparecer na recontagem feita pelo tesoureiro, o caminho é esse: apresente o F-02 e os comprovantes e explique a diferença a ele. Sobre eventual desconto, advertência ou outra medida, o manual não traz nada — vale confirmar com o encarregado ou a tesouraria.",
+      "resposta_final": "O procedimento de fechamento do manual não trata de falta de caixa nem de consequências para o operador. O que ele descreve é o fluxo: você encerra o turno no PDV e imprime a **Leitura X**, conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e preenche o **Formulário F-02 (Fechamento de Caixa)**; depois entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta tudo na sua frente (POP-04, seção \"5. Fechamento do caixa\").\n\nComo a diferença vai aparecer na recontagem feita pelo tesoureiro, o caminho é esse: apresente o F-02 e os comprovantes e explique a diferença a ele. Sobre eventual desconto, advertência ou outra medida, o manual não traz nada — vale confirmar com o encarregado ou a tesouraria.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.5778458049999244,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 175,
+            "prompt_tokens": 1667,
+            "total_tokens": 1842,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1533,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1533,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1667,
+            "output_tokens": 175,
+            "total_tokens": 1842,
+            "input_token_details": {
+              "cache_read": 1533
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 4.173533778999968,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 472,
+            "prompt_tokens": 1744,
+            "total_tokens": 2216,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 208
+          },
+          "usage_metadata": {
+            "input_tokens": 1744,
+            "output_tokens": 472,
+            "total_tokens": 2216,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.837881460999938,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 222,
+            "prompt_tokens": 1743,
+            "total_tokens": 1965,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1103
+          },
+          "usage_metadata": {
+            "input_tokens": 1743,
+            "output_tokens": 222,
+            "total_tokens": 1965,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.837881460999938,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.837881460999938,
+      "custo_usd": 0.001498554,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q11",
+      "tipo": "direta",
+      "pergunta": "quanto tempo eu deixo a alface de molho no cloro?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "7. Prazo para guardar",
+          "texto": "## 7. Prazo para guardar\n\nDepois da conferência, o tempo máximo entre a doca e a câmara é de\n**30 minutos** para congelados e resfriados e de **2 horas** para mercearia\nseca."
+        },
+        {
+          "n": 2,
+          "pop": "POP-01",
+          "secao": "2. Horário da doca",
+          "texto": "## 2. Horário da doca\n\n- Fornecedores entregam de segunda a sábado, das **6h às 14h**.\n- Domingo e feriado só recebem **hortifrúti e pães**, das 6h às 10h.\n- Entregas fora do horário precisam de autorização por escrito do gerente de\n  loja, registrada no **Formulário F-03 (Recebimento Extraordinário)**.\n- Cada caminhão tem no máximo **40 minutos** de doca. Passou disso, o próximo\n  da fila entra e o atrasado volta para o fim da fila."
+        },
+        {
+          "n": 3,
+          "pop": "POP-05",
+          "secao": "2. Diluição dos produtos de limpeza",
+          "texto": "## 2. Diluição dos produtos de limpeza\n\n| Uso                               | Produto                     | Diluição           | Tempo de contato |\n|-----------------------------------|-----------------------------|--------------------|------------------|\n| Bancadas e utensílios             | Detergente neutro           | 10 ml por litro    | —                |\n| Sanitização de bancadas           | Álcool 70%                  | puro               | deixar secar     |\n| Sanitização de hortifrúti         | Hipoclorito de sódio 2,5%   | 10 ml por litro    | **15 minutos**   |\n| Pisos e ralos                     | Cloro 2,5%                  | 20 ml por litro    | 10 minutos       |\n\nNunca misturar cloro com detergente ou com produtos à base de amônia."
+        },
+        {
+          "n": 4,
+          "pop": "POP-01",
+          "secao": "4. Temperatura na chegada",
+          "texto": "## 4. Temperatura na chegada\n\nMedir com o termômetro tipo espeto em **3 volumes por lote** (início, meio e\nfim do caminhão). O F-07 também é o **registro de temperatura** do\nrecebimento: as três leituras são anotadas nele em toda entrega de\ncongelados, resfriados, laticínios e frios, mesmo quando estiver tudo certo e\nnão houver divergência nenhuma.\n\n| Categoria            | Aceitar até | Recusar acima de |\n|----------------------|-------------|------------------|\n| Congelados           | −12 °C      | −12 °C           |\n| Resfriados (carnes)  | 7 °C        | 7 °C             |\n| Laticínios           | 10 °C       | 10 °C            |\n| Frios fatiados       | 8 °C        | 8 °C             |\n| Hortifrúti           | sem limite  | — (só avaliação visual) |\n\nCongelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou\nproduto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou\nmenos**."
+        },
+        {
+          "n": 5,
+          "pop": "POP-07",
+          "secao": "6. Preço de produto sem etiqueta",
+          "texto": "## 6. Preço de produto sem etiqueta\n\n- O operador consulta o preço no PDV pelo código de barras.\n- O fiscal avisa o repositor do corredor, que coloca a etiqueta em até\n  **30 minutos**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Deixe a alface de molho por **15 minutos** na solução de hipoclorito de sódio a 2,5%, na diluição de 10 ml por litro — esse é o tempo de contato indicado para sanitização de hortifrúti (POP-05, seção \"2. Diluição dos produtos de limpeza\").\n\nAproveitando: nunca misture cloro com detergente ou com produtos à base de amônia (POP-05, seção \"2. Diluição dos produtos de limpeza\").",
+      "resposta_final": "Deixe a alface de molho por **15 minutos** na solução de hipoclorito de sódio a 2,5%, na diluição de 10 ml por litro — esse é o tempo de contato indicado para sanitização de hortifrúti (POP-05, seção \"2. Diluição dos produtos de limpeza\").\n\nAproveitando: nunca misture cloro com detergente ou com produtos à base de amônia (POP-05, seção \"2. Diluição dos produtos de limpeza\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.5268246599999884,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 147,
+            "prompt_tokens": 1666,
+            "total_tokens": 1813,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1532,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1532,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1666,
+            "output_tokens": 147,
+            "total_tokens": 1813,
+            "input_token_details": {
+              "cache_read": 1532
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.74531928600004,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 258,
+            "prompt_tokens": 1747,
+            "total_tokens": 2005,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 211
+          },
+          "usage_metadata": {
+            "input_tokens": 1747,
+            "output_tokens": 258,
+            "total_tokens": 2005,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.8327615809999998,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 122,
+            "prompt_tokens": 1808,
+            "total_tokens": 1930,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1168
+          },
+          "usage_metadata": {
+            "input_tokens": 1808,
+            "output_tokens": 122,
+            "total_tokens": 1930,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.8327615809999998,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.8327615809999998,
+      "custo_usd": 0.001108548,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q12",
+      "tipo": "direta",
+      "pergunta": "o preço na prateleira ta mais barato do que passou no caixa, cobro qual?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-07",
+          "secao": "3. Divergência entre etiqueta e caixa",
+          "texto": "## 3. Divergência entre etiqueta e caixa\n\n- Se o preço da gôndola for **menor** que o do caixa, o cliente paga o\n  **menor preço**, sem discussão. O operador chama o fiscal, que autoriza a\n  correção no PDV.\n- O fiscal registra a divergência no **Formulário F-18 (Divergência de\n  Preço)** e o repositor corrige a etiqueta em até **30 minutos**.\n- Se a etiqueta estiver mais cara que o caixa, vale o preço do caixa."
+        },
+        {
+          "n": 3,
+          "pop": "POP-07",
+          "secao": "5. Leve 3, Pague 2 e promoções por quantidade",
+          "texto": "## 5. Leve 3, Pague 2 e promoções por quantidade\n\n- O desconto é aplicado automaticamente pelo PDV ao passar a terceira\n  unidade. O operador não digita desconto manual.\n- Se o PDV não aplicar, o operador chama o fiscal; desconto manual só com\n  senha do fiscal.\n- Itens de marcas diferentes **não** combinam no \"Leve 3, Pague 2\", a não ser\n  que a etiqueta vermelha diga \"itens sortidos\"."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "1. Abertura do caixa",
+          "texto": "## 1. Abertura do caixa\n\n1. O operador chega **15 minutos antes** do início do turno.\n2. Retira na tesouraria a gaveta com o **fundo de troco de R$ 200,00**:\n   R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.\n3. Conta o fundo na frente do tesoureiro e os dois assinam o\n   **Formulário F-01 (Abertura de Caixa)**.\n4. Faz login no PDV com a matrícula e testa a impressora de cupom e a\n   maquininha antes de chamar o primeiro cliente."
+        },
+        {
+          "n": 5,
+          "pop": "POP-04",
+          "secao": "3. Pagamentos aceitos",
+          "texto": "## 3. Pagamentos aceitos\n\n- Dinheiro, Pix (QR Code na tela do PDV), cartões de débito e crédito,\n  vale-alimentação e vale-refeição das bandeiras credenciadas.\n- Cheque **não** é aceito.\n- Parcelamento no crédito: até **3 vezes sem juros** para compras acima de\n  **R$ 150,00**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Cobra o **menor preço** — o da prateleira. O procedimento é: você chama o fiscal, que autoriza a correção no PDV. O fiscal também registra a divergência no **Formulário F-18 (Divergência de Preço)** e o repositor corrige a etiqueta em até 30 minutos (POP-07, seção \"3. Divergência entre etiqueta e caixa\").\n\nVale notar a regra inversa também: se a etiqueta estiver mais cara que o caixa, aí vale o preço do caixa (POP-07, seção \"3. Divergência entre etiqueta e caixa\").",
+      "resposta_final": "Cobra o **menor preço** — o da prateleira. O procedimento é: você chama o fiscal, que autoriza a correção no PDV. O fiscal também registra a divergência no **Formulário F-18 (Divergência de Preço)** e o repositor corrige a etiqueta em até 30 minutos (POP-07, seção \"3. Divergência entre etiqueta e caixa\").\n\nVale notar a regra inversa também: se a etiqueta estiver mais cara que o caixa, aí vale o preço do caixa (POP-07, seção \"3. Divergência entre etiqueta e caixa\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.1495616430000837,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 183,
+            "prompt_tokens": 1674,
+            "total_tokens": 1857,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 138
+          },
+          "usage_metadata": {
+            "input_tokens": 1674,
+            "output_tokens": 183,
+            "total_tokens": 1857,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.3483864639999865,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 385,
+            "prompt_tokens": 1751,
+            "total_tokens": 2136,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 215
+          },
+          "usage_metadata": {
+            "input_tokens": 1751,
+            "output_tokens": 385,
+            "total_tokens": 2136,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.5303129779999836,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 153,
+            "prompt_tokens": 1687,
+            "total_tokens": 1840,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1047
+          },
+          "usage_metadata": {
+            "input_tokens": 1687,
+            "output_tokens": 153,
+            "total_tokens": 1840,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.5303129779999836,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.5303129779999836,
+      "custo_usd": 0.001307472,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q13",
+      "tipo": "direta",
+      "pergunta": "alguem me mandou olhar o POP-06, onde acho ele?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-07",
+          "secao": "POP-07 — Preços, Etiquetas e Promoções",
+          "texto": "# POP-07 — Preços, Etiquetas e Promoções\n\n> Supermercado Bom Preço (empresa fictícia, dados inventados para teste de RAG).\n> Versão 1.4 — vigente desde 05/03/2026. Responsável: Gerência Comercial.\n> Este POP substitui o antigo POP-06 (Etiquetagem), revogado em 2025."
+        },
+        {
+          "n": 2,
+          "pop": "POP-04",
+          "secao": "7. Moeda falsa",
+          "texto": "## 7. Moeda falsa\n\n- Nota suspeita: o operador usa a caneta detectora e, se confirmado, **não\n  devolve a nota ao cliente** e chama o fiscal.\n- O fiscal registra a ocorrência e a nota é entregue à tesouraria para\n  encaminhamento ao banco."
+        },
+        {
+          "n": 3,
+          "pop": "POP-07",
+          "secao": "3. Divergência entre etiqueta e caixa",
+          "texto": "## 3. Divergência entre etiqueta e caixa\n\n- Se o preço da gôndola for **menor** que o do caixa, o cliente paga o\n  **menor preço**, sem discussão. O operador chama o fiscal, que autoriza a\n  correção no PDV.\n- O fiscal registra a divergência no **Formulário F-18 (Divergência de\n  Preço)** e o repositor corrige a etiqueta em até **30 minutos**.\n- Se a etiqueta estiver mais cara que o caixa, vale o preço do caixa."
+        },
+        {
+          "n": 4,
+          "pop": "POP-01",
+          "secao": "POP-01 — Recebimento de Mercadorias",
+          "texto": "# POP-01 — Recebimento de Mercadorias\n\n> Supermercado Bom Preço (empresa fictícia, dados inventados para teste de RAG).\n> Versão 3.2 — vigente desde 01/03/2026. Responsável: Gerência de Logística."
+        },
+        {
+          "n": 5,
+          "pop": "POP-02",
+          "secao": "7. Cliente encontrou produto vencido na gôndola",
+          "texto": "## 7. Cliente encontrou produto vencido na gôndola\n\n- O operador ou fiscal troca o produto na hora por um igual dentro da\n  validade, **sem exigir nota fiscal**, se o cliente ainda não pagou.\n- Se o cliente já comprou e voltou depois, seguir o POP-03 (Troca e\n  Devolução), seção \"Produto vencido vendido pela loja\".\n- O fiscal abre um registro de não conformidade e avisa o encarregado de\n  perecíveis no mesmo turno."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "O POP-06 não está mais em uso: ele foi substituído pelo **POP-07 — Preços, Etiquetas e Promoções**, que o revogou em 2025 (POP-07, cabeçalho \"POP-07 — Preços, Etiquetas e Promoções\" — o texto informa que \"Este POP substitui o antigo POP-06 (Etiquetagem), revogado em 2025\").\n\nEntão, se a pessoa te mandou olhar o POP-06, provavelmente a orientação correta hoje é o POP-07. Vale confirmar com ela se é isso mesmo — e, se a dúvida for sobre preço/etiqueta, o POP-07 traz, por exemplo, a regra de divergência entre etiqueta e caixa (POP-07, seção \"3. Divergência entre etiqueta e caixa\").",
+      "resposta_final": "O POP-06 não está mais em uso: ele foi substituído pelo **POP-07 — Preços, Etiquetas e Promoções**, que o revogou em 2025 (POP-07, cabeçalho \"POP-07 — Preços, Etiquetas e Promoções\" — o texto informa que \"Este POP substitui o antigo POP-06 (Etiquetagem), revogado em 2025\").\n\nEntão, se a pessoa te mandou olhar o POP-06, provavelmente a orientação correta hoje é o POP-07. Vale confirmar com ela se é isso mesmo — e, se a dúvida for sobre preço/etiqueta, o POP-07 traz, por exemplo, a regra de divergência entre etiqueta e caixa (POP-07, seção \"3. Divergência entre etiqueta e caixa\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.834003746999997,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 177,
+            "prompt_tokens": 1668,
+            "total_tokens": 1845,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1534,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1534,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1668,
+            "output_tokens": 177,
+            "total_tokens": 1845,
+            "input_token_details": {
+              "cache_read": 1534
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.7346836450000183,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 312,
+            "prompt_tokens": 1753,
+            "total_tokens": 2065,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 217
+          },
+          "usage_metadata": {
+            "input_tokens": 1753,
+            "output_tokens": 312,
+            "total_tokens": 2065,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.8388700900000003,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 196,
+            "prompt_tokens": 1602,
+            "total_tokens": 1798,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 962
+          },
+          "usage_metadata": {
+            "input_tokens": 1602,
+            "output_tokens": 196,
+            "total_tokens": 1798,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.8388700900000003,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.8388700900000003,
+      "custo_usd": 0.0012381599999999999,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q14",
+      "tipo": "direta",
+      "pergunta": "iogurte que falta 3 dias pra vencer, boto quanto de desconto?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "5. Validade mínima na entrada",
+          "texto": "## 5. Validade mínima na entrada\n\n- Perecíveis precisam chegar com pelo menos **70%** da vida útil restante.\n  Exemplo: iogurte com validade total de 30 dias precisa ter no mínimo 21\n  dias pela frente.\n- Não perecíveis (mercearia seca, limpeza, higiene) precisam ter pelo menos\n  **6 meses** de validade restante.\n- Abaixo desses limites, recusar o item e registrar no F-07."
+        },
+        {
+          "n": 2,
+          "pop": "POP-02",
+          "secao": "3. Rebaixa de preço por proximidade do vencimento",
+          "texto": "## 3. Rebaixa de preço por proximidade do vencimento\n\nA rebaixa só pode ser aplicada pelo encarregado de perecíveis, com a etiqueta\namarela \"Oferta do Dia\".\n\n| Dias até vencer | Laticínios e frios | Padaria | Carnes resfriadas |\n|-----------------|--------------------|---------|-------------------|\n| 5 dias          | 20% de desconto    | —       | —                 |\n| 3 dias          | 30%                | —       | 25%               |\n| 2 dias          | 40%                | —       | 40%               |\n| 1 dia           | 50%                | 50%     | 50%               |\n| Dia do vencimento | retirar da área de venda | retirar | retirar |\n\nPão francês e produtos de padaria feitos na loja **não** entram na tabela de\ndias: o destino da sobra do fim do dia (doação ou quebra) está na seção 6."
+        },
+        {
+          "n": 3,
+          "pop": "POP-03",
+          "secao": "5. Produto vencido vendido pela loja",
+          "texto": "## 5. Produto vencido vendido pela loja\n\nSe o cliente comprou um produto **já vencido** (data anterior à da compra):\n\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas\n  ou 7 dias.\n- O cliente recebe também um **vale-compras de R$ 20,00** como pedido de\n  desculpas.\n- O atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis."
+        },
+        {
+          "n": 4,
+          "pop": "POP-03",
+          "secao": "4. Prazo de troca — produtos não perecíveis",
+          "texto": "## 4. Prazo de troca — produtos não perecíveis\n\nVale para mercearia seca, bebidas, limpeza, higiene e bazar.\n\n- **Arrependimento** (produto em perfeito estado, lacrado): até **7 dias\n  corridos** após a compra.\n- **Defeito** (produto com problema de fabricação): até **30 dias corridos**,\n  conforme o Código de Defesa do Consumidor para produtos não duráveis.\n- Eletroportáteis do bazar com defeito depois dos 30 dias: o cliente é\n  orientado a acionar a assistência técnica do fabricante."
+        },
+        {
+          "n": 5,
+          "pop": "POP-02",
+          "secao": "6. Doação de excedentes",
+          "texto": "## 6. Doação de excedentes\n\n- Hortifrúti com aparência imperfeita (mas próprio para consumo) é separado\n  ao longo da semana e doado ao banco de alimentos parceiro.\n- A coleta acontece **terças e sextas às 18h**.\n- A sobra de padaria feita na loja só é doada **no dia da coleta** (terça e\n  sexta), porque não pode ser guardada para o dia seguinte. Nos outros dias,\n  a sobra do fim do dia é descartada e lançada como quebra com o código\n  **Q-23 (Sobra de produção)**.\n- Nunca doar produto vencido ou com embalagem violada.\n- Cada doação é registrada no **Formulário F-15 (Termo de Doação)**, assinado\n  pelo gerente de loja."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Para iogurte (laticínio) com **3 dias até vencer**, a tabela de rebaixa indica **30% de desconto** (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").\n\nSó lembrando: essa rebaixa só pode ser aplicada pelo **encarregado de perecíveis**, com a etiqueta amarela \"Oferta do Dia\" (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").",
+      "resposta_final": "Para iogurte (laticínio) com **3 dias até vencer**, a tabela de rebaixa indica **30% de desconto** (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").\n\nSó lembrando: essa rebaixa só pode ser aplicada pelo **encarregado de perecíveis**, com a etiqueta amarela \"Oferta do Dia\" (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.1415694080000094,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 165,
+            "prompt_tokens": 1670,
+            "total_tokens": 1835,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1670,
+            "output_tokens": 165,
+            "total_tokens": 1835,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.349936560999936,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 315,
+            "prompt_tokens": 1751,
+            "total_tokens": 2066,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 215
+          },
+          "usage_metadata": {
+            "input_tokens": 1751,
+            "output_tokens": 315,
+            "total_tokens": 2066,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.32576200099993,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 122,
+            "prompt_tokens": 1910,
+            "total_tokens": 2032,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1270
+          },
+          "usage_metadata": {
+            "input_tokens": 1910,
+            "output_tokens": 122,
+            "total_tokens": 2032,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.32576200099993,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.32576200099993,
+      "custo_usd": 0.001230372,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q15",
+      "tipo": "multi_secao",
+      "pergunta": "cliente pegou um leite vencido da prateleira, pagou e voltou aqui reclamando. o que ele ganha e o que o fiscal precisa fazer?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-02",
+          "secao": "7. Cliente encontrou produto vencido na gôndola",
+          "texto": "## 7. Cliente encontrou produto vencido na gôndola\n\n- O operador ou fiscal troca o produto na hora por um igual dentro da\n  validade, **sem exigir nota fiscal**, se o cliente ainda não pagou.\n- Se o cliente já comprou e voltou depois, seguir o POP-03 (Troca e\n  Devolução), seção \"Produto vencido vendido pela loja\".\n- O fiscal abre um registro de não conformidade e avisa o encarregado de\n  perecíveis no mesmo turno."
+        },
+        {
+          "n": 2,
+          "pop": "POP-03",
+          "secao": "5. Produto vencido vendido pela loja",
+          "texto": "## 5. Produto vencido vendido pela loja\n\nSe o cliente comprou um produto **já vencido** (data anterior à da compra):\n\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas\n  ou 7 dias.\n- O cliente recebe também um **vale-compras de R$ 20,00** como pedido de\n  desculpas.\n- O atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis."
+        },
+        {
+          "n": 3,
+          "pop": "POP-07",
+          "secao": "6. Preço de produto sem etiqueta",
+          "texto": "## 6. Preço de produto sem etiqueta\n\n- O operador consulta o preço no PDV pelo código de barras.\n- O fiscal avisa o repositor do corredor, que coloca a etiqueta em até\n  **30 minutos**."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "7. Moeda falsa",
+          "texto": "## 7. Moeda falsa\n\n- Nota suspeita: o operador usa a caneta detectora e, se confirmado, **não\n  devolve a nota ao cliente** e chama o fiscal.\n- O fiscal registra a ocorrência e a nota é entregue à tesouraria para\n  encaminhamento ao banco."
+        },
+        {
+          "n": 5,
+          "pop": "POP-03",
+          "secao": "2. Documento obrigatório",
+          "texto": "## 2. Documento obrigatório\n\n- Cupom fiscal ou nota fiscal da compra.\n- Sem cupom, a troca só é feita se a compra puder ser localizada no sistema\n  pelo CPF do cliente informado na nota (programa \"Cliente Bom Preço\").\n- Sem cupom e sem CPF: não há troca. O atendente oferece abrir uma\n  reclamação no **Formulário F-09 (Registro de Ocorrência do Cliente)**."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Nesse caso o cliente **já pagou e voltou depois**, então vale o POP-03, seção \"Produto vencido vendido pela loja\", e não a troca simples de gôndola.\n\n**O que o cliente ganha:**\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas ou 7 dias (POP-03, seção \"Produto vencido vendido pela loja\").\n- Além disso, um **vale-compras de R$ 20,00** como pedido de desculpas (POP-03, seção \"Produto vencido vendido pela loja\").\n\n**O que o atendente/fiscal precisa fazer:**\n- Lançar a ocorrência no **F-09** e avisar a **Gerência de Perecíveis** (POP-03, seção \"Produto vencido vendido pela loja\").\n- Abrir um **registro de não conformidade** e avisar o **encarregado de perecíveis no mesmo turno** (POP-02, seção \"7. Cliente encontrou produto vencido na gôndola\").\n\n**Sobre o cupom fiscal:** pelo POP-03, seção \"2. Documento obrigatório\", a regra geral é exigir cupom ou nota da compra; sem cupom, a troca só acontece se a compra for localizada no sistema pelo CPF do programa \"Cliente Bom Preço\". Sem cupom e sem CPF, não há troca, e o atendente oferece abrir uma reclamação no F-09. Vale confirmar com o encarregado como conciliar essa exigência de documento com o direito de troca/reembolso previsto para produto vencido vendido pela loja, já que os dois pontos estão no mesmo POP.",
+      "resposta_final": "Nesse caso o cliente **já pagou e voltou depois**, então vale o POP-03, seção \"Produto vencido vendido pela loja\", e não a troca simples de gôndola.\n\n**O que o cliente ganha:**\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas ou 7 dias (POP-03, seção \"Produto vencido vendido pela loja\").\n- Além disso, um **vale-compras de R$ 20,00** como pedido de desculpas (POP-03, seção \"Produto vencido vendido pela loja\").\n\n**O que o atendente/fiscal precisa fazer:**\n- Lançar a ocorrência no **F-09** e avisar a **Gerência de Perecíveis** (POP-03, seção \"Produto vencido vendido pela loja\").\n- Abrir um **registro de não conformidade** e avisar o **encarregado de perecíveis no mesmo turno** (POP-02, seção \"7. Cliente encontrou produto vencido na gôndola\").\n\n**Sobre o cupom fiscal:** pelo POP-03, seção \"2. Documento obrigatório\", a regra geral é exigir cupom ou nota da compra; sem cupom, a troca só acontece se a compra for localizada no sistema pelo CPF do programa \"Cliente Bom Preço\". Sem cupom e sem CPF, não há troca, e o atendente oferece abrir uma reclamação no F-09. Vale confirmar com o encarregado como conciliar essa exigência de documento com o direito de troca/reembolso previsto para produto vencido vendido pela loja, já que os dois pontos estão no mesmo POP.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.0275907739999184,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 179,
+            "prompt_tokens": 1689,
+            "total_tokens": 1868,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 153
+          },
+          "usage_metadata": {
+            "input_tokens": 1689,
+            "output_tokens": 179,
+            "total_tokens": 1868,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 4.893801751999945,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 606,
+            "prompt_tokens": 1774,
+            "total_tokens": 2380,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 238
+          },
+          "usage_metadata": {
+            "input_tokens": 1774,
+            "output_tokens": 606,
+            "total_tokens": 2380,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.4508925159999535,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 409,
+            "prompt_tokens": 1575,
+            "total_tokens": 1984,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 935
+          },
+          "usage_metadata": {
+            "input_tokens": 1575,
+            "output_tokens": 409,
+            "total_tokens": 1984,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.4508925159999535,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.4508925159999535,
+      "custo_usd": 0.001852872,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q16",
+      "tipo": "multi_secao",
+      "pergunta": "qual a diferença da etiqueta amarela pra vermelha? a amarela qualquer repositor pode colar?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-07",
+          "secao": "2. Cores das etiquetas",
+          "texto": "## 2. Cores das etiquetas\n\n| Cor da etiqueta | Significado |\n|-----------------|-------------|\n| Branca          | Preço normal |\n| Amarela         | \"Oferta do Dia\" — rebaixa por validade (ver POP-02) |\n| Vermelha        | Promoção do encarte semanal |\n| Verde           | Preço exclusivo do programa \"Cliente Bom Preço\" (com CPF) |"
+        },
+        {
+          "n": 2,
+          "pop": "POP-02",
+          "secao": "3. Rebaixa de preço por proximidade do vencimento",
+          "texto": "## 3. Rebaixa de preço por proximidade do vencimento\n\nA rebaixa só pode ser aplicada pelo encarregado de perecíveis, com a etiqueta\namarela \"Oferta do Dia\".\n\n| Dias até vencer | Laticínios e frios | Padaria | Carnes resfriadas |\n|-----------------|--------------------|---------|-------------------|\n| 5 dias          | 20% de desconto    | —       | —                 |\n| 3 dias          | 30%                | —       | 25%               |\n| 2 dias          | 40%                | —       | 40%               |\n| 1 dia           | 50%                | 50%     | 50%               |\n| Dia do vencimento | retirar da área de venda | retirar | retirar |\n\nPão francês e produtos de padaria feitos na loja **não** entram na tabela de\ndias: o destino da sobra do fim do dia (doação ou quebra) está na seção 6."
+        },
+        {
+          "n": 3,
+          "pop": "POP-07",
+          "secao": "3. Divergência entre etiqueta e caixa",
+          "texto": "## 3. Divergência entre etiqueta e caixa\n\n- Se o preço da gôndola for **menor** que o do caixa, o cliente paga o\n  **menor preço**, sem discussão. O operador chama o fiscal, que autoriza a\n  correção no PDV.\n- O fiscal registra a divergência no **Formulário F-18 (Divergência de\n  Preço)** e o repositor corrige a etiqueta em até **30 minutos**.\n- Se a etiqueta estiver mais cara que o caixa, vale o preço do caixa."
+        },
+        {
+          "n": 4,
+          "pop": "POP-07",
+          "secao": "5. Leve 3, Pague 2 e promoções por quantidade",
+          "texto": "## 5. Leve 3, Pague 2 e promoções por quantidade\n\n- O desconto é aplicado automaticamente pelo PDV ao passar a terceira\n  unidade. O operador não digita desconto manual.\n- Se o PDV não aplicar, o operador chama o fiscal; desconto manual só com\n  senha do fiscal.\n- Itens de marcas diferentes **não** combinam no \"Leve 3, Pague 2\", a não ser\n  que a etiqueta vermelha diga \"itens sortidos\"."
+        },
+        {
+          "n": 5,
+          "pop": "POP-07",
+          "secao": "1. Atualização de preços",
+          "texto": "## 1. Atualização de preços\n\n- Os preços novos chegam do escritório central para o sistema da loja todo\n  dia às **5h**.\n- O repositor de etiquetas imprime as etiquetas alteradas e troca tudo na\n  área de venda **até as 8h**, antes da abertura.\n- Produto com etiqueta antiga depois das 8h é tratado como divergência de\n  preço (ver seção 3)."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "A diferença está no significado de cada cor (POP-07, seção \"2. Cores das etiquetas\"):\n\n- **Amarela**: \"Oferta do Dia\" — rebaixa por validade (ver POP-02).\n- **Vermelha**: promoção do encarte semanal.\n\nSobre quem pode colar a amarela: não é qualquer repositor. A rebaixa por proximidade do vencimento só pode ser aplicada pelo **encarregado de perecíveis**, com a etiqueta amarela \"Oferta do Dia\" (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").",
+      "resposta_final": "A diferença está no significado de cada cor (POP-07, seção \"2. Cores das etiquetas\"):\n\n- **Amarela**: \"Oferta do Dia\" — rebaixa por validade (ver POP-02).\n- **Vermelha**: promoção do encarte semanal.\n\nSobre quem pode colar a amarela: não é qualquer repositor. A rebaixa por proximidade do vencimento só pode ser aplicada pelo **encarregado de perecíveis**, com a etiqueta amarela \"Oferta do Dia\" (POP-02, seção \"3. Rebaixa de preço por proximidade do vencimento\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.145477107999909,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 233,
+            "prompt_tokens": 1677,
+            "total_tokens": 1910,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 141
+          },
+          "usage_metadata": {
+            "input_tokens": 1677,
+            "output_tokens": 233,
+            "total_tokens": 1910,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 4.086136839000005,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 431,
+            "prompt_tokens": 1754,
+            "total_tokens": 2185,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 218
+          },
+          "usage_metadata": {
+            "input_tokens": 1754,
+            "output_tokens": 431,
+            "total_tokens": 2185,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.3189820599999393,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 151,
+            "prompt_tokens": 1812,
+            "total_tokens": 1963,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1172
+          },
+          "usage_metadata": {
+            "input_tokens": 1812,
+            "output_tokens": 151,
+            "total_tokens": 1963,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.3189820599999393,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.3189820599999393,
+      "custo_usd": 0.001459572,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q17",
+      "tipo": "multi_secao",
+      "pergunta": "cliente quer devolver uma panela de 400 reais que pagou em dinheiro mas perdeu o cupom, como faço?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 2,
+          "pop": "POP-03",
+          "secao": "6. Forma de reembolso",
+          "texto": "## 6. Forma de reembolso\n\n- Compra no dinheiro ou Pix: reembolso em dinheiro no balcão até\n  **R$ 300,00**. Acima disso, reembolso por Pix em até **2 dias úteis**.\n- Compra no cartão de crédito ou débito: estorno no mesmo cartão. O prazo do\n  estorno depende da operadora (em geral até 2 faturas).\n- O cliente pode escolher, em vez do reembolso, um **vale-troca** no valor do\n  produto, válido por **60 dias**."
+        },
+        {
+          "n": 3,
+          "pop": "POP-03",
+          "secao": "2. Documento obrigatório",
+          "texto": "## 2. Documento obrigatório\n\n- Cupom fiscal ou nota fiscal da compra.\n- Sem cupom, a troca só é feita se a compra puder ser localizada no sistema\n  pelo CPF do cliente informado na nota (programa \"Cliente Bom Preço\").\n- Sem cupom e sem CPF: não há troca. O atendente oferece abrir uma\n  reclamação no **Formulário F-09 (Registro de Ocorrência do Cliente)**."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "7. Moeda falsa",
+          "texto": "## 7. Moeda falsa\n\n- Nota suspeita: o operador usa a caneta detectora e, se confirmado, **não\n  devolve a nota ao cliente** e chama o fiscal.\n- O fiscal registra a ocorrência e a nota é entregue à tesouraria para\n  encaminhamento ao banco."
+        },
+        {
+          "n": 5,
+          "pop": "POP-02",
+          "secao": "7. Cliente encontrou produto vencido na gôndola",
+          "texto": "## 7. Cliente encontrou produto vencido na gôndola\n\n- O operador ou fiscal troca o produto na hora por um igual dentro da\n  validade, **sem exigir nota fiscal**, se o cliente ainda não pagou.\n- Se o cliente já comprou e voltou depois, seguir o POP-03 (Troca e\n  Devolução), seção \"Produto vencido vendido pela loja\".\n- O fiscal abre um registro de não conformidade e avisa o encarregado de\n  perecíveis no mesmo turno."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Vamos por partes:\n\n**1. Sem cupom fiscal:** a troca só pode ser feita se a compra for localizada no sistema pelo CPF do cliente informado na nota (programa \"Cliente Bom Preço\"). Se não houver cupom **e** nem CPF, não há troca — nesse caso, o atendente oferece abrir uma reclamação no **Formulário F-09 (Registro de Ocorrência do Cliente)** (POP-03, seção \"2. Documento obrigatório\").\n\n**2. Forma de reembolso (compra em dinheiro):** reembolso em dinheiro no balcão até **R$ 300,00**. Acima disso, reembolso por Pix em até **2 dias úteis**. O cliente também pode optar por um **vale-troca** no valor do produto, válido por **60 dias** (POP-03, seção \"6. Forma de reembolso\").\n\nNo caso da panela de R$ 400,00 paga em dinheiro, o reembolso em espécie no balcão não se aplica pelo valor — seria por Pix em até 2 dias úteis, ou vale-troca, se o cliente preferir. Mas tudo isso só depois de localizada a compra pelo CPF; se ele também não tiver CPF cadastrado na nota, o caminho é o F-09.\n\nVale lembrar: se a compra for localizada e o reembolso em dinheiro for feito, o caixa precisa observar o limite de sangria — acima de **R$ 800,00 em dinheiro** na gaveta, o PDV bloqueia novas vendas em dinheiro até a sangria (POP-04, seção \"2. Sangria\").",
+      "resposta_final": "Vamos por partes:\n\n**1. Sem cupom fiscal:** a troca só pode ser feita se a compra for localizada no sistema pelo CPF do cliente informado na nota (programa \"Cliente Bom Preço\"). Se não houver cupom **e** nem CPF, não há troca — nesse caso, o atendente oferece abrir uma reclamação no **Formulário F-09 (Registro de Ocorrência do Cliente)** (POP-03, seção \"2. Documento obrigatório\").\n\n**2. Forma de reembolso (compra em dinheiro):** reembolso em dinheiro no balcão até **R$ 300,00**. Acima disso, reembolso por Pix em até **2 dias úteis**. O cliente também pode optar por um **vale-troca** no valor do produto, válido por **60 dias** (POP-03, seção \"6. Forma de reembolso\").\n\nNo caso da panela de R$ 400,00 paga em dinheiro, o reembolso em espécie no balcão não se aplica pelo valor — seria por Pix em até 2 dias úteis, ou vale-troca, se o cliente preferir. Mas tudo isso só depois de localizada a compra pelo CPF; se ele também não tiver CPF cadastrado na nota, o caminho é o F-09.\n\nVale lembrar: se a compra for localizada e o reembolso em dinheiro for feito, o caixa precisa observar o limite de sangria — acima de **R$ 800,00 em dinheiro** na gaveta, o PDV bloqueia novas vendas em dinheiro até a sangria (POP-04, seção \"2. Sangria\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.5509119069999997,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 198,
+            "prompt_tokens": 1681,
+            "total_tokens": 1879,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 145
+          },
+          "usage_metadata": {
+            "input_tokens": 1681,
+            "output_tokens": 198,
+            "total_tokens": 1879,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 6.645458686000097,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 914,
+            "prompt_tokens": 1762,
+            "total_tokens": 2676,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 226
+          },
+          "usage_metadata": {
+            "input_tokens": 1762,
+            "output_tokens": 914,
+            "total_tokens": 2676,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.547473351000008,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 399,
+            "prompt_tokens": 1686,
+            "total_tokens": 2085,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1046
+          },
+          "usage_metadata": {
+            "input_tokens": 1686,
+            "output_tokens": 399,
+            "total_tokens": 2085,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.547473351000008,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.547473351000008,
+      "custo_usd": 0.0022605719999999998,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q18",
+      "tipo": "sem_resposta",
+      "pergunta": "quantos dias de ferias eu tenho direito esse ano?",
+      "caminho": [
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": false,
+      "trechos": [],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "Para eu calcular suas férias corretamente, preciso de algumas informações, porque a resposta depende do seu caso:\n\n1. **Regime de contratação**: CLT (carteira assinada), servidor público, estagiário, autônomo? As regras mudam bastante.\n2. **Data de início no emprego** (ou tempo de casa).\n3. **Se já tirou férias neste ano** e quantos dias.\n4. **Se houve faltas injustificadas** no período aquisitivo (isso reduz os dias).\n5. No caso de servidor público ou de empresa com convenção coletiva, pode haver regras próprias (ex.: 30 dias corridos, adicional por tempo de serviço etc.).\n\n**Regra geral da CLT (para orientar):**\n- Após **12 meses** de trabalho (período aquisitivo), você adquire direito a **30 dias corridos** de férias.\n- Esse direito pode ser reduzido conforme faltas injustificadas no período:\n  - Até 5 faltas: 30 dias\n  - 6 a 14 faltas: 24 dias\n  - 15 a 23 faltas: 18 dias\n  - 24 a 32 faltas: 12 dias\n  - Acima de 32 faltas: perde o direito naquele período\n- As férias devem ser concedidas nos **12 meses seguintes** (período concessivo), e podem ser divididas em até 3 períodos (com pelo menos 5 dias corridos em um deles, quando aplicável).\n\nSe você me disser seu regime e suas datas, eu calculo direitinho quantos dias você tem direito neste ano.",
+      "resposta_final": "Para eu calcular suas férias corretamente, preciso de algumas informações, porque a resposta depende do seu caso:\n\n1. **Regime de contratação**: CLT (carteira assinada), servidor público, estagiário, autônomo? As regras mudam bastante.\n2. **Data de início no emprego** (ou tempo de casa).\n3. **Se já tirou férias neste ano** e quantos dias.\n4. **Se houve faltas injustificadas** no período aquisitivo (isso reduz os dias).\n5. No caso de servidor público ou de empresa com convenção coletiva, pode haver regras próprias (ex.: 30 dias corridos, adicional por tempo de serviço etc.).\n\n**Regra geral da CLT (para orientar):**\n- Após **12 meses** de trabalho (período aquisitivo), você adquire direito a **30 dias corridos** de férias.\n- Esse direito pode ser reduzido conforme faltas injustificadas no período:\n  - Até 5 faltas: 30 dias\n  - 6 a 14 faltas: 24 dias\n  - 15 a 23 faltas: 18 dias\n  - 24 a 32 faltas: 12 dias\n  - Acima de 32 faltas: perde o direito naquele período\n- As férias devem ser concedidas nos **12 meses seguintes** (período concessivo), e podem ser divididas em até 3 períodos (com pelo menos 5 dias corridos em um deles, quando aplicável).\n\nSe você me disser seu regime e suas datas, eu calculo direitinho quantos dias você tem direito neste ano.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.9441227830000116,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 305,
+            "prompt_tokens": 1663,
+            "total_tokens": 1968,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1408,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1408,
+            "prompt_cache_miss_tokens": 255
+          },
+          "usage_metadata": {
+            "input_tokens": 1663,
+            "output_tokens": 305,
+            "total_tokens": 1968,
+            "input_token_details": {
+              "cache_read": 1408
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 2.7024052659999143,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 376,
+            "prompt_tokens": 106,
+            "total_tokens": 482,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 0,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 106
+          },
+          "usage_metadata": {
+            "input_tokens": 106,
+            "output_tokens": 376,
+            "total_tokens": 482,
+            "input_token_details": {
+              "cache_read": 0
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 2.7024052659999143,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 2.7024052659999143,
+      "custo_usd": 0.000933948,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q19",
+      "tipo": "sem_resposta",
+      "pergunta": "o fornecedor atrasou de novo, qual a multa que a gente cobra dele?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-01",
+          "secao": "2. Horário da doca",
+          "texto": "## 2. Horário da doca\n\n- Fornecedores entregam de segunda a sábado, das **6h às 14h**.\n- Domingo e feriado só recebem **hortifrúti e pães**, das 6h às 10h.\n- Entregas fora do horário precisam de autorização por escrito do gerente de\n  loja, registrada no **Formulário F-03 (Recebimento Extraordinário)**.\n- Cada caminhão tem no máximo **40 minutos** de doca. Passou disso, o próximo\n  da fila entra e o atrasado volta para o fim da fila."
+        },
+        {
+          "n": 2,
+          "pop": "POP-07",
+          "secao": "6. Preço de produto sem etiqueta",
+          "texto": "## 6. Preço de produto sem etiqueta\n\n- O operador consulta o preço no PDV pelo código de barras.\n- O fiscal avisa o repositor do corredor, que coloca a etiqueta em até\n  **30 minutos**."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "2. Sangria",
+          "texto": "## 2. Sangria\n\n- Quando a gaveta passa de **R$ 800,00 em dinheiro**, o PDV bloqueia novas\n  vendas em dinheiro até a sangria ser feita.\n- O fiscal de caixa recolhe o valor excedente, deixando o fundo de troco, e\n  os dois assinam o comprovante de sangria impresso pelo PDV.\n- O malote da sangria vai direto para o cofre da tesouraria, **sem passar\n  pela mão de outra pessoa**."
+        },
+        {
+          "n": 4,
+          "pop": "POP-07",
+          "secao": "1. Atualização de preços",
+          "texto": "## 1. Atualização de preços\n\n- Os preços novos chegam do escritório central para o sistema da loja todo\n  dia às **5h**.\n- O repositor de etiquetas imprime as etiquetas alteradas e troca tudo na\n  área de venda **até as 8h**, antes da abertura.\n- Produto com etiqueta antiga depois das 8h é tratado como divergência de\n  preço (ver seção 3)."
+        },
+        {
+          "n": 5,
+          "pop": "POP-03",
+          "secao": "5. Produto vencido vendido pela loja",
+          "texto": "## 5. Produto vencido vendido pela loja\n\nSe o cliente comprou um produto **já vencido** (data anterior à da compra):\n\n- Troca ou reembolso imediato, **em qualquer prazo**, sem limite de 24 horas\n  ou 7 dias.\n- O cliente recebe também um **vale-compras de R$ 20,00** como pedido de\n  desculpas.\n- O atendente lança a ocorrência no F-09 e avisa a Gerência de Perecíveis."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "O manual de procedimentos não cobre isso.\n\nOs trechos que o manual traz tratam de horário de doca (POP-01, seção \"2. Horário da doca\"), atualização e divergência de preço (POP-07, seções \"1. Atualização de preços\" e \"6. Preço de produto sem etiqueta\"), sangria de caixa (POP-04, seção \"2. Sangria\") e produto vencido vendido pela loja (POP-03, seção \"5. Produto vencido vendido pela loja\") — nenhum deles define multa por atraso de fornecedor. Vale confirmar com o encarregado se existe algum documento específico de contrato ou acordo com fornecedores para tratar desse caso.",
+      "resposta_final": "O manual de procedimentos não cobre isso.\n\nOs trechos que o manual traz tratam de horário de doca (POP-01, seção \"2. Horário da doca\"), atualização e divergência de preço (POP-07, seções \"1. Atualização de preços\" e \"6. Preço de produto sem etiqueta\"), sangria de caixa (POP-04, seção \"2. Sangria\") e produto vencido vendido pela loja (POP-03, seção \"5. Produto vencido vendido pela loja\") — nenhum deles define multa por atraso de fornecedor. Vale confirmar com o encarregado se existe algum documento específico de contrato ou acordo com fornecedores para tratar desse caso.",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.778304455000125,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 186,
+            "prompt_tokens": 1671,
+            "total_tokens": 1857,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 135
+          },
+          "usage_metadata": {
+            "input_tokens": 1671,
+            "output_tokens": 186,
+            "total_tokens": 1857,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 3.0767650390000654,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 349,
+            "prompt_tokens": 1756,
+            "total_tokens": 2105,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 220
+          },
+          "usage_metadata": {
+            "input_tokens": 1756,
+            "output_tokens": 349,
+            "total_tokens": 2105,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.529551930000025,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 174,
+            "prompt_tokens": 1652,
+            "total_tokens": 1826,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1012
+          },
+          "usage_metadata": {
+            "input_tokens": 1652,
+            "output_tokens": 174,
+            "total_tokens": 1826,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.529551930000025,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.529551930000025,
+      "custo_usd": 0.001283172,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    },
+    {
+      "id": "q20",
+      "tipo": "sem_resposta",
+      "pergunta": "com quantas diferenças de caixa o operador é mandado embora?",
+      "caminho": [
+        "supervisor",
+        "specialist_rag",
+        "supervisor",
+        "synthesize_final"
+      ],
+      "rag_acionado": true,
+      "trechos": [
+        {
+          "n": 1,
+          "pop": "POP-04",
+          "secao": "6. Diferença de caixa",
+          "texto": "## 6. Diferença de caixa\n\n| Diferença no fechamento | O que acontece |\n|-------------------------|----------------|\n| Até R$ 5,00 (para mais ou para menos) | Tolerância: anotar no F-02, sem outra ação |\n| De R$ 5,01 a R$ 50,00 | Fiscal confere a fita do PDV com o operador no mesmo dia |\n| Acima de R$ 50,00 | Gerente de loja abre apuração e revisa as câmeras do caixa |\n\nTrês diferenças acima de R$ 5,00 no mesmo mês levam o operador a uma\nreciclagem obrigatória de **4 horas** com a tesouraria."
+        },
+        {
+          "n": 2,
+          "pop": "POP-04",
+          "secao": "5. Fechamento do caixa",
+          "texto": "## 5. Fechamento do caixa\n\n1. O operador encerra o turno no PDV e imprime o relatório **\"Leitura X\"**.\n2. Conta o dinheiro da gaveta, separa o fundo de troco de R$ 200,00 e\n   preenche o **Formulário F-02 (Fechamento de Caixa)**.\n3. Entrega gaveta, F-02 e comprovantes de cartão ao tesoureiro, que reconta\n   tudo na frente do operador."
+        },
+        {
+          "n": 3,
+          "pop": "POP-04",
+          "secao": "4. Cancelamento de item e de cupom",
+          "texto": "## 4. Cancelamento de item e de cupom\n\n- Cancelamento de item **antes** de finalizar a venda: o próprio operador faz.\n- Cancelamento de item depois de finalizada a venda, ou do cupom inteiro:\n  só com senha do fiscal de caixa.\n- Todo cancelamento de cupom acima de **R$ 500,00** precisa também da\n  assinatura do gerente de loja no relatório de cancelamentos."
+        },
+        {
+          "n": 4,
+          "pop": "POP-04",
+          "secao": "7. Moeda falsa",
+          "texto": "## 7. Moeda falsa\n\n- Nota suspeita: o operador usa a caneta detectora e, se confirmado, **não\n  devolve a nota ao cliente** e chama o fiscal.\n- O fiscal registra a ocorrência e a nota é entregue à tesouraria para\n  encaminhamento ao banco."
+        },
+        {
+          "n": 5,
+          "pop": "POP-04",
+          "secao": "1. Abertura do caixa",
+          "texto": "## 1. Abertura do caixa\n\n1. O operador chega **15 minutos antes** do início do turno.\n2. Retira na tesouraria a gaveta com o **fundo de troco de R$ 200,00**:\n   R$ 100,00 em notas de R$ 2, R$ 5 e R$ 10 e R$ 100,00 em moedas.\n3. Conta o fundo na frente do tesoureiro e os dois assinam o\n   **Formulário F-01 (Abertura de Caixa)**.\n4. Faz login no PDV com a matrícula e testa a impressora de cupom e a\n   maquininha antes de chamar o primeiro cliente."
+        }
+      ],
+      "notas_de_outros_especialistas": [],
+      "resposta_crua": "O manual de procedimentos não cobre isso. A seção sobre diferença de caixa trata apenas de valores e medidas administrativas (tolerância até R$ 5,00, conferência de fita pelo fiscal de R$ 5,01 a R$ 50,00, apuração pelo gerente acima de R$ 50,00 e reciclagem obrigatória após três diferenças acima de R$ 5,00 no mesmo mês) — não menciona desligamento do operador em nenhum momento (POP-04, seção \"6. Diferença de caixa\").",
+      "resposta_final": "O manual de procedimentos não cobre isso. A seção sobre diferença de caixa trata apenas de valores e medidas administrativas (tolerância até R$ 5,00, conferência de fita pelo fiscal de R$ 5,01 a R$ 50,00, apuração pelo gerente acima de R$ 50,00 e reciclagem obrigatória após três diferenças acima de R$ 5,00 no mesmo mês) — não menciona desligamento do operador em nenhum momento (POP-04, seção \"6. Diferença de caixa\").",
+      "resposta_fixa_sem_llm": false,
+      "anexo_de_citacao": false,
+      "last_error": null,
+      "erro": null,
+      "erros_llm": [],
+      "falha_de_infra": false,
+      "chamadas_llm": [
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 2.036470985000051,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 170,
+            "prompt_tokens": 1667,
+            "total_tokens": 1837,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1533,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1533,
+            "prompt_cache_miss_tokens": 134
+          },
+          "usage_metadata": {
+            "input_tokens": 1667,
+            "output_tokens": 170,
+            "total_tokens": 1837,
+            "input_token_details": {
+              "cache_read": 1533
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "supervisor",
+          "nome": null,
+          "duracao_s": 1.8272085339999649,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 159,
+            "prompt_tokens": 1740,
+            "total_tokens": 1899,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 1536,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 204
+          },
+          "usage_metadata": {
+            "input_tokens": 1740,
+            "output_tokens": 159,
+            "total_tokens": 1899,
+            "input_token_details": {
+              "cache_read": 1536
+            },
+            "output_token_details": {}
+          }
+        },
+        {
+          "no": "synthesize_final",
+          "nome": null,
+          "duracao_s": 1.466034110999999,
+          "modelo_devolvido": "deepseek-flash",
+          "token_usage": {
+            "completion_tokens": 131,
+            "prompt_tokens": 1684,
+            "total_tokens": 1815,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cache_write_tokens": null,
+              "cached_tokens": 640,
+              "image_tokens": null,
+              "text_tokens": null
+            },
+            "prompt_cache_hit_tokens": 640,
+            "prompt_cache_miss_tokens": 1044
+          },
+          "usage_metadata": {
+            "input_tokens": 1684,
+            "output_tokens": 131,
+            "total_tokens": 1815,
+            "input_token_details": {
+              "cache_read": 640
+            },
+            "output_token_details": {}
+          }
+        }
+      ],
+      "etapa2_aplicada": false,
+      "etapa2_falhou": false,
+      "resposta_etapa1": null,
+      "erros_etapa2": [],
+      "tempo_etapa1_s": 1.466034110999999,
+      "tempo_etapa2_s": null,
+      "tempo_synth_s": 1.466034110999999,
+      "custo_usd": 0.000988854,
+      "custo_etapa2_usd": 0,
+      "notas_limite": [],
+      "provedor": "deepseek",
+      "modelo_efetivo": "deepseek-flash"
+    }
+  ],
+  "parte3": {
+    "versao": "v5",
+    "rag_limites": true,
+    "hashes": {
+      "regras_v1": "3f4ca553845cc40ed10451f70df9357f2afad2ac2f76d265198be0e6be498240",
+      "regras_v5": "12f836e2addedd74c8b2fc9848ec0cf72110fe36cf846a0891a2e7f3847f7d34",
+      "codigo_passo": "be379f946308820451a0c8d721ea699299434eeb1fbe5077d89c36f0611c59f4",
+      "codigo_motor": "cdcba18eac02ed164e5f45402f48c719e3074cfcf2387b86cf4f95859b93e623",
+      "ficha_v3": {
+        "prompt_sistema": "f90f6dedb2be59e68eeef8fbbb93b4895b7fff73d26b4130ed6e7c8fa546ceeb",
+        "schema_ferramenta": "054978a13195b554ed8438e703b2930ccc770d121e657ba947c7d96b422542cb",
+        "conjunto": "462bde3cc4ece9412917835241de5bd2f7e1be294ef7325ebea61a4239b35f13",
+        "codigo_limites_extracao_v3": "d57cb406b981fd255492af20feb24893bce2ea4f2074a4e7337ff6eeeda59482",
+        "codigo_limites_extracao_v2": "5b9d49818a0ea4b5bf22b6fdc8888068c17e9fca0c2c272abb62a5b8ec944514",
+        "codigo_limites_extracao": "e900d07d8aae394485def46cb91034562ae9fb404d9390038bed0c3a33398bbc",
+        "codigo_limites": "9be72faac3b06bf3adce0e23f7d7ccba061172a84f43819b359447c1a5b5f6fb",
+        "sinonimos": "85fd74dbc9f0edbb0af73621ee00bc25ce0f0d124c6e224ae6b0de860de65e95"
+      }
+    },
+    "motor": {
+      "provedor": "deepseek",
+      "base_url": "https://api.deepseek.com",
+      "modelo_efetivo_router": "deepseek-flash",
+      "modelo_efetivo_general": "deepseek-flash",
+      "versao_documentada": "DeepSeek-V4.1-Flash-1017",
+      "pensamento": "desligado",
+      "extra_body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "custo": "calculado pelos tokens do usage",
+      "tarifa_do_orcamento": "pico",
+      "preco_usd_por_1m": {
+        "pico": {
+          "entrada_cache_hit": 0.006,
+          "entrada_cache_miss": 0.3,
+          "saida": 1.2
+        },
+        "fora_de_pico": {
+          "entrada_cache_hit": 0.003,
+          "entrada_cache_miss": 0.15,
+          "saida": 0.6
+        }
+      },
+      "fonte_preco": "https://api-docs.deepseek.com/quick_start/pricing",
+      "data_preco": "2026-11-24"
+    }
+  },
+  "parte3_medicao": "b"
+}
