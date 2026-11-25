@@ -1,0 +1,46 @@
+{
+  "tentativas": [
+    {
+      "unidade": "a",
+      "n": 1,
+      "estado": "falha_inicial",
+      "arquivo": null,
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.0,
+      "inicio": "2026-11-24T19:20:29-03:00",
+      "fim": "2026-11-24T19:21:08-03:00",
+      "erro_tipo": "RateLimitError"
+    },
+    {
+      "unidade": "a",
+      "n": 1,
+      "estado": "invalida_infra",
+      "arquivo": "respostas-a-t1.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.022612498,
+      "inicio": "2026-11-24T19:36:59-03:00",
+      "fim": "2026-11-24T19:40:27-03:00"
+    },
+    {
+      "unidade": "a",
+      "n": 2,
+      "estado": "invalida_infra",
+      "arquivo": "respostas-a-t2.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.007154845200000001,
+      "inicio": "2026-11-24T20:49:01-03:00",
+      "fim": "2026-11-24T20:49:57-03:00"
+    },
+    {
+      "unidade": "a",
+      "n": 3,
+      "estado": "concluida",
+      "arquivo": "respostas-a-t3.json",
+      "orcamento_usd": 0.06,
+      "custo_usd": 0.033227376,
+      "inicio": "2026-11-24T21:58:42-03:00",
+      "fim": "2026-11-24T22:01:58-03:00",
+      "motor_do_agente": "deepseek"
+    }
+  ]
+}

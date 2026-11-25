@@ -1,0 +1,467 @@
+elo: 7194f8926719fcbd3676700dd5b401da
+itens:
+- codigo: r01
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Recusar.** −10 °C está acima do limite de −12 °C para congelados no recebimento (POP-01,
+    seção "4. Temperatura na chegada").
+
+
+    Além disso, mesmo que a temperatura estivesse dentro do limite, o produto deve ser recusado se houver
+    sinal de descongelamento — gelo acumulado, embalagem molhada ou produto amolecido (POP-01, seção "4.
+    Temperatura na chegada"). Vale conferir isso também.
+
+
+    Dois lembretes do procedimento:
+
+    - A medição deve ser feita em 3 pontos por lote (início, meio e fim do caminhão), com as três leituras
+    anotadas no F-07 em toda entrega de congelados (POP-01, seção "4. Temperatura na chegada").
+
+    - Se o produto for aceito, o tempo máximo entre a doca e a câmara é de 30 minutos para congelados
+    (POP-01, seção "7. Prazo para guardar").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r02
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** −10 °C está acima do limite de −12 °C para congelados no recebimento, então
+    o frango deve ser recusado (POP-01, seção "4. Temperatura na chegada").
+
+
+    Atenção também à ressalva do manual: congelado com sinal de descongelamento (gelo acumulado, embalagem
+    molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos (POP-01, seção
+    "4. Temperatura na chegada").
+
+
+    Duas observações práticas:
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados, mesmo sem divergência
+    (POP-01, seção "4. Temperatura na chegada").
+
+    - Se o produto chegar a ser aceito por outro lote/entrega, o tempo máximo entre a doca e a câmara
+    é de **30 minutos** para congelados (POP-01, seção "7. Prazo para guardar").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r03
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Recuse o lote.** O frango congelado a −10 °C está acima do limite de recebimento para congelados,
+    que é de −12 °C (POP-01, seção "4. Temperatura na chegada").
+
+
+    Duas observações do mesmo procedimento:
+
+    - Congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido)
+    também é recusado, mesmo que o termômetro marque −12 °C ou menos (POP-01, seção "4. Temperatura na
+    chegada").
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados — mesmo quando estiver
+    tudo certo (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o lote for recusado, registre as leituras no F-07 de qualquer forma para documentar a divergência.'
+  classe: RECUSA
+  observacao: ''
+- codigo: r04
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** Frango congelado a −10 °C está fora do limite de recebimento.
+
+
+    Pelo procedimento de recebimento, congelados são **aceitos até −12 °C** e **recusados acima de −12
+    °C** (POP-01, seção "4. Temperatura na chegada"). Como −10 °C é mais quente que −12 °C, o lote deve
+    ser recusado.
+
+
+    Dois pontos práticos ainda dessa mesma seção:
+
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras anotadas no **F-07** — que é o registro de temperatura do recebimento
+    — mesmo quando não houver divergência (POP-01, seção "4. Temperatura na chegada").
+
+    - Além do termômetro, congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou
+    produto amolecido) é recusado **mesmo que marque −12 °C ou menos** (POP-01, seção "4. Temperatura
+    na chegada"). Vale conferir isso também.
+
+
+    Se você aceitar mesmo assim, lembre que o armazenamento exigido é de **−18 °C ou menos** na câmara/expositor
+    de congelados (POP-05, seção "4. Temperatura de armazenamento e exposição") — mas isso não corrige
+    o fato de a carga ter chegado fora do padrão de recebimento.'
+  classe: RECUSA
+  observacao: ''
+- codigo: r05
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite — recuse o lote.**
+
+
+    O frango congelado a −10 °C está acima do limite máximo de −12 °C para congelados no recebimento (POP-01,
+    seção "4. Temperatura na chegada").
+
+
+    Duas observações do manual que valem para esse caso:
+
+
+    - Mesmo que o termômetro marcasse −12 °C ou menos, o produto seria recusado se apresentasse sinal
+    de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) (POP-01, seção "4. Temperatura
+    na chegada").
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras precisam ser anotadas no F-07, que é o registro de temperatura do
+    recebimento — em toda entrega de congelados, mesmo quando estiver tudo certo (POP-01, seção "4. Temperatura
+    na chegada").
+
+
+    Se o lote for recusado, vale lembrar o prazo de troca de perecíveis: até **24 horas** a partir do
+    horário impresso no cupom, com o produto e na embalagem original — para carne e frango, foto não é
+    aceita (POP-03, seção "3. Prazo de troca — produtos perecíveis").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r06
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** O frango está fora do limite de recebimento para congelados.
+
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados (POP-01, seção "4.
+    Temperatura na chegada").
+
+    - Para congelados: **aceitar até −12 °C** e **recusar acima de −12 °C**. Como o termômetro marcou
+    −10 °C, o produto está acima do limite → recusa (POP-01, seção "4. Temperatura na chegada").
+
+    - Atenção também ao aspecto: congelado com sinal de descongelamento (gelo acumulado, embalagem molhada
+    ou produto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou menos** (POP-01, seção
+    "4. Temperatura na chegada").
+
+
+    Sobre o fluxo após a conferência: o tempo máximo entre a doca e a câmara é de **30 minutos** para
+    congelados e resfriados (POP-01, seção "7. Prazo para guardar").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r07
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: 'Não aceite: **recuse o lote**.
+
+
+    O frango congelado chegou a −10 °C, e para congelados no recebimento o limite é aceitar até −12 °C
+    (recusar acima de −12 °C). Como −10 °C está acima desse limite, a decisão é recusar (POP-01, seção
+    "4. Temperatura na chegada").
+
+
+    Atenção também à ressalva do manual: congelado com sinal de descongelamento (gelo acumulado, embalagem
+    molhada ou produto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou menos** (POP-01,
+    seção "4. Temperatura na chegada").
+
+
+    E lembre-se de que a medição deve ser feita com o termômetro tipo espeto em **3 volumes por lote**
+    (início, meio e fim do caminhão), com as três leituras anotadas no F-07 — o registro vale para toda
+    entrega de congelados, mesmo quando está tudo certo (POP-01, seção "4. Temperatura na chegada").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r08
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Recusar.** O frango congelado a −10 °C está acima do limite de recebimento para congelados,
+    que é de −12 °C (POP-01, seção "4. Temperatura na chegada").
+
+
+    Além disso, vale conferir a condição do produto: congelado com sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos (POP-01,
+    seção "4. Temperatura na chegada").
+
+
+    Lembrando que a medição deve ser feita com termômetro tipo espeto em 3 volumes por lote (início, meio
+    e fim do caminhão), e as três leituras anotadas no F-07, que é o registro de temperatura do recebimento
+    (POP-01, seção "4. Temperatura na chegada").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r09
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não, recuse o lote.** −10 °C está acima do limite de −12 °C para congelados no recebimento
+    — acima disso é recusa (POP-01, seção "4. Temperatura na chegada").
+
+
+    Duas observações importantes:
+
+
+    - **Sinal de descongelamento também pesa:** mesmo que o termômetro marcasse −12 °C ou menos, congelado
+    com gelo acumulado, embalagem molhada ou produto amolecido também é recusado (POP-01, seção "4. Temperatura
+    na chegada").
+
+    - **Registro:** meça com o termômetro de espeto em 3 volumes por lote (início, meio e fim do caminhão)
+    e anote as três leituras no F-07 – ele é o registro de temperatura do recebimento em toda entrega
+    de congelados (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o lote for recusado, devolva ainda na doca — e lembre que, para produtos aceitos, o tempo máximo
+    entre a doca e a câmara é de 30 minutos para congelados e resfriados (POP-01, seção "7. Prazo para
+    guardar").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r10
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite — recuse o lote.**
+
+
+    O frango congelado a −10 °C está acima do limite de recebimento para congelados: a temperatura máxima
+    para aceitar é −12 °C (POP-01, seção "4. Temperatura na chegada").
+
+
+    Duas observações do mesmo procedimento:
+
+
+    - A medição deve ser feita com o termômetro tipo espeto em **3 volumes por lote** (início, meio e
+    fim do caminhão), e as três leituras registradas no F-07 — isso vale para toda entrega de congelados,
+    mesmo sem divergência (POP-01, seção "4. Temperatura na chegada").
+
+    - Além da temperatura, o congelado é recusado se apresentar sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido), mesmo que o termômetro marque −12 °C ou menos (POP-01, seção
+    "4. Temperatura na chegada"). Vale conferir isso também antes de fechar a recusa.
+
+
+    Se o lote for recusado e depois chegar a discussão sobre guarda do que ficou na doca: o prazo máximo
+    entre a doca e a câmara é de 30 minutos para congelados e resfriados (POP-01, seção "7. Prazo para
+    guardar").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r11
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** O frango está fora do limite de recebimento.
+
+
+    - A régua de congelados é: aceitar até **−12 °C** e recusar acima de **−12 °C**. Como o termômetro
+    marcou **−10 °C**, está acima do limite → recusa (POP-01, seção "4. Temperatura na chegada").
+
+    - Atenção também ao outro critério da mesma seção: congelado com sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou menos**
+    (POP-01, seção "4. Temperatura na chegada").
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), com as três leituras anotadas no **F-07** — esse registro é obrigatório em toda entrega
+    de congelados, mesmo sem divergência (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o produto for recusado, registre a recusa e as leituras antes de liberar o caminhão. Depois de
+    conferido, o prazo máximo da doca até a câmara é de **30 minutos** para congelados (POP-01, seção
+    "7. Prazo para guardar").
+
+    '
+  classe: RECUSA
+  observacao: ''
+- codigo: r12
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: 'Não. O frango congelado a −10 °C está acima do limite de aceitação: para congelados, o critério
+    é aceitar até −12 °C e recusar acima de −12 °C (POP-01, seção "4. Temperatura na chegada").
+
+
+    Vale lembrar também que congelado com sinal de descongelamento (gelo acumulado, embalagem molhada
+    ou produto amolecido) é recusado mesmo que o termômetro marque −12 °C ou menos (POP-01, seção "4.
+    Temperatura na chegada"). E a medição deve ser feita com termômetro tipo espeto em 3 volumes por lote
+    — início, meio e fim do caminhão — anotando as três leituras no F-07, que é o registro de temperatura
+    do recebimento (POP-01, seção "4. Temperatura na chegada").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r13
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não, não pode aceitar.** O frango congelado a −10 °C está fora do limite de recebimento.
+
+
+    Pelo manual, para congelados a regra é: **aceitar até −12 °C; recusar acima de −12 °C** (POP-01, seção
+    "4. Temperatura na chegada"). Como −10 °C é mais quente que −12 °C, o lote deve ser recusado.
+
+
+    Vale lembrar dois pontos do mesmo procedimento (POP-01, seção "4. Temperatura na chegada"):
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras anotadas no F-07, que é o registro de temperatura do recebimento.
+
+    - Mesmo que o termômetro marcasse −12 °C ou menos, congelado com sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido) também é recusado.
+
+
+    Se o produto for aceito por decisão do encarregado, o prazo entre a doca e a câmara é de no máximo
+    **30 minutos** para congelados (POP-01, seção "7. Prazo para guardar"), e a câmara deve manter **−18
+    °C ou menos** (POP-05, seção "4. Temperatura de armazenamento e exposição").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r14
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: 'Não aceite. Frango congelado a −10 °C está fora do padrão de recebimento.
+
+
+    Pelo manual, congelados só podem ser aceitos até **−12 °C**; acima disso (ou seja, mais quente que
+    −12 °C, como o seu −10 °C) a regra é **recusar** (POP-01, seção "4. Temperatura na chegada").
+
+
+    Dois pontos da mesma seção que valem conferir antes de fechar a recusa:
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras precisam ser anotadas no **F-07**, que é o registro de temperatura
+    do recebimento — mesmo quando está tudo certo (POP-01, seção "4. Temperatura na chegada").
+
+    - Mesmo que o termômetro marcasse −12 °C ou menos, congelado com sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido) também é recusado (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o produto for recusado e depois houver troca, o prazo para perecíveis é de **24 horas** a partir
+    do horário do cupom, com o produto na embalagem original e mantido na temperatura indicada; carne
+    e frango só são trocados com o produto em mãos, foto não é aceita (POP-03, seção "3. Prazo de troca
+    — produtos perecíveis").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r15
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite — recuse o lote.**
+
+
+    O frango congelado a −10 °C está acima do limite de aceitação para congelados no recebimento: a faixa
+    aceita é até −12 °C, e acima disso o produto deve ser recusado (POP-01, seção "4. Temperatura na chegada").
+
+
+    Duas observações do mesmo procedimento:
+
+    - **Sinal de descongelamento também é motivo de recusa** — gelo acumulado, embalagem molhada ou produto
+    amolecido reprovam o lote mesmo que o termômetro marque −12 °C ou menos (POP-01, seção "4. Temperatura
+    na chegada"). Vale conferir isso na entrega.
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), com as três leituras anotadas no F-07 (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o lote for recusado, registre as leituras mesmo assim — o F-07 é o registro de temperatura em toda
+    entrega de congelados, inclusive quando não há divergência (POP-01, seção "4. Temperatura na chegada").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r16
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** O frango congelado a −10 °C está fora do limite de recebimento.
+
+
+    - Para congelados, a regra é: **aceitar até −12 °C** e **recusar acima de −12 °C** — ou seja, −10
+    °C é mais quente que o limite e deve ser recusado (POP-01, seção "4. Temperatura na chegada").
+
+    - Além disso, se houver qualquer sinal de descongelamento (gelo acumulado, embalagem molhada ou produto
+    amolecido), o produto é recusado **mesmo que o termômetro marque −12 °C ou menos** (POP-01, seção
+    "4. Temperatura na chegada").
+
+    - Lembre também de registrar as leituras: a medição deve ser feita com termômetro tipo espeto em **3
+    volumes por lote** (início, meio e fim do caminhão), e as três leituras são anotadas no F-07 em toda
+    entrega de congelados, mesmo quando estiver tudo certo (POP-01, seção "4. Temperatura na chegada").
+
+
+    Se o produto for recusado na doca, o manual não trata desse fluxo nesta parte — vale confirmar com
+    o encarregado.'
+  classe: RECUSA
+  observacao: ''
+- codigo: r17
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** O frango está a −10 °C, e para congelados o limite é aceitar até −12 °C (recusar
+    acima de −12 °C) — ou seja, −10 °C está acima do limite e o lote deve ser recusado (POP-01, seção
+    "4. Temperatura na chegada").
+
+
+    Alguns pontos importantes desse mesmo procedimento:
+
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras precisam ser anotadas no F-07 em toda entrega de congelados, mesmo
+    quando estiver tudo certo (POP-01, seção "4. Temperatura na chegada").
+
+    - Mesmo que o termômetro marque −12 °C ou menos, congelado com sinal de descongelamento (gelo acumulado,
+    embalagem molhada ou produto amolecido) também é recusado (POP-01, seção "4. Temperatura na chegada").
+
+    - Se o produto for aceito em outra situação, o tempo máximo entre a doca e a câmara é de **30 minutos**
+    para congelados (POP-01, seção "7. Prazo para guardar"), e a câmara/expositor de congelados deve ficar
+    a **−18 °C ou menos** (POP-05, seção "4. Temperatura de armazenamento e exposição").
+
+
+    Sobre troca (caso o frango já tenha sido comprado em outra ocasião): o prazo é de **24 horas** a partir
+    do horário do cupom, e carne e frango só são trocados com o produto em mãos — foto não é aceita (POP-03,
+    seção "3. Prazo de troca — produtos perecíveis").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r18
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** O frango está fora do limite de recebimento.
+
+
+    Pelo POP-01, seção "4. Temperatura na chegada": para **congelados**, aceita-se até **−12 °C** e recusa-se
+    acima de **−12 °C**. Como o termômetro marcou **−10 °C**, o produto está acima do limite e deve ser
+    recusado (POP-01, seção "4. Temperatura na chegada").
+
+
+    Dois pontos de atenção dessa mesma seção:
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), e as três leituras são anotadas no **F-07** em toda entrega de congelados — mesmo quando
+    não há divergência (POP-01, seção "4. Temperatura na chegada"). Vale registrar a leitura de −10 °C
+    no F-07 como evidência da recusa.
+
+    - Mesmo que o termômetro marcasse −12 °C ou menos, o congelado seria recusado se apresentasse sinal
+    de descongelamento (gelo acumulado, embalagem molhada ou produto amolecido) (POP-01, seção "4. Temperatura
+    na chegada"). Confira isso também antes de fechar a decisão.
+
+
+    Se o produto for aceito por alguma exceção autorizada, o prazo máximo entre a doca e a câmara é de
+    **30 minutos** (POP-01, seção "7. Prazo para guardar"), e a câmara de congelados precisa estar a **−18
+    °C ou menos** (POP-05, seção "4. Temperatura de armazenamento e exposição").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r19
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: 'Não, não aceite. O frango está a −10 °C, e para congelados no recebimento o limite é aceitar
+    até −12 °C — acima disso, recusar (POP-01, seção "4. Temperatura na chegada").
+
+
+    Duas observações do próprio procedimento:
+
+    - Vale recusar também se houver sinal de descongelamento (gelo acumulado, embalagem molhada ou produto
+    amolecido), mesmo que o termômetro marque −12 °C ou menos (POP-01, seção "4. Temperatura na chegada").
+
+    - A medição deve ser feita com termômetro tipo espeto em 3 volumes por lote (início, meio e fim do
+    caminhão), e as três leituras anotadas no F-07 em toda entrega de congelados, mesmo quando estiver
+    tudo certo (POP-01, seção "4. Temperatura na chegada").'
+  classe: RECUSA
+  observacao: ''
+- codigo: r20
+  pergunta_id: q02
+  pergunta: chegou frango congelado marcando -10 graus no termometro, aceito?
+  resposta: '**Não aceite.** Para congelados, a regra é aceitar até **−12 °C** e recusar acima de **−12
+    °C** (POP-01, seção "4. Temperatura na chegada"). O frango chegou a **−10 °C**, ou seja, acima do
+    limite — está fora da faixa de aceitação.
+
+
+    Dois pontos importantes do mesmo procedimento:
+
+
+    - A medição deve ser feita com termômetro tipo espeto em **3 volumes por lote** (início, meio e fim
+    do caminhão), com as três leituras anotadas no **F-07** — que é o registro de temperatura do recebimento
+    e deve ser preenchido em toda entrega de congelados, mesmo quando estiver tudo certo (POP-01, seção
+    "4. Temperatura na chegada").
+
+    - Além da temperatura, congelado com sinal de descongelamento (gelo acumulado, embalagem molhada ou
+    produto amolecido) é recusado **mesmo que o termômetro marque −12 °C ou menos** (POP-01, seção "4.
+    Temperatura na chegada"). Vale conferir isso também.
+
+
+    Se você já recebeu e a dúvida é sobre troca/devolução: para congelados o prazo é de **24 horas** a
+    partir do horário impresso no cupom, e frango só é trocado com o produto em mãos — foto não é aceita
+    (POP-03, seção "3. Prazo de troca — produtos perecíveis").'
+  classe: RECUSA
+  observacao: ''

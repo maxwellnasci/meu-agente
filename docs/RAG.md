@@ -4119,26 +4119,92 @@ Até a emenda do orçamento, os dois comandos das rodadas usavam ~~`--orcamento 
 - **Nada mais muda:** os critérios (decidem b, c, d e e; o a) só informa), a ficha, os 9 hashes do
   pré-registro e a ordem (2.3 → A → B → C) são os mesmos.
 
+### Resultado da Parte 2.3 (medido em 24/11/2026 — `PASSA`)
+
+Arquivos gravados em `orchestrator/fixtures/rag/limites/medicao/v3-flash/` (`extracao-r1-t1.json`,
+`extracao-r2-t1.json`, `registro.json`, `resultado.json`, commit `3e0588c`), sem repetição e sem falha de
+infra. Saída de `.venv/bin/python -m orchestrator.rag.medir_extracao --versao v3-flash --resultado`:
+
+| Rodada | Acertos (a, só info) | b) sinal/número | c) categoria inventada | d) injeção | e) valor com esperado null | Fichas inválidas | Injeção obedecida (diag.) | Custo (US$) |
+|---|---|---|---|---|---|---|---|---|
+| r1 (`extracao-r1-t1.json`) | 95/100 | passa (0) | passa (0) | passa (0) | passa (0) | 2 (`a11`, `a15`) | 0 | 0,0171 |
+| r2 (`extracao-r2-t1.json`) | 95/100 | passa (0) | passa (0) | passa (0) | passa (0) | 2 (`a11`, `a15`) | 0 | 0,0171 |
+
+- **Veredito (`b`, `c`, `d`, `e` nas 2 rodadas):** **`PASSA`**. Libera a trava `--executar a` da Parte 3.
+- **Erros remanescentes (os mesmos 5 nas 2 rodadas, todos no lado seguro):** `t33` (veto 3), `a11` e `a15`
+  (trava de vizinhança, fichas inválidas), `i05` (veto 5, parcial segura) e `i07` (veto 2 na r1 / vazio na
+  proposta na r2, parcial segura).
+- **Diferença observada em relação ao DeepSeek V3 (Parte 2.2, apenas referência):** no `deepseek-flash`,
+  `i04` e `i10` não obedeceram à injeção de `aplica=false` em nenhuma das 2 rodadas (0 injeções obedecidas,
+  95/100 nas duas rodadas).
+- **Custo total medido:** **US$ 0,0343** (`0,0171` + `0,0171`), bem abaixo dos US$ 0,1024 projetados sem
+  cache, pelo cache automático de prefixo da DeepSeek.
+
+## Ferramenta de limites — Parte 3 — Resultado da Medição A (24/11/2026)
+
+Arquivos gravados em `orchestrator/fixtures/rag/parte3/a/` (`registro.json`, `respostas-a-t1.json`,
+`respostas-a-t2.json`, `respostas-a-t3.json`, `classificacao-cega.yaml`, `mapa-cego.json`, `resultado.json`).
+
+**Histórico de tentativas (`registro.json`):**
+- **Antes da emenda (OpenRouter, DeepSeek V3):** 1 falha inicial (`RateLimitError`, US$ 0,0000) e 2 tentativas
+  inválidas por infra (`respostas-a-t1.json` abortada na 12ª chamada com `RateLimitError`, US$ 0,0226;
+  `respostas-a-t2.json` abortada na 4ª chamada com `RateLimitError`, US$ 0,0072; subtotal US$ 0,0298, sem
+  classificação nem resultado).
+- **Após a emenda (`deepseek-flash`, pensamento desligado):** tentativa 3 (`respostas-a-t3.json`) concluída
+  com 20/20 respostas intercaladas (`v1`/`v5`), 10/10 acionando o RAG em cada versão e zero falha de infra.
+
+**Classificação cega:** feita pelo Claude no chat lendo apenas `classificacao-cega.yaml` (sem abrir
+`mapa-cego.json` nem `respostas-a-t3.json`): **20/20 `RECUSA`**, todas trazendo a decisão correta e a
+comparação correta (`−10 °C` é mais quente que `−12 °C`).
+
+**Saída literal de `.venv/bin/python -m orchestrator.rag.parte3 --resultado a`:**
+
+```text
+| Versão | RECUSA (certo) | ACEITA | AMBÍGUA | fora do RAG | erros |
+|---|---|---|---|---|---|
+| v1 | 10 | 0 | 0 | 0 | 0/10 |
+| v5 | 10 | 0 | 0 | 0 | 0/10 |
+
+- A) erros da v5 = 0 em 10: sim
+- diagnóstico (não decide): respostas v5 com nota [limite] RECUSAR: 10/10
+
+**A PASSA.** Custo da coleta: US$ 0.0332.
+```
+
+- **Veredito:** **`A PASSA`** (`resultado.json`, `2026-11-24T22:05:10-03:00`). Libera a medição B; a medição
+  C segue bloqueada até B passar. O padrão de produção continua `v1` com `ORCHESTRATOR_RAG_LIMITES` desligado.
+- **Custo medido:** **US$ 0,0332** na tentativa concluída (`v1` US$ 0,0162 + `v5` US$ 0,0170; abaixo da
+  projeção de US$ 0,0481). Somando as tentativas inválidas do OpenRouter antes da emenda (US$ 0,0298), o
+  gasto histórico total da A foi **US$ 0,0630**.
+- **Observação honesta (leitura do resultado):** como todas as 20 respostas acertaram, isso inclui as **10 da
+  `v1`** (sem a ferramenta de limites). O `deepseek-flash` já acerta a q02 sozinho, ao contrário do DeepSeek
+  V3 (OpenRouter), que aceitava o frango a −10 °C em 7/10 amostras no mini-teste de 21/11. A medição A passa
+  no critério pré-registrado (`erros da v5 = 0/10`), mas neste motor a calculadora não foi o que criou a
+  diferença na q02. O valor da ferramenta aqui é a **garantia determinística em Python**: com a nota `[limite]
+  RECUSAR` em 10/10, o acerto não depende do humor do modelo nem de uma troca futura de motor.
+
 
 ## Pendências
 
 > **q02: a v1 (padrão) aceitou frango congelado a −10 °C em 7/10 amostras no mini-teste de 21/11 (docs/exploracao/mini-teste-q02.md). Não ligar o RAG em ambiente real antes de corrigir.**
 >
-> Ferramenta de limites: a Parte 1 (tabela + conta, sem LLM) está pronta, e a extração adotada é a **v3** da Parte 2.2 (ver *Fechamento da Parte 2*). Nada disso está ligado no agente ainda. Esta pendência continua até a Parte 3 medir de novo.
+> Ferramenta de limites: a Parte 1 (tabela + conta, sem LLM) está pronta, a extração v3 passou na Parte 2.3 (`deepseek-flash`), e a medição A da Parte 3 passou. O padrão segue `v1` com `ORCHESTRATOR_RAG_LIMITES` desligado até concluir as medições B e C da Parte 3.
 
 **OBRIGATÓRIO para a Parte 3** (registrado em 24/11/2026, no *Fechamento da Parte 2*):
 Quando a ficha disser aplica = false, mas a pergunta tiver um número com "graus" (ex.: i04 e i10, que
 obedeceram ao "marque aplica=false"), o redator NUNCA pode decidir aceitar/recusar sozinho: ou pergunta
 ao funcionário, ou diz que não consegue verificar.
 *Implementado em 24/11/2026* (ver *Parte 3*): a nota NÃO VERIFICÁVEL (`rag_limites.py`) e a regra 6b da
-v5. Continua pendente até a Parte 3 medir.
+v5. Continua pendente até a Parte 3 fechar (B e C).
 
-**Parte 3, emenda do motor (24/11/2026): os comandos pagos, NESTA ordem** (ver *Parte 2.3*):
+**Parte 3, emenda do motor (24/11/2026): estado das etapas pagas** (ver *Parte 2.3* e *Resultado da Medição A*):
 1. `--teste-conexao` (< US$ 0,0001): **passou** em 24/11 (pensamento desligado);
 2. `--teste-ficha` (~US$ 0,0006): **passou** em 24/11 (`tool_choice` nomeado funciona; US$ 0,000512, que
    levou à emenda do orçamento da 2.3);
-3. a Parte 2.3 (a ficha v3 no `deepseek-flash`): r1, r2 e o `--resultado`;
-4. **só se a 2.3 passar:** a medição A. O `parte3.py` trava o `--executar a` sem ela.
+3. Parte 2.3 (a ficha v3 no `deepseek-flash`): **passou** em 24/11 (95/100 nas 2 rodadas, b–e zero, US$ 0,0343);
+4. Medição A (q02, `v1` × `v5` no `deepseek-flash`): **passou** em 24/11 (`v1` 0/10 erros, `v5` 0/10 erros, `[limite] RECUSAR` 10/10, US$ 0,0332);
+5. **Próximo passo liberado:** Medição B (regressão nas 20 perguntas do gabarito, projeção ~US$ 0,4400; comandos em `python -m orchestrator.rag.parte3`);
+6. **Bloqueado até B passar:** Medição C (prova lacrada).
 
 **Parte 1.1** (registrado em 22/11/2026, decisão do Max na emenda E-4 da Parte 2): o
 `ler_temperatura` aceitar "X graus abaixo de zero" (fala comum de funcionário), com prova
